@@ -507,4 +507,63 @@ struct HierarchyTests {
         #expect(world.parent(of: ship) == nil)
         #expect(world.parent(of: turret) == ship)
     }
+
+    @Test("spawn(_:childOf:) spawns the entity as the parent's last child, holding its components")
+    func spawnChildOf() throws {
+        var world = World()
+        let ship = world.spawn()
+        let bow = world.spawn(Name("bow"), childOf: ship)
+        let stern = world.spawn(Name("stern"), Health(3), childOf: ship)
+        let expected: [Entity] = [bow, stern]
+        let sternHealth = Health(3)
+        #expect(world.children(of: ship) == expected)
+        #expect(world.parent(of: stern) == ship)
+        #expect(world[Health.self, of: stern] == sternHealth)
+    }
+
+    @Test("A child spawned under a parent is despawned with it")
+    func spawnChildOfDespawnsWithParent() {
+        var world = World()
+        let ship = world.spawn()
+        let turret = world.spawn(Name("turret"), childOf: ship)
+        world.despawn(ship)
+        #expect(!world.contains(turret))
+    }
+
+    @Test("A child spawned under a parent runs its add hooks once it has its parent")
+    func spawnChildOfHooksSeeParent() {
+        var world = World()
+        let ship = world.spawn()
+        world.resources.insert(SpawnedParents())
+        world.onAdd(Name.self) { world, entity in
+            world.resources[SpawnedParents.self].parents.append(world.parent(of: entity))
+        }
+        world.spawn(Name("turret"), childOf: ship)
+        let expected: [Entity?] = [ship]
+        #expect(world.resources[SpawnedParents.self].parents == expected)
+    }
+
+    @Test("spawn(_:childOf:) traps on a stale parent")
+    func spawnChildOfStaleTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            let ship = world.spawn()
+            world.despawn(ship)
+            world.spawn(Name("turret"), childOf: ship)
+        }
+    }
+
+    @Test("The checked spawn under a parent throws StaleEntity for a stale parent and spawns nothing")
+    func spawnCheckedChildOfStale() {
+        var world = World()
+        let ship = world.spawn()
+        world.despawn(ship)
+        let before = world.count
+        #expect(throws: StaleEntity.self) {
+            try world.spawn(Name("turret"), checkedChildOf: ship)
+        }
+        #expect(world.count == before)
+    }
 }
+
+private struct SpawnedParents: Resource { var parents: [Entity?] = [] }

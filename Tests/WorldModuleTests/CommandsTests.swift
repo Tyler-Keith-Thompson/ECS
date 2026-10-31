@@ -79,6 +79,31 @@ struct CommandsTests {
         #expect(first.count == 2)
         #expect(second.count == 1)
     }
+
+    @Test("A spawn command under a parent placeholder spawns the entity as that parent's child")
+    func spawnChildOfPlaceholder() {
+        var world = World()
+        var commands = Commands()
+        let ship = commands.spawn(Name("ship"))
+        commands.spawn(Name("turret"), childOf: ship)
+        let spawned = world.apply(commands)
+        let expected: [Entity] = [spawned[1]]
+        #expect(world.children(of: spawned[0]) == expected)
+    }
+
+    @Test("A spawn command under a parent that is gone by then spawns the entity without a parent")
+    func spawnChildOfGoneParent() {
+        var world = World()
+        let ship = world.spawn()
+        var commands = Commands()
+        commands.spawn(Name("turret"), childOf: ship)
+        world.despawn(ship)
+        let spawned = world.apply(commands)
+        let turret = Name("turret")
+        #expect(world.parent(of: spawned[0]) == nil)
+        #expect(world[Name.self, of: spawned[0]] == turret)
+    }
+
 }
 
 @Suite("Resources")

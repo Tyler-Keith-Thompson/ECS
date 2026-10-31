@@ -26,6 +26,7 @@
 ### Changing the Hierarchy and Relations
 
 - ``addChild(_:to:)``
+- ``spawn(_:childOf:)``
 - ``removeParent(of:)``
 - ``relate(_:_:to:)``
 - ``unrelate(_:_:from:)``

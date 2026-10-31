@@ -176,6 +176,73 @@ extension World {
         endOperation()
     }
 
+    /// Spawns an entity holding the given components as the last child of a parent.
+    ///
+    /// A new entity can't be an ancestor of its parent, so unlike ``addChild(_:to:)`` this
+    /// method can't fail on a cycle. The following example builds a ship with two turrets:
+    ///
+    /// ```swift
+    /// var world = World()
+    /// let ship = world.spawn(Name(value: "Ship"))
+    /// world.spawn(Name(value: "Bow turret"), childOf: ship)
+    /// world.spawn(Name(value: "Stern turret"), childOf: ship)
+    ///
+    /// print(world.children(of: ship).map { world[Name.self, of: $0].value })
+    /// // Prints "["Bow turret", "Stern turret"]"
+    /// ```
+    ///
+    /// Hooks and observers run once the entity holds its components and its parent.
+    ///
+    /// - Parameters:
+    ///   - bundles: The components and bundles the new entity holds.
+    ///   - parent: The entity to spawn it under.
+    /// - Returns: The handle of the new entity.
+    /// - Precondition: `parent` is live. The checked spelling, ``spawn(_:checkedChildOf:)``,
+    ///   throws instead.
+    /// - Complexity: O(*k* + *c*) amortized, where *k* is the number of components and *c* the
+    ///   number of the parent's children.
+    @inlinable
+    @discardableResult
+    public mutating func spawn<each B: Bundle>(_ bundles: repeat each B, childOf parent: Entity) -> Entity {
+        precondition(contains(parent), "Spawning a child of stale parent \(parent)")
+        return spawnLinked(repeat each bundles, to: parent)
+    }
+
+    /// Spawns an entity holding the given components as the last child of a parent, throwing if
+    /// the parent is stale.
+    ///
+    /// This method behaves like ``spawn(_:childOf:)``, but reports a stale parent as an error
+    /// rather than trapping.
+    ///
+    /// - Parameters:
+    ///   - bundles: The components and bundles the new entity holds.
+    ///   - parent: The entity to spawn it under.
+    /// - Returns: The handle of the new entity.
+    /// - Throws: ``StaleEntity`` if `parent` isn't live. Nothing is spawned.
+    /// - Complexity: O(*k* + *c*) amortized, where *k* is the number of components and *c* the
+    ///   number of the parent's children.
+    @inlinable
+    @discardableResult
+    public mutating func spawn<each B: Bundle>(_ bundles: repeat each B, checkedChildOf parent: Entity) throws(StaleEntity) -> Entity {
+        guard contains(parent) else { throw StaleEntity() }
+        return spawnLinked(repeat each bundles, to: parent)
+    }
+
+    /// Spawns an entity holding `bundles` as the last child of the live `parent`.
+    @inlinable
+    mutating func spawnLinked<each B: Bundle>(_ bundles: repeat each B, to parent: Entity) -> Entity {
+        let entity = makeEntity()
+        for bundle in repeat each bundles {
+            bundle.insert(into: entity, in: &self)
+        }
+        for bundle in repeat each bundles {
+            bundle._insertRequired(into: entity, in: &self)
+        }
+        link(entity, to: parent)
+        endOperation()
+        return entity
+    }
+
     /// Detaches an entity from its parent and returns the parent.
     ///
     /// Both entities stay in the world; `child` becomes a root and is no longer despawned with

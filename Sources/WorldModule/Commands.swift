@@ -101,6 +101,29 @@ public struct Commands: Sendable {
         return pending
     }
 
+    /// Records spawning an entity holding the given components as the last child of a parent,
+    /// and returns a placeholder handle for it.
+    ///
+    /// When the command applies, it spawns the entity as ``World/spawn(_:childOf:)`` does. If
+    /// `parent` isn't live then, the entity is spawned without a parent.
+    ///
+    /// - Parameters:
+    ///   - bundles: The components and bundles the new entity holds.
+    ///   - parent: The entity to spawn it under, or a placeholder an earlier command in this
+    ///     buffer returned.
+    /// - Returns: A placeholder handle for the entity, valid in later commands of this buffer.
+    @inlinable
+    @discardableResult
+    public mutating func spawn<each B: Bundle>(_ bundles: repeat each B, childOf parent: Entity) -> Entity {
+        let pending = Entity(index: UInt32(spawnCount), generation: Entity.pendingGeneration)
+        spawnCount += 1
+        operations.append { world, spawned in
+            let resolved = Self.resolve(parent, in: spawned)
+            spawned.append((try? world.spawn(repeat each bundles, checkedChildOf: resolved)) ?? world.spawn(repeat each bundles))
+        }
+        return pending
+    }
+
     /// Records spawning a copy of an entity, and returns a placeholder handle for the copy.
     ///
     /// When the command applies, it copies the entity as ``World/clone(_:)`` does. If `entity`

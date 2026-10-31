@@ -108,6 +108,8 @@
 
 - ``addChild(_:to:)``
 - ``addChild(_:checkedTo:)``
+- ``spawn(_:childOf:)``
+- ``spawn(_:checkedChildOf:)``
 - ``removeParent(of:)``
 - ``removeParent(checkedOf:)``
 - ``parent(of:)``

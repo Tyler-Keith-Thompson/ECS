@@ -222,7 +222,7 @@ go through a parameter pack. To go faster still:
   and `sources(Likes.self, of:)` read it both ways, and `.related(Likes.self, to: bob)` visits only
   bob's sources. Relations can be exclusive, carry values, and despawn their sources with their
   target.
-- **Hierarchy**: `try world.addChild(turret, to: ship)`; `parent(of:)`, `children(of:)`,
+- **Hierarchy**: `world.spawn(Turret(), childOf: ship)` or `try world.addChild(turret, to: ship)`; `parent(of:)`, `children(of:)`,
   `ancestors(of:)` and `descendants(of:)` walk it, and despawning an entity despawns its
   descendants. The hierarchy is the `ChildOf` relation, so `.related(ChildOf.self, to: ship)`
   queries children and `.without(Targets<ChildOf>.self)` finds roots.
