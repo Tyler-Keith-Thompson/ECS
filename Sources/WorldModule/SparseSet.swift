@@ -103,7 +103,7 @@ class AnyColumn: @unchecked Sendable {
     @usableFromInline final var group = -1
     /// Whether the column holds a relation's ``Targets``, which the world indexes by target.
     @usableFromInline final let isRelation: Bool
-    /// Whether the world keeps an index of the column's values (``World/index(_:)``).
+    /// Whether the world keeps an index of the column's values (``World/index(_:)-u1gw``).
     @usableFromInline final var isIndexed = false
     /// Counts the times the column was reached for writing, so an index of its values knows
     /// whether a write may have changed one.

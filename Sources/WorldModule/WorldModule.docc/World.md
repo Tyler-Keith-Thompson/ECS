@@ -98,8 +98,10 @@
 - ``group(_:)``
 - ``group(checked:)``
 - ``cache(_:)``
-- ``index(_:)``
+- ``index(_:)-u1gw``
+- ``index(_:)-2gtfg``
 - ``lookup(_:)``
+- ``lookup(_:equals:)``
 
 ### Disabling Entities
 

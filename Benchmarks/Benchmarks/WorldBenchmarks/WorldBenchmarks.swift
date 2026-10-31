@@ -442,6 +442,19 @@ let benchmarks: @Sendable () -> Void = {
         blackHole(found)
     }
 
+    Benchmark("look up a thousand values of an indexed key path, a thousand entities each") { benchmark in
+        var world = populatedWorld()
+        for (index, entity) in world.query(Position.self).map({ $0.entity }).enumerated() {
+            world.insert(Team(number: index % 1000), into: entity)
+        }
+        world.index(\Team.number)
+        benchmark.startMeasurement()
+        var found = 0
+        for number in 0 ..< 1000 { found += world.lookup(\Team.number, equals: number).count }
+        benchmark.stopMeasurement()
+        blackHole(found)
+    }
+
     Benchmark("insert an indexed component into every entity") { benchmark in
         var world = populatedWorld()
         world.index(Team.self)

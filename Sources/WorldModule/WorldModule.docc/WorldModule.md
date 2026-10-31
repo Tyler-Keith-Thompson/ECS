@@ -155,7 +155,8 @@ replay or a comparison takes one assignment.
 - ``GroupError``
 
 Groups are made with `group(_:)`, cached queries with `cache(_:)` and indexes by value with
-`index(_:)` on ``World``; `lookup(_:)` finds the entities holding a value.
+`index(_:)` on ``World``; `lookup(_:)` finds the entities holding a value, and
+`lookup(_:equals:)` the entities whose property at a key path equals one.
 
 ### Deferring Changes
 

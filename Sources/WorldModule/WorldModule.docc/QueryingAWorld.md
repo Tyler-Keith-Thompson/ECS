@@ -267,3 +267,19 @@ world.index(Name.self)
 print(world.lookup(Name(value: "ada")) == [ada])
 // Prints "true"
 ```
+
+To find entities by one property of a component rather than by the whole value, index the
+property's key path and look it up with `lookup(_:equals:)`. The component type doesn't need to
+be `Hashable`, only the property:
+
+```swift
+struct Berth: Component { var dock: Int, number: Int }
+
+var world = World()
+let ferry = world.spawn(Berth(dock: 2, number: 14))
+world.spawn(Berth(dock: 3, number: 9))
+world.index(\Berth.number)
+
+print(world.lookup(\Berth.number, equals: 14) == [ferry])
+// Prints "true"
+```

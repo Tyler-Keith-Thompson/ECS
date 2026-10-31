@@ -191,7 +191,8 @@ go through a parameter pack. To go faster still:
 - **Cached queries**: `world.cache(Query(Position.self).without(Sleeping.self))` keeps the entities
   a query matches up to date, so a visit implying it walks only those rather than a whole column.
 - **Indexes**: `world.index(Name.self)` maps each value of a `Hashable` component to its entities,
-  so `world.lookup(Name("bob"))` skips the walk.
+  so `world.lookup(Name("bob"))` skips the walk; `world.index(\Seat.number)` and
+  `world.lookup(\Seat.number, equals: 7)` do the same for one property.
 - **Column spans**: `world.withSpan(of: Health.self) { entities, health in … }` lends a component
   type's storage as `Span`s for vectorized loops and C calls; `withMutableSpan` writes in place
   and marks every component changed.

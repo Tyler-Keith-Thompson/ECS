@@ -124,8 +124,9 @@ public struct World: Sendable {
     @usableFromInline var hooks = Hooks()
     /// The owning groups, each column knowing its group by position here.
     @usableFromInline var groups: [OwningGroup] = []
-    /// The indexes of components by value (``index(_:)``), by component type.
-    @usableFromInline var valueIndexes: [ObjectIdentifier: any AnyValueIndex] = [:]
+    /// The indexes of components by value or by a property (``index(_:)-u1gw``), by component type
+    /// and key path.
+    @usableFromInline var valueIndexes: [ValueIndexKey: any AnyValueIndex] = [:]
     /// The observers of entity events.
     @usableFromInline var observers = Observers()
     /// Each relation's sources by target, in the order the relations were first stored.
