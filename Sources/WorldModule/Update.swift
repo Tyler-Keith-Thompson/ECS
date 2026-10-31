@@ -4,7 +4,7 @@ extension World {
     ///
     /// `body` receives the `W` to change and a row of the entity with the components it reads.
     /// Entities are visited in the storage order of whichever of these types the fewest entities
-    /// hold.
+    /// hold. Every `W` visited is marked changed at the current ``changeTick``.
     ///
     /// ```swift
     /// world.update(Position.self, reading: Velocity.self, where: .without(Frozen.self)) { position, row in
@@ -74,7 +74,8 @@ extension World {
     }
 
     /// Changes the `A` and `B` of every entity that holds both, every type in `reading` and
-    /// passes `filter`, in place.
+    /// passes `filter`, in place. Every `A` and `B` visited is marked changed at the current
+    /// ``changeTick``.
     ///
     /// ```swift
     /// world.update(Health.self, Stamina.self, reading: Regeneration.self) { health, stamina, row in
@@ -166,11 +167,18 @@ extension World {
         guard !resolved.isUnsatisfiable else { return }
         let reader = makeReader(self)
         let column = uniqueColumn(at: slot, of: W.self)
-        let index = column.index
-        // Moved out for the visit so writes reach the storage directly and are not copied.
+        // Moved out for the visit so writes reach the storage directly and are not copied; the
+        // ticks before the index is copied, which would otherwise share them.
         var values: [W] = []
+        var ticks: [ComponentTicks] = []
         swap(&values, &column.values)
-        defer { swap(&values, &column.values) }
+        swap(&ticks, &column.index.ticks)
+        defer {
+            swap(&values, &column.values)
+            swap(&ticks, &column.index.ticks)
+        }
+        let index = column.index
+        let tick = changeTick
 
         // The column walked: -2 for W, k for the k-th read type, -1 for a filter type.
         var driver = index.dense
@@ -179,22 +187,28 @@ extension World {
             driver = entities
             driverColumn = column
         }
-        for required in resolved.required where required.dense.count < driver.count {
+        for required in resolved.candidates where required.dense.count < driver.count {
             driver = required.dense
             driverColumn = -1
         }
         let checksFilter = !resolved.isEmpty
 
-        for cursor in driver.indices {
-            let entity = driver[cursor]
-            var position = cursor
-            if driverColumn != -2 {
-                guard let found = index.position(of: entity) else { continue }
-                position = found
+        // Through buffer pointers, so the loop pays no uniqueness or bounds check per write.
+        try ticks.withUnsafeMutableBufferPointer { ticks throws(Failure) in
+            try values.withUnsafeMutableBufferPointer { values throws(Failure) in
+                for cursor in driver.indices {
+                    let entity = driver[cursor]
+                    var position = cursor
+                    if driverColumn != -2 {
+                        guard let found = index.position(of: entity) else { continue }
+                        position = found
+                    }
+                    if checksFilter, !resolved.passes(entity) { continue }
+                    guard let row = reader.row(entity, cursor, driverColumn) else { continue }
+                    ticks[position].changed = tick
+                    try body(&values[position], row)
+                }
             }
-            if checksFilter, !resolved.passes(entity) { continue }
-            guard let row = reader.row(entity, cursor, driverColumn) else { continue }
-            try body(&values[position], row)
         }
     }
 
@@ -220,16 +234,23 @@ extension World {
         let reader = makeReader(self)
         let firstColumn = uniqueColumn(at: firstSlot, of: A.self)
         let secondColumn = uniqueColumn(at: secondSlot, of: B.self)
-        let firstIndex = firstColumn.index
-        let secondIndex = secondColumn.index
         var firstValues: [A] = []
         var secondValues: [B] = []
+        var firstTicks: [ComponentTicks] = []
+        var secondTicks: [ComponentTicks] = []
         swap(&firstValues, &firstColumn.values)
         swap(&secondValues, &secondColumn.values)
+        swap(&firstTicks, &firstColumn.index.ticks)
+        swap(&secondTicks, &secondColumn.index.ticks)
         defer {
             swap(&firstValues, &firstColumn.values)
             swap(&secondValues, &secondColumn.values)
+            swap(&firstTicks, &firstColumn.index.ticks)
+            swap(&secondTicks, &secondColumn.index.ticks)
         }
+        let firstIndex = firstColumn.index
+        let secondIndex = secondColumn.index
+        let tick = changeTick
 
         // The column walked: -2 for A, -3 for B, k for the k-th read type, -1 for a filter type.
         var driver = firstIndex.dense
@@ -242,27 +263,38 @@ extension World {
             driver = entities
             driverColumn = column
         }
-        for required in resolved.required where required.dense.count < driver.count {
+        for required in resolved.candidates where required.dense.count < driver.count {
             driver = required.dense
             driverColumn = -1
         }
         let checksFilter = !resolved.isEmpty
 
-        for cursor in driver.indices {
-            let entity = driver[cursor]
-            var firstPosition = cursor
-            var secondPosition = cursor
-            if driverColumn != -2 {
-                guard let found = firstIndex.position(of: entity) else { continue }
-                firstPosition = found
+        // Through buffer pointers, so the loop pays no uniqueness or bounds check per write.
+        try firstTicks.withUnsafeMutableBufferPointer { firstTicks throws(Failure) in
+            try secondTicks.withUnsafeMutableBufferPointer { secondTicks throws(Failure) in
+                try firstValues.withUnsafeMutableBufferPointer { firstValues throws(Failure) in
+                    try secondValues.withUnsafeMutableBufferPointer { secondValues throws(Failure) in
+                        for cursor in driver.indices {
+                            let entity = driver[cursor]
+                            var firstPosition = cursor
+                            var secondPosition = cursor
+                            if driverColumn != -2 {
+                                guard let found = firstIndex.position(of: entity) else { continue }
+                                firstPosition = found
+                            }
+                            if driverColumn != -3 {
+                                guard let found = secondIndex.position(of: entity) else { continue }
+                                secondPosition = found
+                            }
+                            if checksFilter, !resolved.passes(entity) { continue }
+                            guard let row = reader.row(entity, cursor, driverColumn) else { continue }
+                            firstTicks[firstPosition].changed = tick
+                            secondTicks[secondPosition].changed = tick
+                            try body(&firstValues[firstPosition], &secondValues[secondPosition], row)
+                        }
+                    }
+                }
             }
-            if driverColumn != -3 {
-                guard let found = secondIndex.position(of: entity) else { continue }
-                secondPosition = found
-            }
-            if checksFilter, !resolved.passes(entity) { continue }
-            guard let row = reader.row(entity, cursor, driverColumn) else { continue }
-            try body(&firstValues[firstPosition], &secondValues[secondPosition], row)
         }
     }
 }

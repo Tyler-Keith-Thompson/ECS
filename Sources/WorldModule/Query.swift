@@ -62,13 +62,24 @@ public struct QueryView<each C: Component>: Sequence, Sendable {
         QueryView(world: world, filter: filter.without(repeat each types), makeReader: makeReader)
     }
 
+    /// This view, keeping only entities whose `F` was added after `since` (nil for the world's
+    /// ``World/lastRun``).
+    @inlinable
+    public func added<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> QueryView {
+        QueryView(world: world, filter: filter.added(F.self, since: since), makeReader: makeReader)
+    }
+
+    /// This view, keeping only entities whose `F` was added or changed after `since` (nil for the
+    /// world's ``World/lastRun``).
+    @inlinable
+    public func changed<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> QueryView {
+        QueryView(world: world, filter: filter.changed(F.self, since: since), makeReader: makeReader)
+    }
+
     /// This view, keeping only entities that `filter` passes as well.
     @inlinable
     public func filtered(by filter: QueryFilter) -> QueryView {
-        var combined = self.filter
-        combined.required += filter.required
-        combined.excluded += filter.excluded
-        return QueryView(world: world, filter: combined, makeReader: makeReader)
+        QueryView(world: world, filter: self.filter.merging(filter), makeReader: makeReader)
     }
 
     /// The number of rows.
@@ -104,7 +115,7 @@ public struct QueryView<each C: Component>: Sequence, Sendable {
                 driverColumn = column
                 hasDriver = true
             }
-            for index in resolved.required where !hasDriver || index.dense.count < driver.count {
+            for index in resolved.candidates where !hasDriver || index.dense.count < driver.count {
                 driver = index.dense
                 driverColumn = -1
                 hasDriver = true
@@ -227,13 +238,24 @@ public struct EntityQueryView: Sequence, Sendable {
         EntityQueryView(world: world, filter: filter.without(repeat each types))
     }
 
+    /// This view, keeping only entities whose `F` was added after `since` (nil for the world's
+    /// ``World/lastRun``).
+    @inlinable
+    public func added<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> EntityQueryView {
+        EntityQueryView(world: world, filter: filter.added(F.self, since: since))
+    }
+
+    /// This view, keeping only entities whose `F` was added or changed after `since` (nil for the
+    /// world's ``World/lastRun``).
+    @inlinable
+    public func changed<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> EntityQueryView {
+        EntityQueryView(world: world, filter: filter.changed(F.self, since: since))
+    }
+
     /// This view, keeping only entities that `filter` passes as well.
     @inlinable
     public func filtered(by filter: QueryFilter) -> EntityQueryView {
-        var combined = self.filter
-        combined.required += filter.required
-        combined.excluded += filter.excluded
-        return EntityQueryView(world: world, filter: combined)
+        EntityQueryView(world: world, filter: self.filter.merging(filter))
     }
 
     /// The number of entities.
@@ -259,7 +281,7 @@ public struct EntityQueryView: Sequence, Sendable {
         init(world: World, filter: QueryFilter) {
             let resolved = ResolvedFilter(filter, in: world)
             var driver: [Entity]? = nil
-            for index in resolved.required where driver == nil || index.dense.count < driver!.count {
+            for index in resolved.candidates where driver == nil || index.dense.count < driver!.count {
                 driver = index.dense
             }
             self.filter = resolved

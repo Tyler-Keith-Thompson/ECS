@@ -128,6 +128,20 @@ let benchmarks: @Sendable () -> Void = {
         blackHole(total)
     }
 
+    Benchmark("query one type changed since a tick, a tenth changed") { benchmark in
+        var world = populatedWorld()
+        let checkpoint = world.changeTick
+        world.advanceChangeTick()
+        for (index, entity) in Array(world.entities).enumerated() where index.isMultiple(of: 10) {
+            world[Velocity.self, of: entity].dx += 1
+        }
+        benchmark.startMeasurement()
+        var total = 0.0
+        for (_, velocity) in world.query(Velocity.self).changed(Velocity.self, since: checkpoint) { total += velocity.dx }
+        benchmark.stopMeasurement()
+        blackHole(total)
+    }
+
     Benchmark("read one component of each entity") { benchmark in
         let world = populatedWorld()
         let entities = Array(world.entities)

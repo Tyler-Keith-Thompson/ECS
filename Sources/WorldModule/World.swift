@@ -35,6 +35,39 @@ public struct World: Sendable {
     /// The world's resources: values it holds once, outside any entity.
     public var resources = Resources()
 
+    /// The tick the world stamps on every component it adds or changes.
+    ///
+    /// It starts at 1 and moves only through ``advanceChangeTick()``, which a schedule calls
+    /// before each system it runs.
+    public var changeTick: ChangeTick { storedChangeTick }
+    @usableFromInline var storedChangeTick = ChangeTick(1)
+
+    /// The change tick at which the running system last ran, or ``ChangeTick/zero`` if it has not
+    /// run before or no schedule is running.
+    ///
+    /// Filters such as ``QueryFilter/changed(_:since:)`` compare against it when given no tick, so
+    /// a system sees what changed since its previous run. A ``Schedule`` sets it around each
+    /// system; set it directly only when running systems without one.
+    public var lastRun = ChangeTick.zero
+
+    /// Starts a new change tick: components added or changed from now on are newer than every
+    /// earlier tick.
+    ///
+    /// ```swift
+    /// let checkpoint = world.changeTick
+    /// world.advanceChangeTick()
+    /// world[Health.self, of: hero].current -= 1
+    /// world.query(Health.self).changed(Health.self, since: checkpoint)  // hero
+    /// ```
+    ///
+    /// - Returns: The new tick.
+    @inlinable
+    @discardableResult
+    public mutating func advanceChangeTick() -> ChangeTick {
+        storedChangeTick = ChangeTick(storedChangeTick.value + 1)
+        return storedChangeTick
+    }
+
     /// A world without entities or resources.
     @inlinable
     public init() {}
@@ -146,8 +179,8 @@ public struct World: Sendable {
 
     /// The `C` that `entity` holds.
     ///
-    /// Writing through the subscript changes the component in place:
-    /// `world[Health.self, of: hero].current -= 10`.
+    /// Writing through the subscript changes the component in place, and marks it changed at the
+    /// current ``changeTick``: `world[Health.self, of: hero].current -= 10`.
     ///
     /// - Complexity: O(1), plus a copy of the `C` storage on the first write after the world was
     ///   copied.
@@ -176,6 +209,8 @@ public struct World: Sendable {
             // Moved out while it is written: yielding storage inside the column would retain the
             // column for the duration.
             let column = uniqueUnretainedColumn(at: slot, of: C.self)
+            let tick = changeTick
+            column._withUnsafeGuaranteedRef { $0.index.ticks[position].changed = tick }
             var values: [C] = []
             column._withUnsafeGuaranteedRef { swap(&values, &$0.values) }
             defer { column._withUnsafeGuaranteedRef { swap(&values, &$0.values) } }
@@ -202,6 +237,9 @@ public struct World: Sendable {
     }
 
     /// Gives `entity` each of `components`, replacing any it holds of the same types.
+    ///
+    /// A new component is marked added and changed at the current ``changeTick``; a replaced one,
+    /// changed.
     ///
     /// - Complexity: O(*k*) amortized for *k* components.
     /// - Precondition: `entity` is live. Use ``insert(_:checkedInto:)`` to throw instead.
@@ -351,11 +389,13 @@ public struct World: Sendable {
 
     @inlinable
     mutating func store<C: Component>(_ component: C, for entity: Entity) {
+        let tick = changeTick
         uniqueUnretainedColumn(at: columnSlot(of: C.self), of: C.self)._withUnsafeGuaranteedRef { column in
             if let position = column.index.position(of: entity) {
                 column.values[position] = component
+                column.index.ticks[position].changed = tick
             } else {
-                _ = column.index.append(entity)
+                _ = column.index.append(entity, at: tick)
                 column.values.append(component)
             }
         }

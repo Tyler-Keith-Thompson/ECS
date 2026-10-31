@@ -1,5 +1,5 @@
 /// Which entities a column holds, and where: a sparse array from slot to position, and the dense
-/// array of entities at those positions.
+/// array of entities at those positions, with the tick each component was added and last changed.
 ///
 /// Lookup, insertion and removal are O(1); removal moves the last entity into the vacated
 /// position, so the dense order is the order of insertion with swaps on removal.
@@ -9,6 +9,8 @@ struct SparseIndex: Sendable {
     /// Position + 1 of each slot's entity in `dense`, or 0 for none.
     @usableFromInline var sparse: [UInt32] = []
     @usableFromInline var dense: [Entity] = []
+    /// When each entity's component was added and last changed, parallel to `dense`.
+    @usableFromInline var ticks: [ComponentTicks] = []
 
     @inlinable
     init() {}
@@ -25,14 +27,16 @@ struct SparseIndex: Sendable {
         return dense[position] == entity ? position : nil
     }
 
-    /// Appends `entity`, which the column must not hold, and returns its position.
+    /// Appends `entity`, which the column must not hold, added and changed at `tick`, and returns
+    /// its position.
     @inlinable
-    mutating func append(_ entity: Entity) -> Int {
+    mutating func append(_ entity: Entity, at tick: ChangeTick) -> Int {
         let slot = Int(entity.index)
         if slot >= sparse.count {
             sparse.append(contentsOf: repeatElement(0, count: slot - sparse.count + 1))
         }
         dense.append(entity)
+        ticks.append(ComponentTicks(added: tick, changed: tick))
         sparse[slot] = UInt32(dense.count)
         return dense.count - 1
     }
@@ -42,11 +46,27 @@ struct SparseIndex: Sendable {
     mutating func swapRemove(at position: Int) {
         let removed = dense[position]
         let last = dense.removeLast()
+        let lastTicks = ticks.removeLast()
         if position < dense.count {
             dense[position] = last
+            ticks[position] = lastTicks
             sparse[Int(last.index)] = UInt32(position + 1)
         }
         sparse[Int(removed.index)] = 0
+    }
+}
+
+/// When a component was added and when it was last changed.
+@frozen
+@usableFromInline
+struct ComponentTicks: Sendable {
+    @usableFromInline var added: ChangeTick
+    @usableFromInline var changed: ChangeTick
+
+    @inlinable
+    init(added: ChangeTick, changed: ChangeTick) {
+        self.added = added
+        self.changed = changed
     }
 }
 

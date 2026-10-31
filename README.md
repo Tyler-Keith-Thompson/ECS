@@ -104,6 +104,9 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   world while iterating is safe.
 - **`update`**: changes one or two component types in place across every matching entity,
   reading any others. This is the fast path for systems.
+- **Change detection**: every component remembers when it was added and last changed.
+  `query(…).changed(Position.self)` inside a system lists what changed since that system last
+  ran; `.added(…)` lists what is new. Outside a schedule, pass a tick: `since: checkpoint`.
 - **`Commands`**: spawns, despawns and insertions recorded during an update and applied after it.
 - **`Resources`**: values the world holds once, such as a clock or the frame's input.
 - **`Schedule`**: systems in the order written, adjusted by `after` and `before` constraints.

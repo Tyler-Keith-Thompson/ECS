@@ -25,6 +25,10 @@ type the fewest entities hold and looks the others up.
 - ``QueryRow``
 - ``QueryFilter``
 
+### Change detection
+
+- ``ChangeTick``
+
 ### Deferred changes
 
 - ``Commands``

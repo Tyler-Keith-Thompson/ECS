@@ -1,3 +1,4 @@
+import Synchronization
 import WorldModule
 
 /// A rule that reads and changes a world: one step of a tick.
@@ -38,6 +39,9 @@ extension System {
 public struct ScheduledSystem: Sendable {
     /// The name of the system's type.
     public let name: String
+    /// Identifies this system, and copies of it, to the schedules that run it: the key of its
+    /// last run in the world.
+    @usableFromInline let id: UInt64
     @usableFromInline let type: ObjectIdentifier
     /// Types whose systems must run before this one.
     @usableFromInline var predecessors: [ObjectIdentifier] = []
@@ -49,6 +53,7 @@ public struct ScheduledSystem: Sendable {
     @inlinable
     public init<S: System>(_ system: S) {
         name = String(describing: S.self)
+        id = nextSystemID.wrappingAdd(1, ordering: .relaxed).newValue
         type = ObjectIdentifier(S.self)
         body = { world in system.run(in: &world) }
     }
@@ -79,3 +84,7 @@ public struct ScheduledSystem: Sendable {
         body(&world)
     }
 }
+
+/// The source of ``ScheduledSystem`` identifiers.
+@usableFromInline
+let nextSystemID = Atomic<UInt64>(0)

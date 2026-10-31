@@ -73,9 +73,31 @@ public struct Schedule: Sendable {
     public var names: [String] { systems.map(\.name) }
 
     /// Runs every system once on `world`, in order.
+    ///
+    /// Before each system, the world's change tick advances and its ``WorldModule/World/lastRun``
+    /// is set to the tick of that system's previous run, so filters such as
+    /// `.changed(Position.self)` show the system what changed since then: changes made by the
+    /// systems after it on the previous run and before it on this one, but not its own. A system
+    /// that has not run on this world before sees every component as added and changed.
+    ///
+    /// The tick advances once more after the last system, so changes made to the world between
+    /// runs are newer than every system's previous run.
     public func run(on world: inout World) {
+        let outerLastRun = world.lastRun
+        defer {
+            world.lastRun = outerLastRun
+            world.advanceChangeTick()
+        }
         for system in systems {
+            let hasRuns = world.resources.contains(SystemRuns.self)
+            world.lastRun = hasRuns ? world.resources[SystemRuns.self].ticks[system.id] ?? .zero : .zero
+            let tick = world.advanceChangeTick()
             system.run(in: &world)
+            if world.resources.contains(SystemRuns.self) {
+                world.resources[SystemRuns.self].ticks[system.id] = tick
+            } else {
+                world.resources.insert(SystemRuns(ticks: [system.id: tick]))
+            }
         }
     }
 
@@ -110,4 +132,10 @@ public struct Schedule: Sendable {
         }
         return order.reversed().map { systems[$0] }
     }
+}
+
+/// The change tick at which each system last started running on a world, kept in the world so
+/// that it is copied, saved and restored with everything else.
+struct SystemRuns: Resource {
+    var ticks: [UInt64: ChangeTick]
 }
