@@ -245,7 +245,9 @@ go through a parameter pack. To go faster still:
   `world.scene(registry)` is `Codable` and saves every registered type, and decoding takes the
   registry from the decoder's `userInfo[.typeRegistry]`. `world.spawn(contentsOf: scene)` adds a
   scene's entities to a world as new ones, such as a saved prefab; components conforming to
-  `MapEntities` are pointed at the new entities.
+  `MapEntities` are pointed at the new entities. The registry also reads and inserts one
+  component or resource by its registered name, through any encoder or decoder, for scripting
+  hosts and inspectors.
 
 ### Systems and schedules
 

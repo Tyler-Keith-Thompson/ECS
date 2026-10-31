@@ -210,6 +210,7 @@ or a query. Observers are registered with `observe`.
 - ``Scene``
 - ``TypeRegistry``
 - ``TypeRegistryError``
+- ``TypeRegistryLookupError``
 - ``MapEntities``
 
 ### Running Changes Concurrently

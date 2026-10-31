@@ -77,6 +77,13 @@ public struct TypeRegistry: Sendable {
         guard !components.contains(where: { $0.name == name }) else { throw .nameTaken }
         components.append(ComponentRegistration(name: name, type: key, capture: { world in world.rows(of: C.self) }, decode: { container, key in
             try container.decode(ComponentRows<C>.self, forKey: key)
+        }, read: { world, entity in
+            try? world[checked: C.self, of: entity]
+        }, decodable: C.self, insert: { world, entity, decoded in
+            guard let component = decoded as? C else {
+                preconditionFailure("The decode closure returned a \(Swift.type(of: decoded)), not the \(C.self) it was asked for")
+            }
+            world.insert(component, into: entity)
         }))
     }
 
@@ -104,8 +111,296 @@ public struct TypeRegistry: Sendable {
             world.resources.storage[ObjectIdentifier(R.self)].map { SavedResource(value: $0 as! R) }
         }, decode: { container, key in
             try container.decode(SavedResource<R>.self, forKey: key)
+        }, read: { resources in
+            try? resources[checked: R.self]
+        }, decodable: R.self, insert: { resources, decoded in
+            guard let resource = decoded as? R else {
+                preconditionFailure("The decode closure returned a \(Swift.type(of: decoded)), not the \(R.self) it was asked for")
+            }
+            resources.insert(resource)
         }))
     }
+}
+
+extension TypeRegistry {
+    /// Returns the component of the type registered under a name that an entity holds.
+    ///
+    /// Use this method, with ``insert(componentNamed:into:in:decode:)``, to reach components by
+    /// the names you registered them under rather than by their types, as a scripting host, a
+    /// debugger or an inspector does. The component comes back as a `Codable` value, so you can
+    /// encode it with any encoder:
+    ///
+    /// ```swift
+    /// import Foundation
+    ///
+    /// var registry = TypeRegistry()
+    /// try registry.register(Position.self, named: "Position")
+    ///
+    /// var world = World()
+    /// let ship = world.spawn(Position(x: 3, y: 4))
+    ///
+    /// let position = registry.component(named: "Position", of: ship, in: world)
+    /// let encoder = JSONEncoder()
+    /// encoder.outputFormatting = .sortedKeys
+    /// print(String(decoding: try encoder.encode(position), as: UTF8.self))
+    /// // Prints "{"x":3,"y":4}"
+    /// ```
+    ///
+    /// Inside your own `encode(to:)` method, write `try component.encode(to: encoder)`.
+    ///
+    /// - Parameters:
+    ///   - name: The name the component type is registered under.
+    ///   - entity: The entity that holds the component.
+    ///   - world: The world the entity is in.
+    /// - Returns: The component `entity` holds.
+    /// - Precondition: A component type is registered under `name`, and `entity` is live and holds
+    ///   a component of that type. The checked spelling,
+    ///   ``component(checkedNamed:of:in:)``, throws instead.
+    /// - Complexity: O(*t*), where *t* is the number of registered component types.
+    @inlinable
+    public func component(named name: String, of entity: Entity, in world: World) -> any Component & Codable {
+        guard let registration = components.first(where: { $0.name == name }) else {
+            preconditionFailure("No component type is registered as \(name)")
+        }
+        precondition(world.contains(entity), "Reading a \(name) of stale entity \(entity)")
+        guard let component = registration.read(world, entity) else {
+            preconditionFailure("Entity \(entity) holds no \(name)")
+        }
+        return component
+    }
+
+    /// Returns the component of the type registered under a name that an entity holds, throwing
+    /// an error if there is none.
+    ///
+    /// Use this method when the name comes from outside your program, such as from a script:
+    ///
+    /// ```swift
+    /// var registry = TypeRegistry()
+    /// try registry.register(Position.self, named: "Position")
+    ///
+    /// var world = World()
+    /// let ship = world.spawn(Position(x: 3, y: 4))
+    ///
+    /// do {
+    ///     _ = try registry.component(checkedNamed: "Velocity", of: ship, in: world)
+    /// } catch {
+    ///     print(error)
+    ///     // Prints "unregisteredName"
+    /// }
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - name: The name the component type is registered under.
+    ///   - entity: The entity that holds the component.
+    ///   - world: The world the entity is in.
+    /// - Returns: The component `entity` holds.
+    /// - Throws: ``TypeRegistryLookupError/unregisteredName`` if no component type is registered
+    ///   under `name`, ``TypeRegistryLookupError/staleEntity`` if `entity` isn't live, or
+    ///   ``TypeRegistryLookupError/missingValue`` if it holds no component of the type.
+    /// - Complexity: O(*t*), where *t* is the number of registered component types.
+    @inlinable
+    public func component(checkedNamed name: String, of entity: Entity, in world: World) throws(TypeRegistryLookupError) -> any Component & Codable {
+        guard let registration = components.first(where: { $0.name == name }) else { throw .unregisteredName }
+        guard world.contains(entity) else { throw .staleEntity }
+        guard let component = registration.read(world, entity) else { throw .missingValue }
+        return component
+    }
+
+    /// Decodes a component of the type registered under a name and inserts it into an entity.
+    ///
+    /// The registry calls `decode` with the registered type; decode a value of that type from
+    /// your data with any decoder. The following example sets a ship's position from JSON:
+    ///
+    /// ```swift
+    /// import Foundation
+    ///
+    /// var registry = TypeRegistry()
+    /// try registry.register(Position.self, named: "Position")
+    ///
+    /// var world = World()
+    /// let ship = world.spawn()
+    /// let data = Data(#"{"x": 5, "y": 6}"#.utf8)
+    ///
+    /// try registry.insert(componentNamed: "Position", into: ship, in: &world) { type in
+    ///     try JSONDecoder().decode(type, from: data)
+    /// }
+    /// print(world[Position.self, of: ship])
+    /// // Prints "Position(x: 5.0, y: 6.0)"
+    /// ```
+    ///
+    /// Inside your own `init(from:)`, decode with `{ type in try type.init(from: decoder) }`. The
+    /// component is inserted as `insert(_:into:)` inserts it, running hooks and adding the
+    /// components it requires.
+    ///
+    /// - Parameters:
+    ///   - name: The name the component type is registered under.
+    ///   - entity: The entity to insert the component into.
+    ///   - world: The world the entity is in.
+    ///   - decode: A closure that decodes a value of the type it is passed.
+    /// - Throws: Any error `decode` throws. The world is then unchanged.
+    /// - Precondition: A component type is registered under `name`, `entity` is live, and
+    ///   `decode` returns a value of the type it is passed. The checked spelling,
+    ///   ``insert(componentNamed:checkedInto:in:decode:)``, throws for the first two instead.
+    /// - Complexity: O(*t*) plus the cost of decoding, where *t* is the number of registered
+    ///   component types.
+    @inlinable
+    public func insert(componentNamed name: String, into entity: Entity, in world: inout World, decode: (any Decodable.Type) throws -> any Decodable) rethrows {
+        guard let registration = components.first(where: { $0.name == name }) else {
+            preconditionFailure("No component type is registered as \(name)")
+        }
+        precondition(world.contains(entity), "Inserting a \(name) into stale entity \(entity)")
+        registration.insert(&world, entity, try decode(registration.decodable))
+    }
+
+    /// Decodes a component of the type registered under a name and inserts it into an entity,
+    /// throwing an error if the name isn't registered or the entity isn't live.
+    ///
+    /// See ``insert(componentNamed:into:in:decode:)``.
+    ///
+    /// - Parameters:
+    ///   - name: The name the component type is registered under.
+    ///   - entity: The entity to insert the component into.
+    ///   - world: The world the entity is in.
+    ///   - decode: A closure that decodes a value of the type it is passed.
+    /// - Throws: ``TypeRegistryLookupError/unregisteredName`` if no component type is registered
+    ///   under `name`, ``TypeRegistryLookupError/staleEntity`` if `entity` isn't live, or any
+    ///   error `decode` throws. The world is then unchanged.
+    /// - Precondition: `decode` returns a value of the type it is passed.
+    /// - Complexity: O(*t*) plus the cost of decoding, where *t* is the number of registered
+    ///   component types.
+    @inlinable
+    public func insert(componentNamed name: String, checkedInto entity: Entity, in world: inout World, decode: (any Decodable.Type) throws -> any Decodable) throws {
+        guard let registration = components.first(where: { $0.name == name }) else { throw TypeRegistryLookupError.unregisteredName }
+        guard world.contains(entity) else { throw TypeRegistryLookupError.staleEntity }
+        registration.insert(&world, entity, try decode(registration.decodable))
+    }
+
+    /// Returns the resource of the type registered under a name.
+    ///
+    /// The resource comes back as a `Codable` value, so you can encode it with any encoder:
+    ///
+    /// ```swift
+    /// import Foundation
+    ///
+    /// var registry = TypeRegistry()
+    /// try registry.register(resource: Treasury.self, named: "Treasury")
+    ///
+    /// var world = World()
+    /// world.resources.insert(Treasury(gold: 80))
+    ///
+    /// let treasury = registry.resource(named: "Treasury", in: world.resources)
+    /// print(String(decoding: try JSONEncoder().encode(treasury), as: UTF8.self))
+    /// // Prints "{"gold":80}"
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - name: The name the resource type is registered under.
+    ///   - resources: The resources to read from.
+    /// - Returns: The resource of the registered type.
+    /// - Precondition: A resource type is registered under `name`, and `resources` holds a
+    ///   resource of that type. The checked spelling, ``resource(checkedNamed:in:)``, throws
+    ///   instead.
+    /// - Complexity: O(*t*), where *t* is the number of registered resource types.
+    @inlinable
+    public func resource(named name: String, in resources: Resources) -> any Resource & Codable {
+        guard let registration = self.resources.first(where: { $0.name == name }) else {
+            preconditionFailure("No resource type is registered as \(name)")
+        }
+        guard let resource = registration.read(resources) else {
+            preconditionFailure("No \(name) resource")
+        }
+        return resource
+    }
+
+    /// Returns the resource of the type registered under a name, throwing an error if there is
+    /// none.
+    ///
+    /// - Parameters:
+    ///   - name: The name the resource type is registered under.
+    ///   - resources: The resources to read from.
+    /// - Returns: The resource of the registered type.
+    /// - Throws: ``TypeRegistryLookupError/unregisteredName`` if no resource type is registered
+    ///   under `name`, or ``TypeRegistryLookupError/missingValue`` if `resources` holds none of
+    ///   the type.
+    /// - Complexity: O(*t*), where *t* is the number of registered resource types.
+    @inlinable
+    public func resource(checkedNamed name: String, in resources: Resources) throws(TypeRegistryLookupError) -> any Resource & Codable {
+        guard let registration = self.resources.first(where: { $0.name == name }) else { throw .unregisteredName }
+        guard let resource = registration.read(resources) else { throw .missingValue }
+        return resource
+    }
+
+    /// Decodes a resource of the type registered under a name and inserts it, replacing any of
+    /// the same type.
+    ///
+    /// The registry calls `decode` with the registered type; decode a value of that type from
+    /// your data with any decoder:
+    ///
+    /// ```swift
+    /// import Foundation
+    ///
+    /// var registry = TypeRegistry()
+    /// try registry.register(resource: Treasury.self, named: "Treasury")
+    ///
+    /// var world = World()
+    /// let data = Data(#"{"gold": 15}"#.utf8)
+    /// try registry.insert(resourceNamed: "Treasury", into: &world.resources) { type in
+    ///     try JSONDecoder().decode(type, from: data)
+    /// }
+    /// print(world.resources[Treasury.self].gold)
+    /// // Prints "15"
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - name: The name the resource type is registered under.
+    ///   - resources: The resources to insert into.
+    ///   - decode: A closure that decodes a value of the type it is passed.
+    /// - Throws: Any error `decode` throws. The resources are then unchanged.
+    /// - Precondition: A resource type is registered under `name`, and `decode` returns a value
+    ///   of the type it is passed. The checked spelling,
+    ///   ``insert(resourceNamed:checkedInto:decode:)``, throws for the first instead.
+    /// - Complexity: O(*t*) plus the cost of decoding, where *t* is the number of registered
+    ///   resource types.
+    @inlinable
+    public func insert(resourceNamed name: String, into resources: inout Resources, decode: (any Decodable.Type) throws -> any Decodable) rethrows {
+        guard let registration = self.resources.first(where: { $0.name == name }) else {
+            preconditionFailure("No resource type is registered as \(name)")
+        }
+        registration.insert(&resources, try decode(registration.decodable))
+    }
+
+    /// Decodes a resource of the type registered under a name and inserts it, throwing an error
+    /// if the name isn't registered.
+    ///
+    /// See ``insert(resourceNamed:into:decode:)``.
+    ///
+    /// - Parameters:
+    ///   - name: The name the resource type is registered under.
+    ///   - resources: The resources to insert into.
+    ///   - decode: A closure that decodes a value of the type it is passed.
+    /// - Throws: ``TypeRegistryLookupError/unregisteredName`` if no resource type is registered
+    ///   under `name`, or any error `decode` throws. The resources are then unchanged.
+    /// - Precondition: `decode` returns a value of the type it is passed.
+    /// - Complexity: O(*t*) plus the cost of decoding, where *t* is the number of registered
+    ///   resource types.
+    @inlinable
+    public func insert(resourceNamed name: String, checkedInto resources: inout Resources, decode: (any Decodable.Type) throws -> any Decodable) throws {
+        guard let registration = self.resources.first(where: { $0.name == name }) else { throw TypeRegistryLookupError.unregisteredName }
+        registration.insert(&resources, try decode(registration.decodable))
+    }
+}
+
+/// An error that indicates why a ``TypeRegistry`` couldn't reach a component or resource by
+/// name.
+@frozen
+public enum TypeRegistryLookupError: Error, Hashable, Sendable {
+    /// No type of the kind asked for, component or resource, is registered under the name.
+    case unregisteredName
+    /// The entity isn't live.
+    case staleEntity
+    /// The entity holds no component of the registered type, or the resources hold no resource
+    /// of it.
+    case missingValue
 }
 
 /// An error that indicates why a type couldn't be registered in a ``TypeRegistry``.
@@ -153,13 +448,23 @@ struct ComponentRegistration: Sendable {
     @usableFromInline let type: ObjectIdentifier
     @usableFromInline let capture: @Sendable (World) -> any SavedComponents
     @usableFromInline let decode: @Sendable (KeyedDecodingContainer<SceneKey>, SceneKey) throws -> any SavedComponents
+    /// The component of this type an entity holds, if any.
+    @usableFromInline let read: @Sendable (World, Entity) -> (any Component & Codable)?
+    /// The registered type, to decode values of.
+    @usableFromInline let decodable: any (Component & Codable).Type
+    /// Inserts a decoded value of this type into the live entity; traps on a value of another
+    /// type.
+    @usableFromInline let insert: @Sendable (inout World, Entity, any Decodable) -> Void
 
     @inlinable
-    init(name: String, type: ObjectIdentifier, capture: @escaping @Sendable (World) -> any SavedComponents, decode: @escaping @Sendable (KeyedDecodingContainer<SceneKey>, SceneKey) throws -> any SavedComponents) {
+    init(name: String, type: ObjectIdentifier, capture: @escaping @Sendable (World) -> any SavedComponents, decode: @escaping @Sendable (KeyedDecodingContainer<SceneKey>, SceneKey) throws -> any SavedComponents, read: @escaping @Sendable (World, Entity) -> (any Component & Codable)?, decodable: any (Component & Codable).Type, insert: @escaping @Sendable (inout World, Entity, any Decodable) -> Void) {
         self.name = name
         self.type = type
         self.capture = capture
         self.decode = decode
+        self.read = read
+        self.decodable = decodable
+        self.insert = insert
     }
 }
 
@@ -170,13 +475,22 @@ struct ResourceRegistration: Sendable {
     @usableFromInline let type: ObjectIdentifier
     @usableFromInline let capture: @Sendable (World) -> (any SavedResourceValue)?
     @usableFromInline let decode: @Sendable (KeyedDecodingContainer<SceneKey>, SceneKey) throws -> any SavedResourceValue
+    /// The resource of this type, if any.
+    @usableFromInline let read: @Sendable (Resources) -> (any Resource & Codable)?
+    /// The registered type, to decode values of.
+    @usableFromInline let decodable: any (Resource & Codable).Type
+    /// Inserts a decoded value of this type; traps on a value of another type.
+    @usableFromInline let insert: @Sendable (inout Resources, any Decodable) -> Void
 
     @inlinable
-    init(name: String, type: ObjectIdentifier, capture: @escaping @Sendable (World) -> (any SavedResourceValue)?, decode: @escaping @Sendable (KeyedDecodingContainer<SceneKey>, SceneKey) throws -> any SavedResourceValue) {
+    init(name: String, type: ObjectIdentifier, capture: @escaping @Sendable (World) -> (any SavedResourceValue)?, decode: @escaping @Sendable (KeyedDecodingContainer<SceneKey>, SceneKey) throws -> any SavedResourceValue, read: @escaping @Sendable (Resources) -> (any Resource & Codable)?, decodable: any (Resource & Codable).Type, insert: @escaping @Sendable (inout Resources, any Decodable) -> Void) {
         self.name = name
         self.type = type
         self.capture = capture
         self.decode = decode
+        self.read = read
+        self.decodable = decodable
+        self.insert = insert
     }
 }
 

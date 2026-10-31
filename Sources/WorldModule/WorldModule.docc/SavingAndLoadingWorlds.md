@@ -155,3 +155,38 @@ print(first[goblin] == second[goblin])
 Components that store entity handles must point at the new entities, not the scene's. Relations
 and the hierarchy are updated for you. Conform your own components that store handles to
 ``MapEntities`` so that `spawn(contentsOf:)` can update them too.
+
+### Reach Components and Resources by Name
+
+A registry also lets code that knows only names read and write single values: a scripting host
+that exposes components to scripts, a debugger, or an inspector. Read a component with
+``TypeRegistry/component(named:of:in:)``, which returns it as a `Codable` value, and insert one
+with ``TypeRegistry/insert(componentNamed:into:in:decode:)``, whose closure decodes the
+registered type with any decoder:
+
+```swift
+import Foundation
+
+var registry = TypeRegistry()
+try registry.register(Health.self, named: "Health")
+
+var world = World()
+let goblin = world.spawn(Health(current: 4))
+
+let health = registry.component(named: "Health", of: goblin, in: world)
+let data = try JSONEncoder().encode(health)
+print(String(decoding: data, as: UTF8.self))
+// Prints "{"current":4}"
+
+let healed = Data(#"{"current": 9}"#.utf8)
+try registry.insert(componentNamed: "Health", into: goblin, in: &world) { type in
+    try JSONDecoder().decode(type, from: healed)
+}
+print(world[Health.self, of: goblin].current)
+// Prints "9"
+```
+
+When the name comes from outside your program, use the checked spellings, such as
+``TypeRegistry/component(checkedNamed:of:in:)``, which throw a ``TypeRegistryLookupError`` for a
+name that isn't registered, a stale entity or a missing value. Resources have the same pair:
+``TypeRegistry/resource(named:in:)`` and ``TypeRegistry/insert(resourceNamed:into:decode:)``.
