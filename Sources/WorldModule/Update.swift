@@ -163,7 +163,7 @@ extension World {
     ) throws(Failure) {
         precondition(!reads.contains(ObjectIdentifier(W.self)), "update reads the \(W.self) it writes")
         guard let slot = columnPositions.position(of: ObjectIdentifier(W.self)) else { return }
-        let resolved = ResolvedFilter(filter, in: self)
+        let resolved = ResolvedFilter(filter, in: self, touching: reads + [ObjectIdentifier(W.self)])
         guard !resolved.isUnsatisfiable else { return }
         let reader = makeReader(self)
         let column = uniqueColumn(at: slot, of: W.self)
@@ -235,7 +235,7 @@ extension World {
             "update reads a type it writes")
         guard let firstSlot = columnPositions.position(of: ObjectIdentifier(A.self)),
               let secondSlot = columnPositions.position(of: ObjectIdentifier(B.self)) else { return }
-        let resolved = ResolvedFilter(filter, in: self)
+        let resolved = ResolvedFilter(filter, in: self, touching: reads + [ObjectIdentifier(A.self), ObjectIdentifier(B.self)])
         guard !resolved.isUnsatisfiable else { return }
         let reader = makeReader(self)
         let firstColumn = uniqueColumn(at: firstSlot, of: A.self)
@@ -328,7 +328,7 @@ extension World {
         guard let firstSlot = columnPositions.position(of: ObjectIdentifier(A.self)),
               let secondSlot = columnPositions.position(of: ObjectIdentifier(B.self)),
               let thirdSlot = columnPositions.position(of: ObjectIdentifier(C.self)) else { return }
-        let resolved = ResolvedFilter(filter, in: self)
+        let resolved = ResolvedFilter(filter, in: self, touching: reads + written)
         guard !resolved.isUnsatisfiable else { return }
         let reader = makeReader(self)
         let firstColumn = uniqueColumn(at: firstSlot, of: A.self)

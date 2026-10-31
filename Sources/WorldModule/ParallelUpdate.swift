@@ -94,7 +94,7 @@ extension World {
         precondition(!reads.contains(ObjectIdentifier(W.self)), "parallelUpdate reads the \(W.self) it writes")
         precondition(minimumChunk > 0, "parallelUpdate needs a positive minimum chunk")
         guard let slot = columnPositions.position(of: ObjectIdentifier(W.self)) else { return }
-        let resolved = ResolvedFilter(filter, in: self)
+        let resolved = ResolvedFilter(filter, in: self, touching: reads + [ObjectIdentifier(W.self)])
         guard !resolved.isUnsatisfiable else { return }
         let reader = makeReader(self)
         let column = uniqueColumn(at: slot, of: W.self)

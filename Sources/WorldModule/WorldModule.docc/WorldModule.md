@@ -39,6 +39,7 @@ type the fewest entities hold and looks the others up.
 - ``Without``
 - ``Added``
 - ``Changed``
+- ``Allows``
 
 ### Groups
 
@@ -64,6 +65,10 @@ type the fewest entities hold and looks the others up.
 ### Hooks
 
 Registered with `onAdd`, `onInsert` and `onRemove` on ``World``.
+
+### Disabled entities
+
+- ``Disabled``
 
 ### Removal detection
 

@@ -39,6 +39,8 @@ public struct World: Sendable {
     @usableFromInline var groups: [OwningGroup] = []
     /// Counts changes to which entities are live and to the hierarchy.
     @usableFromInline var structureVersion: UInt64 = 0
+    /// The component types whose entities queries skip unless they mention them.
+    @usableFromInline var disablingComponents: [ObjectIdentifier] = [ObjectIdentifier(Disabled.self)]
     /// Command buffers queued with ``queue(_:)``, in the order they were queued.
     @usableFromInline var queuedCommands: [Commands] = []
 

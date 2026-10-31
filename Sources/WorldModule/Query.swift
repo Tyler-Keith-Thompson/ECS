@@ -84,6 +84,13 @@ public struct Query<each T: QueryTerm>: Hashable, Sendable {
         Query(filter: filter.without(repeat each types), view: nil)
     }
 
+    /// This query, also keeping entities holding any of `types`, disabling components it skips
+    /// by default (``World/registerDisablingComponent(_:)``).
+    @inlinable
+    public func allowing<each F: Component>(_ types: repeat (each F).Type) -> Query {
+        Query(filter: filter.allowing(repeat each types), view: nil)
+    }
+
     /// This query, keeping only entities whose `F` was added after `since` (nil for the world's
     /// ``World/lastRun``).
     @inlinable

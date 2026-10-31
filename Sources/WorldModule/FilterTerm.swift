@@ -55,6 +55,17 @@ public struct Changed<C: Component>: FilterTerm {
     public static func _reading(_ access: Access) -> Access { access.reads(C.self) }
 }
 
+/// Also passes entities holding a `C`, a disabling component queries skip by default; the type
+/// of ``QueryFilter/allowing(_:)-swift.type.method``.
+@frozen
+public struct Allows<C: Component>: FilterTerm {
+    public static var filter: QueryFilter { .allowing(C.self) }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public static func _reading(_ access: Access) -> Access { access.reads(C.self) }
+}
+
 extension AnyOf: FilterTerm where repeat each C: FilterTerm {
     /// Passes entities that at least one of the filter types passes.
     public static var filter: QueryFilter {

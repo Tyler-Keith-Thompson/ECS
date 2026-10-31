@@ -131,6 +131,10 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   explicitly win.
 - **Hooks**: `world.onAdd(Name.self) { world, entity in … }`, `onInsert` and `onRemove` run
   after the operation that fired them, for keeping indexes without polling.
+- **Disabled entities**: `world.insert(Disabled(), into: enemy)` keeps the entity and its
+  components but hides it from queries and updates, unless they read `Disabled`, name it in a
+  filter or say `.allowing(Disabled.self)`. `registerDisablingComponent` adds types that hide
+  entities the same way.
 - **Removal detection**: `world.removed(Health.self, by: Healthbars.self)` lists the entities
   that lost a `Health` since that reader last asked, by removal or despawn; a system takes
   `RemovedComponents<Health>`.
@@ -151,9 +155,9 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   `Update<A>.And<B>.Over<…>.Where<…>` writes them, `ResourceReader`, `ResourceWriter`,
   `EventReader`, `EventWriter` and `RemovedComponents` reach resources, events and removals,
   and `inout Commands` queues structural changes that apply after the system's wave. The filter
-  types `With`, `Without`, `Added`, `Changed` and `AnyOf` mirror the filter values. Parameters
-  that conflict are a compile-time error. A `run(in world: inout World)` makes a system that may
-  change anything.
+  types `With`, `Without`, `Added`, `Changed`, `Allows` and `AnyOf` mirror the filter values.
+  Parameters that conflict are a compile-time error. A `run(in world: inout World)` makes a
+  system that may change anything.
 - **`Schedule`**: systems in the order written, adjusted by `after` and `before` constraints,
   and skipped when a `runIf { world in … }` condition does not hold. `run(on:)` runs systems
   that neither conflict nor are ordered at the same time, in waves, with the result running them

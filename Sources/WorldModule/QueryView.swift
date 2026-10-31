@@ -62,6 +62,13 @@ public struct QueryView<each C>: Sequence, Sendable {
         QueryView(world: world, filter: filter.without(repeat each types), makeReader: makeReader)
     }
 
+    /// This view, also keeping entities holding any of `types`, disabling components it skips by
+    /// default (``World/registerDisablingComponent(_:)``).
+    @inlinable
+    public func allowing<each F: Component>(_ types: repeat (each F).Type) -> QueryView {
+        QueryView(world: world, filter: filter.allowing(repeat each types), makeReader: makeReader)
+    }
+
     /// This view, keeping only entities whose `F` was added after `since` (nil for the world's
     /// ``World/lastRun``).
     @inlinable
@@ -115,7 +122,7 @@ public struct QueryView<each C>: Sequence, Sendable {
 
         @inlinable
         init(world: World, filter: QueryFilter, reader: Reader<(entity: Entity, repeat each C)>) {
-            let resolved = ResolvedFilter(filter, in: world)
+            let resolved = ResolvedFilter(filter, in: world, touching: reader.types)
             var driver: [Entity] = []
             var driverColumn = -1
             var hasDriver = false
@@ -254,6 +261,13 @@ public struct EntityQueryView: Sequence, Sendable {
         EntityQueryView(world: world, filter: filter.without(repeat each types))
     }
 
+    /// This view, also keeping entities holding any of `types`, disabling components it skips by
+    /// default (``World/registerDisablingComponent(_:)``).
+    @inlinable
+    public func allowing<each F: Component>(_ types: repeat (each F).Type) -> EntityQueryView {
+        EntityQueryView(world: world, filter: filter.allowing(repeat each types))
+    }
+
     /// This view, keeping only entities whose `F` was added after `since` (nil for the world's
     /// ``World/lastRun``).
     @inlinable
@@ -301,7 +315,7 @@ public struct EntityQueryView: Sequence, Sendable {
 
         @inlinable
         init(world: World, filter: QueryFilter) {
-            let resolved = ResolvedFilter(filter, in: world)
+            let resolved = ResolvedFilter(filter, in: world, touching: [])
             var driver: [Entity]? = nil
             for index in resolved.candidates where driver == nil || index.dense.count < driver!.count {
                 driver = index.dense

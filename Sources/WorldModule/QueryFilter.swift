@@ -18,6 +18,8 @@ public struct QueryFilter: Hashable, Sendable {
     @usableFromInline var changedSince: [TickCondition] = []
     /// Groups of filters, each passed when at least one of its filters passes.
     @usableFromInline var alternatives: [[QueryFilter]] = []
+    /// Disabling component types whose entities the filter does not skip.
+    @usableFromInline var allowed: [ObjectIdentifier] = []
 
     /// A type whose component must carry a tick after `since`, or after the world's
     /// ``World/lastRun`` when `since` is nil.
@@ -66,6 +68,13 @@ public struct QueryFilter: Hashable, Sendable {
     @inlinable
     public static func changed<C: Component>(_ type: C.Type, since: ChangeTick? = nil) -> QueryFilter {
         QueryFilter().changed(C.self, since: since)
+    }
+
+    /// A filter that passes entities holding any of `types`, disabling components that queries
+    /// skip by default (``World/registerDisablingComponent(_:)``), as well as those that do not.
+    @inlinable
+    public static func allowing<each C: Component>(_ types: repeat (each C).Type) -> QueryFilter {
+        QueryFilter().allowing(repeat each types)
     }
 
     /// A filter that passes entities that at least one of `filters` passes.
@@ -120,6 +129,30 @@ public struct QueryFilter: Hashable, Sendable {
         return filter
     }
 
+    /// This filter, also passing entities holding any of `types`, disabling components that
+    /// queries skip by default (``World/registerDisablingComponent(_:)``).
+    ///
+    /// ```swift
+    /// for (entity, name) in world.query(Name.self).allowing(Disabled.self) { … }
+    /// ```
+    @inlinable
+    public func allowing<each C: Component>(_ types: repeat (each C).Type) -> QueryFilter {
+        var filter = self
+        for type in repeat each types {
+            filter.allowed.append(ObjectIdentifier(type))
+        }
+        return filter
+    }
+
+    /// Whether the filter names `type` in any condition, so a query with it does not skip
+    /// entities holding `type` by default.
+    @inlinable
+    func mentions(_ type: ObjectIdentifier) -> Bool {
+        required.contains(type) || excluded.contains(type) || allowed.contains(type)
+            || addedSince.contains { $0.type == type } || changedSince.contains { $0.type == type }
+            || alternatives.contains { group in group.contains { $0.mentions(type) } }
+    }
+
     /// This filter, also requiring everything `other` requires.
     @inlinable
     public func merging(_ other: QueryFilter) -> QueryFilter {
@@ -129,6 +162,7 @@ public struct QueryFilter: Hashable, Sendable {
         filter.addedSince += other.addedSince
         filter.changedSince += other.changedSince
         filter.alternatives += other.alternatives
+        filter.allowed += other.allowed
         return filter
     }
 
@@ -170,6 +204,19 @@ struct ResolvedFilter: Sendable {
             self.index = index
             self.since = since
         }
+    }
+
+    /// `filter` resolved against `world`, also skipping the entities holding a disabling component
+    /// the filter does not mention and the visit does not read or write (`touching`).
+    @inlinable
+    init(_ filter: QueryFilter, in world: World, touching: [ObjectIdentifier]) {
+        var defaults = filter
+        for type in world.disablingComponents where !touching.contains(type) && !filter.mentions(type) {
+            if let slot = world.columnPositions.position(of: type), !world.columns[slot].index.dense.isEmpty {
+                defaults.excluded.append(type)
+            }
+        }
+        self.init(defaults, in: world)
     }
 
     @inlinable
