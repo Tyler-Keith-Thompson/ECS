@@ -22,7 +22,7 @@ fileprivate struct ShowScore: MainActorSystem {
     }
 }
 
-// Sources/Systems/Schedule.swift:261
+// Sources/Systems/Schedule.swift:264
 fileprivate struct Moves: Resource { var count: Int }
 
 @System
@@ -318,7 +318,7 @@ struct SystemsDocumentationExamples {
         #expect(printed(lines) == #"["digraph {", "0 [label=Gravity];", "1 [label=Movement];", "2 [label=Scoring];", "0 -> 1;", "1 -> 2 [style=dashed];", "}"]"#)
     }
 
-    @Test("Sources/Systems/Schedule.swift:21")
+    @Test("Sources/Systems/Schedule.swift:24")
     func example4() async throws {
         let world = World()
         let frame = Schedule {
@@ -331,7 +331,7 @@ struct SystemsDocumentationExamples {
         #expect(printed(frame.names) == #"["Gravity", "Movement"]"#)
     }
 
-    @Test("Sources/Systems/Schedule.swift:51")
+    @Test("Sources/Systems/Schedule.swift:54")
     func example5() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: 100), Velocity(dx: 2, dy: 0))
@@ -345,7 +345,7 @@ struct SystemsDocumentationExamples {
         #expect(printed(world[Position.self, of: ball]) == #"Position(x: 4.0, y: 70.0)"#)
     }
 
-    @Test("Sources/Systems/Schedule.swift:72")
+    @Test("Sources/Systems/Schedule.swift:75")
     func example6() async throws {
         let frame = Schedule {
             Scoring().after(Movement.self)
@@ -355,7 +355,7 @@ struct SystemsDocumentationExamples {
         #expect(printed(frame.names) == #"["Gravity", "Movement", "Scoring"]"#)
     }
 
-    @Test("Sources/Systems/Schedule.swift:125")
+    @Test("Sources/Systems/Schedule.swift:128")
     func example7() async throws {
         do {
             _ = try Schedule(checked: [
@@ -367,7 +367,7 @@ struct SystemsDocumentationExamples {
         }
     }
 
-    @Test("Sources/Systems/Schedule.swift:151")
+    @Test("Sources/Systems/Schedule.swift:154")
     func example8() async throws {
         var world = World()
         world.resources.insert(Score(points: 0))
@@ -387,7 +387,7 @@ struct SystemsDocumentationExamples {
         #expect(printed(world.resources[Score.self].points) == #"1"#)
     }
 
-    @Test("Sources/Systems/Schedule.swift:261")
+    @Test("Sources/Systems/Schedule.swift:264")
     func example9() async throws {
         var world = World()
         world.resources.insert(Moves(count: 0))

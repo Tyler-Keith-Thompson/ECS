@@ -1,3 +1,6 @@
+import AdjacencyListModule
+import DirectedAcyclicGraphModule
+import GraphProtocols
 import Traversal
 import WorldModule
 
@@ -390,25 +393,22 @@ public struct Schedule: Sendable {
 
     /// The positions in `systems` of each wave's systems, waves in the order they run.
     ///
-    /// A longest-path layering of the dependency graph: `systems` is already in an order every
-    /// dependency follows, so one pass puts each system one wave after the latest of its
-    /// dependencies.
+    /// The longest-path layering of the dependency graph, which puts each system one wave after
+    /// the latest of its dependencies. Each wave lists its positions in ascending order.
     ///
     /// - Complexity: O(*s*²) for *s* systems.
     static func waves(of systems: [ScheduledSystem]) -> [[Int]] {
-        var waveOf = [Int](repeating: 0, count: systems.count)
-        var waves: [[Int]] = []
+        var dependencies: [DirectedEdge<Int>] = []
         for later in systems.indices {
-            var wave = 0
-            for earlier in 0 ..< later where waveOf[earlier] >= wave
-                && dependsOn(systems[later], systems[earlier]) {
-                wave = waveOf[earlier] + 1
+            for earlier in 0 ..< later where dependsOn(systems[later], systems[earlier]) {
+                dependencies.append(DirectedEdge(from: earlier, to: later))
             }
-            waveOf[later] = wave
-            if wave == waves.count { waves.append([]) }
-            waves[wave].append(later)
         }
-        return waves
+        // `systems` is already in an order every dependency follows, so every edge runs from a
+        // lower position to a higher one and the graph has no cycle.
+        guard let graph = DirectedAcyclicGraph<AdjacencyList<Int>>(vertices: systems.indices, edges: dependencies)
+        else { preconditionFailure("Dependencies of ordered systems form a cycle") }
+        return graph.longestPathLayering().layers.map { $0.sorted() }
     }
 
     /// Whether an `after` or `before` constraint orders `later` after `earlier`.

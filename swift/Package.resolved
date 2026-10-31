@@ -1,13 +1,13 @@
 {
-  "originHash" : "78e0a7937940a0e537386527a3b4c72e95e25b0f1af010232e48aa45c9fb5f1f",
+  "originHash" : "9c00ac40bdfbdc158c912e84a6b032f9469172d3a5d9f8a91d9a34b35b3b7691",
   "pins" : [
     {
       "identity" : "grafluent",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Tyler-Keith-Thompson/Grafluent",
       "state" : {
-        "revision" : "a7b4001e1b1daa84d2da793c840d08c4978d5bbd",
-        "version" : "0.0.58"
+        "revision" : "77deea13c0bd1b6a22c71c67f0d7fc35da19c141",
+        "version" : "0.0.61"
       }
     },
     {

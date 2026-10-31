@@ -13,6 +13,7 @@ swift_library(
         "@swiftpkg_grafluent//:Traversal",
         "@swiftpkg_grafluent//:GraphProtocols",
         "@swiftpkg_grafluent//:AdjacencyListModule",
+        "@swiftpkg_grafluent//:DirectedAcyclicGraphModule",
         "@swiftpkg_grafluent//:GraphOperations",
         "@swiftpkg_grafluent//:GraphFormats",
     ],
