@@ -177,7 +177,9 @@ extension World {
     /// - Precondition: No two accesses conflict. Each change writes only the component and
     ///   resource types its access lists (relations through their ``Targets``, the hierarchy
     ///   through `Targets<ChildOf>`), and spawns and despawns not at all; a change that writes
-    ///   another component type or changes the entities traps.
+    ///   another component type or changes the entities traps. In debug builds, a change that
+    ///   reads a component or resource type its access does not list traps too; any change may
+    ///   read ``Disabled`` and ``Prefab``.
     public mutating func runConcurrently(_ changes: [ConcurrentChange]) {
         for first in changes.indices {
             for second in changes.indices where second > first {
@@ -213,6 +215,7 @@ extension World {
         var copies: [World] = []
         for index in changes.indices {
             var copy = base
+            copy.restrictAccess(to: changes[index].access)
             for (slot, column) in zip(writtenSlots[index], movedColumns[index]) {
                 copy.columns[slot] = column
             }
@@ -305,5 +308,27 @@ extension World {
         splitParts = max(splitParts - 1, 0)
         markCachesStale(droppedBy: part)
         rebuildStaleCaches()
+    }
+}
+
+extension World {
+    /// In debug builds, makes reaching a component or resource type `access` does not list trap,
+    /// until called again with nil; in release builds, does nothing.
+    ///
+    /// A component type is reached by any read, write or lookup of its storage; the types that
+    /// skip entities by default (``Disabled``, ``Prefab``) may always be read. A resource type is
+    /// read through `contains` and the subscripts, and written through `insert`, `remove` and a
+    /// change in place, which need it listed as written.
+    package mutating func restrictAccess(to access: Access?) {
+        #if DEBUG
+        guard let access else {
+            columnPositions.permitted = nil
+            resources.permitted = nil
+            return
+        }
+        let components = access.componentReads.union(access.componentWrites.keys).union(disablingComponents)
+        columnPositions.permitted = Set(components.map { UInt(bitPattern: $0) })
+        resources.permitted = PermittedResources(reads: access.resourceReads, writes: access.resourceWrites)
+        #endif
     }
 }

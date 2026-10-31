@@ -231,13 +231,16 @@ public struct Schedule: Sendable {
     }
 
     /// Runs `system` on `world`, recording its time in the world's ``SystemProfile`` when
-    /// `profiling`.
+    /// `profiling`; in debug builds, a system with an access traps on reaching anything else.
     static func run(_ system: ScheduledSystem, on world: inout World, profiling: Bool) {
+        world.restrictAccess(to: system.access)
+        defer { world.restrictAccess(to: nil) }
         guard profiling else {
             system.run(in: &world)
             return
         }
         let duration = ContinuousClock().measure { system.run(in: &world) }
+        world.restrictAccess(to: nil)
         guard world.resources.contains(SystemProfile.self) else { return }
         world.resources[SystemProfile.self].record(duration, for: system)
     }

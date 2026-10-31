@@ -5,12 +5,7 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Checked accesses.** A debug-build record of the columns and resources a system with a
-   hand-written `access` touches while it runs concurrently, trapping on undeclared reads as
-   undeclared writes already trap. Systems declared by their parameters cannot reach anything
-   else, so this covers hand-written conformances only; it needs a lookup check that costs
-   nothing in release builds.
-2. **Spawning a scene into a world.** Instantiate a saved scene as new entities in an existing
+1. **Spawning a scene into a world.** Instantiate a saved scene as new entities in an existing
    world (a prefab), mapping the entities its components and relations name to the new ones.
 
 ## Done
@@ -83,3 +78,5 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
   `MainActorSystem` (and `@System` on a `@MainActor` type or `run`) runs on the main actor.
 - Profiling: a `SystemProfile` resource records each system's runs and times;
   `Schedule.writeDOT(to:)` draws the dependency graph.
+- Checked accesses: in debug builds, a system or concurrent change reaching a component or
+  resource type its access does not list traps.

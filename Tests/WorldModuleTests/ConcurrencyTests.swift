@@ -148,4 +148,45 @@ struct ConcurrencyTests {
             ])
         }
     }
+
+    @Test("A concurrent change that reads a component type its access does not list traps in debug builds", .tags(.precondition))
+    func undeclaredReadTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            let entity = world.spawn(Health(1), Name("n"))
+            world.runConcurrently([
+                ConcurrentChange(access: .writes(Health.self)) { world in _ = world[Name.self, of: entity] },
+                ConcurrentChange(access: Access()) { _ in },
+            ])
+        }
+    }
+
+    @Test("A concurrent change that reads a resource its access does not list traps in debug builds", .tags(.precondition))
+    func undeclaredResourceReadTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            world.resources.insert(Clock(ticks: 0))
+            world.runConcurrently([
+                ConcurrentChange(access: .writes(Health.self)) { world in _ = world.resources[Clock.self] },
+                ConcurrentChange(access: Access()) { _ in },
+            ])
+        }
+    }
+
+    @Test("A concurrent change may read the types that skip entities by default without listing them")
+    func disablingTypesReadable() {
+        var world = World()
+        let enabled = world.spawn(Health(1))
+        world.spawn(Health(1), Disabled())
+        world.runConcurrently([
+            ConcurrentChange(access: .writes(Health.self)) { world in
+                world.update(Health.self) { health, _ in health.current += 1 }
+            },
+            ConcurrentChange(access: Access()) { _ in },
+        ])
+        let total = world.query(Health.self).allowing(Disabled.self).map(\.1.current).reduce(0, +)
+        let expectedTotal = 3
+        #expect(total == expectedTotal)
+        #expect(world[Health.self, of: enabled] == Health(2))
+    }
 }

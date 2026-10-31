@@ -29,6 +29,9 @@ public protocol System: SystemSet, Sendable {
     ///
     /// A system with an access reads and writes only what it lists (relations through their
     /// `Targets`, the hierarchy through `Targets<ChildOf>`), and spawns and despawns not at all.
+    /// In debug builds, a system that reaches a component or resource type its access does not
+    /// list traps, whether it runs alone or alongside others; the types that skip entities by
+    /// default (``WorldModule/Disabled``, ``WorldModule/Prefab``) may always be read.
     var access: Access? { get }
 
     /// Runs the rule once on `world`.

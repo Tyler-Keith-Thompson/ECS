@@ -18,6 +18,11 @@ struct ColumnTable: Sendable {
     @usableFromInline var count = 0
     /// log2 of the bucket count.
     @usableFromInline var shift = 0
+    #if DEBUG
+    /// The keys a system with a declared access may look up while it runs, in debug builds; nil
+    /// when any may be.
+    @usableFromInline var permitted: Set<UInt>?
+    #endif
 
     @inlinable
     init() {}
@@ -32,8 +37,13 @@ struct ColumnTable: Sendable {
     @inlinable
     @inline(__always)
     func position(of type: ObjectIdentifier) -> Int? {
-        guard count > 0 else { return nil }
         let key = UInt(bitPattern: type)
+        #if DEBUG
+        if let permitted, !permitted.contains(key) {
+            undeclaredComponentAccess()
+        }
+        #endif
+        guard count > 0 else { return nil }
         let mask = keys.count - 1
         var bucket = bucket(of: key)
         while true {
@@ -78,3 +88,12 @@ struct ColumnTable: Sendable {
         }
     }
 }
+
+#if DEBUG
+/// Traps for a system that reached a component type its access does not list.
+@usableFromInline
+@inline(never)
+func undeclaredComponentAccess() -> Never {
+    preconditionFailure("A system read or wrote a component type its access does not list")
+}
+#endif
