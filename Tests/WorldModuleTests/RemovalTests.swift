@@ -131,4 +131,29 @@ struct RemovalTests {
             #expect(world.removed(Health.self, by: FirstMourner.self) == expected)
         }
     }
+
+    @Test("Removals a concurrent change makes are recorded once it is merged back")
+    func concurrentRemovals() {
+        var world = World()
+        world.trackRemovals(of: Health.self)
+        let wounded = world.spawn(Health(1))
+        let named = world.spawn(Name("kept"))
+        world.runConcurrently([
+            ConcurrentChange(access: .writes(Health.self)) { world in
+                world.remove(Health.self, from: wounded)
+            },
+            ConcurrentChange(access: .writes(Name.self)) { world in
+                world.insert(Name("renamed"), into: named)
+            },
+        ])
+        let expected: [Entity] = [wounded]
+        #expect(world.removed(Health.self, by: FirstMourner.self) == expected)
+    }
+
+    @Test("Writing a component type conflicts with reading its removals")
+    func removalReadersConflict() {
+        let writer = Access.writes(Health.self)
+        let reader = Access.readsEvents(RemovedComponent<Health>.self, by: FirstMourner.self)
+        #expect(writer.conflicts(with: reader))
+    }
 }

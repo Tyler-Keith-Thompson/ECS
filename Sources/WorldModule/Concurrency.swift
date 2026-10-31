@@ -66,14 +66,21 @@ public struct Access: Sendable {
         return access
     }
 
-    /// This access, also writing the component types `types`.
+    /// This access, also writing the component types `types`, and so the removals of them
+    /// recorded as ``RemovedComponent`` events.
     @inlinable
     public func writes<each C: Component>(_ types: repeat (each C).Type) -> Access {
         var access = self
         for type in repeat each types {
-            access.componentWrites[ObjectIdentifier(type)] = Self.storer(of: type)
+            access.insertWrite(of: type)
         }
         return access
+    }
+
+    @inlinable
+    mutating func insertWrite<C: Component>(of type: C.Type) {
+        componentWrites[ObjectIdentifier(C.self)] = Self.storer(of: C.self)
+        resourceWrites.insert(ObjectIdentifier(Events<RemovedComponent<C>>.self))
     }
 
     @inlinable
