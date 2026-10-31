@@ -29,6 +29,26 @@ for (_, name, position, velocity) in world.query(Name.self, Position.self, Veloc
 
 The rock has no velocity, so the query skips it.
 
+Only the entity is labeled, because a tuple's labels can't be named after its element types. To
+work with rows in a closure, such as when you sort or filter them, name the components by
+destructuring the row rather than reaching for them by position:
+
+```swift
+var world = World()
+world.spawn(Name(value: "comet"), Health(current: 3))
+world.spawn(Name(value: "moon"), Health(current: 9))
+
+let strongest = world.query(Name.self, Health.self)
+    .sorted { first, second in
+        let (_, _, firstHealth) = first
+        let (_, _, secondHealth) = second
+        return firstHealth.current > secondHealth.current
+    }
+    .map { (_, name, _) in name.value }
+print(strongest)
+// Prints "["moon", "comet"]"
+```
+
 A view is a snapshot of the world at the moment you asked for it. Changing the world while you
 iterate the view doesn't change the rows it shows, so you can despawn entities or insert
 components from inside the loop.

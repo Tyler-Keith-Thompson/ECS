@@ -203,6 +203,29 @@ fileprivate struct AnnounceDefeats: MainActorSystem {
     }
 }
 
+// Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:181
+fileprivate final class Script {
+    var line = 0
+    func advance() { line += 1 }
+}
+
+@MainActor
+fileprivate final class StoryState {
+    let script = Script()
+}
+
+fileprivate struct Story: Resource {
+    let state: StoryState
+}
+
+fileprivate struct AdvanceStory: MainActorSystem {
+    var access: Access? { .reads(resources: Story.self) }
+
+    @MainActor func run(in world: inout World) {
+        world.resources[Story.self].state.script.advance()
+    }
+}
+
 // Sources/Systems/Systems.docc/Systems.md:14
 fileprivate struct Position: Component { var x: Double, y: Double }
 
@@ -667,18 +690,28 @@ struct SystemsDocumentationExamples {
         #expect(printed(world.contains(knight)) == #"false"#)
     }
 
-    @Test("Sources/Systems/Systems.docc/Systems.md:14")
+    @Test("Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:181")
     func example34() async throws {
-
+        var world = World()
+        world.resources.insert(Story(state: StoryState()))
+        let turn = Schedule { AdvanceStory() }
+        turn.run(on: &world)
+        turn.run(on: &world)
+        #expect(printed(world.resources[Story.self].state.script.line) == #"2"#)
     }
 
-    @Test("Sources/Systems/Systems.docc/Systems.md:35")
+    @Test("Sources/Systems/Systems.docc/Systems.md:14")
     func example35() async throws {
 
     }
 
-    @Test("Sources/Systems/Systems.docc/Systems.md:66")
+    @Test("Sources/Systems/Systems.docc/Systems.md:35")
     func example36() async throws {
+
+    }
+
+    @Test("Sources/Systems/Systems.docc/Systems.md:66")
+    func example37() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: 100), Velocity(dx: 1, dy: 0))
 
@@ -692,7 +725,7 @@ struct SystemsDocumentationExamples {
     }
 
     @Test("Sources/Systems/Update.swift:32")
-    func example37() async throws {
+    func example38() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: -2), Velocity(dx: 0, dy: -5))
         Schedule { Bounce() }.run(on: &world)

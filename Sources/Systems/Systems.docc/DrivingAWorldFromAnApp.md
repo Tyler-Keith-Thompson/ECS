@@ -169,3 +169,46 @@ print(world.contains(knight))
 When the outside needs more than one call to respond, such as an animation that must finish
 first, end the step there: split the work into two schedules, run the first, and run the second
 when the outside reports that it is done.
+
+### Keep Main-Actor State in a Resource
+
+Resources and components are `Sendable`, because a schedule runs systems on other threads and a
+copy of a world can go anywhere. To keep a value that isn't `Sendable` with the world, such as a
+script interpreter or an engine object, put it in a class isolated to the main actor, and store
+that class in a resource. A class isolated to a global actor is `Sendable` whatever it holds, and
+only main-actor code, such as a ``MainActorSystem``, can reach its contents:
+
+```swift
+final class Script {
+    var line = 0
+    func advance() { line += 1 }
+}
+
+@MainActor
+final class StoryState {
+    let script = Script()
+}
+
+struct Story: Resource {
+    let state: StoryState
+}
+
+struct AdvanceStory: MainActorSystem {
+    var access: Access? { .reads(resources: Story.self) }
+
+    @MainActor func run(in world: inout World) {
+        world.resources[Story.self].state.script.advance()
+    }
+}
+
+var world = World()
+world.resources.insert(Story(state: StoryState()))
+let turn = Schedule { AdvanceStory() }
+turn.run(on: &world)
+turn.run(on: &world)
+print(world.resources[Story.self].state.script.line)
+// Prints "2"
+```
+
+The resource holds a reference, so every copy of the world shares the one `StoryState`. Changing
+it changes it for every copy, and saving or restoring a world doesn't save or restore it.
