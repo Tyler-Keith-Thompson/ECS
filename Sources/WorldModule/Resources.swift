@@ -121,6 +121,50 @@ public struct Resources: Sendable {
         }
     }
 
+    /// Accesses the resource of the given type, or `nil` if the collection holds none.
+    ///
+    /// Use this subscript for a resource that may or may not be present. Reading it gives `nil`
+    /// when the collection holds none; assigning a value inserts or replaces the resource, and
+    /// assigning `nil` removes it:
+    ///
+    /// ```swift
+    /// struct Paused: Resource {}
+    ///
+    /// var world = World()
+    /// world.resources[Paused?.self] = Paused()
+    /// print(world.resources.contains(Paused.self))
+    /// // Prints "true"
+    ///
+    /// world.resources[Paused?.self] = nil
+    /// print(world.resources.contains(Paused.self))
+    /// // Prints "false"
+    ///
+    /// world.resources[Gravity?.self]?.acceleration = -1.6
+    /// print(world.resources[Gravity?.self] == nil)
+    /// // Prints "true"
+    /// ```
+    ///
+    /// - Parameter type: The optional type of the resource to access.
+    /// - Complexity: O(1).
+    @inlinable
+    public subscript<R: Resource>(_ type: R?.Type) -> R? {
+        get {
+            #if DEBUG
+            checkAccess(to: R.self, writing: false)
+            #endif
+            return storage[ObjectIdentifier(R.self)].map { $0 as! R }
+        }
+        _modify {
+            #if DEBUG
+            checkAccess(to: R.self, writing: true)
+            #endif
+            // Moved out while it is written so the write does not copy it.
+            var resource = storage.removeValue(forKey: ObjectIdentifier(R.self)).map { $0 as! R }
+            defer { if let resource { storage[ObjectIdentifier(R.self)] = resource } }
+            yield &resource
+        }
+    }
+
     /// Reads the resource of the given type, throwing an error if the collection holds none.
     ///
     /// Write `try?` to get `nil` instead of an error:

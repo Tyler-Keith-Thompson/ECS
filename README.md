@@ -128,9 +128,11 @@ once its wave of systems finishes.
 - **`World`** holds entities and their components: `spawn`, `despawn`, `insert` and `remove` them,
   and read or change one component in place with `world[Position.self, of: entity]`. Plain
   spellings trap on a stale entity or a missing component, like an array subscript; `checked`
-  spellings throw a typed error instead.
+  spellings throw a typed error instead. `world[Position?.self, of: entity]` reads `nil` for a
+  missing component, and assigning `nil` removes it.
 - **Resources** are values the world holds once, such as a clock or the frame's input:
-  `world.resources.insert(Clock())`.
+  `world.resources.insert(Clock())`, or `world.resources[Clock?.self]` for one that may be
+  absent.
 - **Bundles** group components that go together. A `Bundle` lists them in a `body`, which can use
   `if` and `switch`, and you spawn, insert and remove it as one. Every component is a bundle of
   itself.

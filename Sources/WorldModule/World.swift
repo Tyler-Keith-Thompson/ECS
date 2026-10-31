@@ -551,6 +551,60 @@ public struct World: Sendable {
         }
     }
 
+    /// Accesses the component of the given type that an entity holds, or `nil` if it holds none.
+    ///
+    /// Use this subscript for a component an entity may or may not hold. Reading it gives `nil`
+    /// when the entity holds none; assigning `nil` removes the component, and assigning a value
+    /// to an entity that holds none inserts it:
+    ///
+    /// ```swift
+    /// var world = World()
+    /// let ship = world.spawn(Position(x: 0, y: 0))
+    ///
+    /// print(world[Velocity?.self, of: ship] == nil)
+    /// // Prints "true"
+    ///
+    /// world[Velocity?.self, of: ship] = Velocity(dx: 1, dy: 0)
+    /// world[Velocity?.self, of: ship]?.dx += 1
+    /// print(world[Velocity.self, of: ship].dx)
+    /// // Prints "2.0"
+    ///
+    /// world[Velocity?.self, of: ship] = nil
+    /// print(world.contains(Velocity.self, in: ship))
+    /// // Prints "false"
+    /// ```
+    ///
+    /// Writing to a component the entity holds changes it in place and marks it changed at the
+    /// current ``changeTick``, as the plain subscript does. Inserting runs the component's insert
+    /// hooks and adds the components it requires, as `insert(_:into:)` does, and removing runs
+    /// its remove hooks, as `remove(_:from:)` does.
+    ///
+    /// - Parameters:
+    ///   - type: The optional type of the component to access.
+    ///   - entity: The entity that holds the component.
+    /// - Complexity: O(1), plus a copy of the storage of the component type on the first write
+    ///   after the world was copied.
+    /// - Precondition: `entity` is live.
+    @inlinable
+    public subscript<C: Component>(_ type: C?.Type, of entity: Entity) -> C? {
+        get {
+            precondition(contains(entity), "Reading a \(C.self) of stale entity \(entity)")
+            return try? self[checked: C.self, of: entity]
+        }
+        _modify {
+            precondition(contains(entity), "Writing a \(C.self) of stale entity \(entity)")
+            let held = try? self[checked: C.self, of: entity]
+            var component = held
+            yield &component
+            switch (held, component) {
+            case (_?, let written?): self[C.self, of: entity] = written
+            case (nil, let inserted?): insert(inserted, into: entity)
+            case (_?, nil): remove(C.self, from: entity)
+            case (nil, nil): break
+            }
+        }
+    }
+
     /// Adds the given components to an entity, replacing any it holds of the same types.
     ///
     /// Use this method to give an existing entity more components, or to replace a component

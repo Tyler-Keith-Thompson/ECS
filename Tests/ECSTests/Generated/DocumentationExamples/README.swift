@@ -51,7 +51,7 @@ fileprivate struct Tick {
     }
 }
 
-// README.md:157
+// README.md:159
 fileprivate struct Wind: Component { var speed: Double }
 
 fileprivate struct Current: Component { var speed: Double }
@@ -84,7 +84,7 @@ struct READMEDocumentationExamples {
         #expect(printed(world.resources[Clock.self]) == #"Clock(ticks: 1)"#)
     }
 
-    @Test("README.md:157")
+    @Test("README.md:159")
     func example2() async throws {
         var world = World()
         let raft = world.spawn(Position(x: 0, y: 0), Wind(speed: 1), Current(speed: 2))
@@ -104,7 +104,7 @@ struct READMEDocumentationExamples {
         #expect(printed(world[Position.self, of: rock].x) == #"0.0"#)
     }
 
-    @Test("README.md:291")
+    @Test("README.md:293")
     func example3() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 2))

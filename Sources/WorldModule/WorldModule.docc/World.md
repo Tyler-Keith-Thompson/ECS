@@ -25,7 +25,8 @@
 
 ### Reading and Writing Components
 
-- ``subscript(_:of:)``
+- ``subscript(_:of:)->C``
+- ``subscript(_:of:)->C?``
 - ``subscript(checked:of:)``
 - ``contains(_:in:)``
 - ``count(of:)``
