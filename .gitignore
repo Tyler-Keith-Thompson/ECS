@@ -27,3 +27,8 @@ xcuserdata/
 __pycache__/
 
 *.swp
+
+# Benchmarks (a separate package)
+Benchmarks/.build/
+Benchmarks/.swiftpm/
+Benchmarks/Package.resolved

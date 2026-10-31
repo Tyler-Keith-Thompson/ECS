@@ -13,3 +13,5 @@ bazel-bin
 bazel-out
 bazel-testlogs
 
+# The benchmarks are a separate SwiftPM package (package-benchmark), not part of the Bazel graph.
+Benchmarks

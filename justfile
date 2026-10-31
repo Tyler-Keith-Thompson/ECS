@@ -48,6 +48,18 @@ spm-test *args="":
 [doc('Verify both build systems agree — run before pushing')]
 verify: test spm-test
 
+[doc('Run the benchmarks (package-benchmark, in Benchmarks/), e.g. just bench --filter "query.*"')]
+bench *args="":
+    cd {{PROJECT_ROOT}}/Benchmarks && {{SWIFT}} package benchmark {{args}}
+
+[doc('Record the benchmarks as a named baseline, e.g. just bench-baseline main')]
+bench-baseline name:
+    cd {{PROJECT_ROOT}}/Benchmarks && {{SWIFT}} package --allow-writing-to-package-directory benchmark baseline update {{name}}
+
+[doc('Compare the benchmarks against a named baseline, e.g. just bench-compare main')]
+bench-compare name:
+    cd {{PROJECT_ROOT}}/Benchmarks && {{SWIFT}} package benchmark baseline compare {{name}}
+
 [doc('Regenerate Package.swift and every BUILD.bazel from scripts/modules.py')]
 modules:
     python3 {{PROJECT_ROOT}}/scripts/modules.py

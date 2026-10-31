@@ -21,6 +21,7 @@ Tests/<Module>Tests/             One test target per module; Performance/ holds 
 Tests/ECSTests/          The README examples, verbatim
 Tests/ECSTestSupport/    Shared test fixtures (data only)
 scripts/modules.py               The module graph
+Benchmarks/                      package-benchmark suite, a separate package (not in Bazel)
 tools/                           Bazel rule wrappers (warnings as errors, Swift 6 mode), DocC rules
 ```
 
@@ -58,6 +59,7 @@ Every shell command gets a timeout. macOS has no `timeout`; use
 | `just modules` | Regenerate build files from `scripts/modules.py` |
 | `just resolve` | Re-resolve Bazel's SwiftPM dependencies after editing `PACKAGES` |
 | `just docs` | Combined DocC site into `.build/docs` |
+| `just bench`, `just bench-baseline <name>`, `just bench-compare <name>` | The benchmarks in `Benchmarks/` (package-benchmark): run, record a baseline, compare against one |
 | `just generate` | Xcode project from the Bazel graph |
 | `bazel query 'rdeps(//Tests/..., //Sources/X)'` | Test targets affected by a change to X |
 
@@ -226,7 +228,9 @@ Every push to `main` releases a patch version, and CI minutes are scarce, so bat
 
 ## Performance notes (this project)
 
-Measured with a release benchmark; keep these in mind when changing `WorldModule`.
+Measured with the benchmarks in `Benchmarks/`; keep these in mind when changing `WorldModule`, and
+compare against a baseline (`just bench-baseline`, `just bench-compare`) before and after. The
+benchmarks report retains and releases per entity: hot paths should show zero.
 
 - Code generic over a parameter pack is not specialized: a pack expansion per entity costs about
   ten times a fixed-arity loop. Hot paths take a `Reader` whose row closure is built by
@@ -241,3 +245,7 @@ Measured with a release benchmark; keep these in mind when changing `WorldModule
   single-component reads.
 - A column's `index` and `values` are `@exclusivity(unchecked)`: they are only written through a
   uniquely referenced column.
+- Single-entity paths reach a column through `Unmanaged` (`unretainedColumn`,
+  `uniqueUnretainedColumn`) so they retain nothing; a retain and release per call cost more than
+  the rest of a read. The subscript's `_modify` swaps the values array out and back rather than
+  yielding into the column, which would retain it.

@@ -140,7 +140,8 @@ public struct World: Sendable {
     /// - Complexity: O(1).
     @inlinable
     public func contains<C: Component>(_ type: C.Type, in entity: Entity) -> Bool {
-        column(of: C.self)?.index.position(of: entity) != nil
+        guard let slot = columnPositions.position(of: ObjectIdentifier(C.self)) else { return false }
+        return unretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef { $0.index.position(of: entity) != nil }
     }
 
     /// The `C` that `entity` holds.
@@ -156,10 +157,15 @@ public struct World: Sendable {
     public subscript<C: Component>(_ type: C.Type, of entity: Entity) -> C {
         get {
             precondition(contains(entity), "Reading a \(C.self) of stale entity \(entity)")
-            guard let column = column(of: C.self), let position = column.index.position(of: entity) else {
+            guard let slot = columnPositions.position(of: ObjectIdentifier(C.self)) else {
                 preconditionFailure("Entity \(entity) holds no \(C.self)")
             }
-            return column.values[position]
+            return unretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef { column in
+                guard let position = column.index.position(of: entity) else {
+                    preconditionFailure("Entity \(entity) holds no \(C.self)")
+                }
+                return column.values[position]
+            }
         }
         _modify {
             precondition(contains(entity), "Writing a \(C.self) of stale entity \(entity)")
@@ -167,8 +173,13 @@ public struct World: Sendable {
                   let position = columns[slot].index.position(of: entity) else {
                 preconditionFailure("Entity \(entity) holds no \(C.self)")
             }
-            let column = uniqueColumn(at: slot, of: C.self)
-            yield &column.values[position]
+            // Moved out while it is written: yielding storage inside the column would retain the
+            // column for the duration.
+            let column = uniqueUnretainedColumn(at: slot, of: C.self)
+            var values: [C] = []
+            column._withUnsafeGuaranteedRef { swap(&values, &$0.values) }
+            defer { column._withUnsafeGuaranteedRef { swap(&values, &$0.values) } }
+            yield &values[position]
         }
     }
 
@@ -181,10 +192,12 @@ public struct World: Sendable {
     @inlinable
     public subscript<C: Component>(checked type: C.Type, of entity: Entity) -> C {
         get throws(MissingComponent) {
-            guard let column = column(of: C.self), let position = column.index.position(of: entity) else {
-                throw MissingComponent()
+            guard let slot = columnPositions.position(of: ObjectIdentifier(C.self)) else { throw MissingComponent() }
+            let component: C? = unretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef { column in
+                column.index.position(of: entity).map { column.values[$0] }
             }
-            return column.values[position]
+            guard let component else { throw MissingComponent() }
+            return component
         }
     }
 
@@ -274,10 +287,20 @@ public struct World: Sendable {
     /// - Complexity: O(1).
     @inlinable
     public func count<C: Component>(of type: C.Type) -> Int {
-        column(of: C.self)?.index.dense.count ?? 0
+        guard let slot = columnPositions.position(of: ObjectIdentifier(C.self)) else { return 0 }
+        return unretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef { $0.index.dense.count }
     }
 
     // MARK: Storage
+
+    /// The column at `slot`, without retaining it; valid while this world is not changed.
+    @inlinable
+    @inline(__always)
+    func unretainedColumn<C: Component>(at slot: Int, of type: C.Type) -> Unmanaged<Column<C>> {
+        columns.withUnsafeBufferPointer { columns in
+            Unmanaged.passUnretained(unsafeDowncast(columns[slot], to: Column<C>.self))
+        }
+    }
 
     @inlinable
     func column<C: Component>(of type: C.Type) -> Column<C>? {
@@ -289,6 +312,17 @@ public struct World: Sendable {
     @inlinable
     func snapshot<C: Component>(of type: C.Type) -> ColumnSnapshot<C> {
         column(of: C.self)?.snapshot ?? ColumnSnapshot()
+    }
+
+    /// The column at `slot`, copied first if another world shares it, without retaining it; valid
+    /// while this world is not changed otherwise.
+    @inlinable
+    @inline(__always)
+    mutating func uniqueUnretainedColumn<C: Component>(at slot: Int, of type: C.Type) -> Unmanaged<Column<C>> {
+        if !isKnownUniquelyReferenced(&columns[slot]) {
+            copyColumn(at: slot)
+        }
+        return unretainedColumn(at: slot, of: C.self)
     }
 
     /// The column at `slot`, copied first if another world shares it.
@@ -317,23 +351,26 @@ public struct World: Sendable {
 
     @inlinable
     mutating func store<C: Component>(_ component: C, for entity: Entity) {
-        let column = uniqueColumn(at: columnSlot(of: C.self), of: C.self)
-        if let position = column.index.position(of: entity) {
-            column.values[position] = component
-        } else {
-            _ = column.index.append(entity)
-            column.values.append(component)
+        uniqueUnretainedColumn(at: columnSlot(of: C.self), of: C.self)._withUnsafeGuaranteedRef { column in
+            if let position = column.index.position(of: entity) {
+                column.values[position] = component
+            } else {
+                _ = column.index.append(entity)
+                column.values.append(component)
+            }
         }
     }
 
     @inlinable
     mutating func discard<C: Component>(_ type: C.Type, from entity: Entity) -> C? {
         guard let slot = columnPositions.position(of: ObjectIdentifier(C.self)),
-              let position = columns[slot].index.position(of: entity) else { return nil }
-        let column = uniqueColumn(at: slot, of: C.self)
-        let component = column.values[position]
-        column.swapRemove(at: position)
-        return component
+              let position = unretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef({ $0.index.position(of: entity) })
+        else { return nil }
+        return uniqueUnretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef { column in
+            let component = column.values[position]
+            column.swapRemove(at: position)
+            return component
+        }
     }
 
     @inlinable
@@ -351,12 +388,16 @@ public struct World: Sendable {
     @usableFromInline
     mutating func destroy(_ entity: Entity) {
         for slot in columns.indices {
-            guard let position = columns[slot].index.position(of: entity) else { continue }
+            let held = columns.withUnsafeBufferPointer { columns in
+                Unmanaged.passUnretained(columns[slot])._withUnsafeGuaranteedRef { $0.index.position(of: entity) }
+            }
+            guard let position = held else { continue }
             if !isKnownUniquelyReferenced(&columns[slot]) {
                 copyColumn(at: slot)
             }
-            let column = columns[slot]
-            column.swapRemove(column, position)
+            columns.withUnsafeBufferPointer { columns in
+                Unmanaged.passUnretained(columns[slot])._withUnsafeGuaranteedRef { $0.swapRemove($0, position) }
+            }
         }
         let slot = Int(entity.index)
         isLive[slot] = false
