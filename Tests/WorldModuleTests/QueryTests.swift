@@ -312,4 +312,40 @@ struct QueryTests {
             for _ in query {}
         }
     }
+
+    @Test("A view's first is its first row, or nil when it is empty")
+    func viewFirst() {
+        var world = World()
+        let none: Entity? = nil
+        #expect(world.query(Health.self).first?.entity == none)
+        let first = world.spawn(Health(1))
+        world.spawn(Health(2))
+        let expectedValue = 1
+        #expect(world.query(Health.self).first?.entity == first)
+        #expect(world.query(Health.self).first?.1.current == expectedValue)
+        #expect(world.query(Health.self).without(Health.self).first?.entity == none)
+    }
+
+    @Test("A view's first stops at the first row it visits")
+    func viewFirstMatchesIteration() {
+        var world = World()
+        for value in 0 ..< 10 {
+            let entity = world.spawn(First(value))
+            if value % 3 == 0 { world.insert(Second(value), into: entity) }
+        }
+        let view = world.query(First.self, Second.self)
+        let iterated = view.map(\.entity).first
+        #expect(view.first?.entity == iterated)
+    }
+
+    @Test("An entity view's first is its first entity, or nil when it is empty")
+    func entityViewFirst() {
+        var world = World()
+        let none: Entity? = nil
+        #expect(world.query().with(Health.self).first == none)
+        world.spawn(Name("unhealthy"))
+        let healthy = world.spawn(Health(1))
+        #expect(world.query().with(Health.self).first == healthy)
+    }
+
 }

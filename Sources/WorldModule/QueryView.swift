@@ -163,6 +163,32 @@ public struct QueryView<each C>: Sequence, Sendable {
         QueryView(world: world, filter: self.filter.merging(filter), makeReader: makeReader)
     }
 
+    /// The first row of the view, or `nil` if the view is empty.
+    ///
+    /// Use this property to find an entity you expect to be the only one of its kind, such as
+    /// the player:
+    ///
+    /// ```swift
+    /// var world = World()
+    /// world.spawn(Name(value: "Goblin"))
+    /// world.spawn(Name(value: "Ada"), Player())
+    ///
+    /// if let (_, name) = world.query(Name.self).with(Player.self).first {
+    ///     print(name.value)
+    ///     // Prints "Ada"
+    /// }
+    /// ```
+    ///
+    /// The first row is the first the view visits, in the order described for ``QueryView``.
+    ///
+    /// - Complexity: O(*n*) for *n* entities in the smallest queried or required type, in the
+    ///   worst case; it stops at the first row.
+    @inlinable
+    public var first: (entity: Entity, repeat each C)? {
+        var iterator = makeIterator()
+        return iterator.next()
+    }
+
     /// The number of rows in the view.
     ///
     /// The view counts its rows by visiting them.
@@ -451,6 +477,18 @@ public struct EntityQueryView: Sequence, Sendable {
     @inlinable
     public func filtered(by filter: QueryFilter) -> EntityQueryView {
         EntityQueryView(world: world, filter: self.filter.merging(filter))
+    }
+
+    /// The first entity of the view, or `nil` if the view is empty.
+    ///
+    /// The first entity is the first the view visits.
+    ///
+    /// - Complexity: O(*n*) for *n* entities in the smallest required type, or the world's slots
+    ///   when no type is required, in the worst case; it stops at the first entity.
+    @inlinable
+    public var first: Entity? {
+        var iterator = makeIterator()
+        return iterator.next()
     }
 
     /// The number of entities in the view.

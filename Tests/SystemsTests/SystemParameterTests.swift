@@ -12,6 +12,16 @@ struct Signal: Event, Equatable { var value: Int }
 struct Seen: Resource, Equatable { var values: [Int] = [] }
 typealias Place = Position
 
+private struct FirstFound: Resource { var entity: Entity?, unfrozen: Entity? }
+
+@System
+private struct ParameterFindFirst {
+    func run(_ healthy: Query<Health>, _ unfrozen: Query<Health>.Where<Without<Frozen>>, found: ResourceWriter<FirstFound>) {
+        found.value.entity = healthy.first?.entity
+        found.value.unfrozen = unfrozen.first?.entity
+    }
+}
+
 @System
 struct ParameterMovement {
     func run(_ movers: Update<Position>.Over<Velocity>.Where<Without<Frozen>>) {
@@ -336,6 +346,18 @@ struct SystemParameterTests {
             Schedule { ParameterHiddenConflict() }.run(on: &world)
         }
     }
+
+    @Test("A query parameter's first is the first row of the world it is bound to")
+    func queryParameterFirst() {
+        var world = World()
+        world.resources.insert(FirstFound())
+        let frozen = world.spawn(Health(1), Frozen())
+        let thawed = world.spawn(Health(2))
+        Schedule { ParameterFindFirst() }.run(on: &world)
+        #expect(world.resources[FirstFound.self].entity == frozen)
+        #expect(world.resources[FirstFound.self].unfrozen == thawed)
+    }
+
 }
 
 @System

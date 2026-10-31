@@ -293,6 +293,17 @@ extension Query: Sequence {
         return view.makeIterator()
     }
 
+    /// The first row of the world the query is bound to, or `nil` if no entity matches.
+    ///
+    /// - Important: Reading this property of a query that isn't bound to a world traps.
+    /// - Complexity: O(*n*) for *n* entities in the smallest queried or required type, in the
+    ///   worst case; it stops at the first row.
+    @inlinable
+    public var first: (entity: Entity, repeat (each T).Value)? {
+        var iterator = makeIterator()
+        return iterator.next()
+    }
+
     /// A query whose filter a system spells as types.
     ///
     /// A system declares what it reads through the types of its parameters, so it can't pass a
@@ -362,6 +373,16 @@ extension Query: Sequence {
         @inlinable
         public func makeIterator() -> QueryView<repeat (each T).Value>.Iterator {
             query.makeIterator()
+        }
+
+        /// The first row of the world the query is bound to, or `nil` if no entity matches.
+        ///
+        /// - Important: Reading this property of a query that isn't bound to a world traps.
+        /// - Complexity: O(*n*) for *n* entities in the smallest queried or required type, in
+        ///   the worst case; it stops at the first row.
+        @inlinable
+        public var first: (entity: Entity, repeat (each T).Value)? {
+            query.first
         }
     }
 }
