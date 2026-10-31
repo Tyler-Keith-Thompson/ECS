@@ -135,4 +135,4 @@ Bazel is the development build; SwiftPM is the published package. Both are gener
 
 ## License
 
-MIT. See `LICENSE`.
+Apache 2.0. See `LICENSE`.
