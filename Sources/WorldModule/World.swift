@@ -97,21 +97,24 @@ public struct World: Sendable {
         return slot < generations.count && isLive[slot] && generations[slot] == entity.generation
     }
 
-    /// Spawns an entity holding `components` and returns its handle.
+    /// Spawns an entity holding the components of `bundles` and returns its handle.
     ///
-    /// Spawning one, two or three components has overloads specialized for speed.
+    /// Each component is a bundle of itself, so `spawn(Position(x: 0, y: 0), Velocity(dx: 1,
+    /// dy: 0))` spawns an entity holding both. Spawning one, two or three components has
+    /// overloads specialized for speed.
     ///
     /// A vacated slot is reused, the most recently vacated first, with a generation one higher
-    /// than its last entity's. When `components` holds two of one type, the later one is kept.
+    /// than its last entity's. When the bundles hold two components of one type, the later one
+    /// is kept.
     ///
     /// - Complexity: O(*k*) amortized for *k* components.
     /// - Precondition: Fewer than `UInt32.max` slots are in use.
     @inlinable
     @discardableResult
-    public mutating func spawn<each C: Component>(_ components: repeat each C) -> Entity {
+    public mutating func spawn<each B: Bundle>(_ bundles: repeat each B) -> Entity {
         let entity = makeEntity()
-        for component in repeat each components {
-            store(component, for: entity)
+        for bundle in repeat each bundles {
+            bundle.insert(into: entity, in: &self)
         }
         return entity
     }
@@ -249,18 +252,18 @@ public struct World: Sendable {
         }
     }
 
-    /// Gives `entity` each of `components`, replacing any it holds of the same types.
+    /// Gives `entity` the components of `bundles`, replacing any it holds of the same types.
     ///
-    /// A new component is marked added and changed at the current ``changeTick``; a replaced one,
-    /// changed.
+    /// Each component is a bundle of itself. A new component is marked added and changed at the
+    /// current ``changeTick``; a replaced one, changed.
     ///
     /// - Complexity: O(*k*) amortized for *k* components.
     /// - Precondition: `entity` is live. Use ``insert(_:checkedInto:)`` to throw instead.
     @inlinable
-    public mutating func insert<each C: Component>(_ components: repeat each C, into entity: Entity) {
+    public mutating func insert<each B: Bundle>(_ bundles: repeat each B, into entity: Entity) {
         precondition(contains(entity), "Inserting into stale entity \(entity)")
-        for component in repeat each components {
-            store(component, for: entity)
+        for bundle in repeat each bundles {
+            bundle.insert(into: entity, in: &self)
         }
     }
 
@@ -297,15 +300,15 @@ public struct World: Sendable {
         store(c, for: entity)
     }
 
-    /// Gives `entity` each of `components`, replacing any it holds of the same types.
+    /// Gives `entity` the components of `bundles`, replacing any it holds of the same types.
     ///
     /// - Complexity: O(*k*) amortized for *k* components.
     /// - Throws: ``StaleEntity`` when `entity` is not live; the world is unchanged.
     @inlinable
-    public mutating func insert<each C: Component>(_ components: repeat each C, checkedInto entity: Entity) throws(StaleEntity) {
+    public mutating func insert<each B: Bundle>(_ bundles: repeat each B, checkedInto entity: Entity) throws(StaleEntity) {
         guard contains(entity) else { throw StaleEntity() }
-        for component in repeat each components {
-            store(component, for: entity)
+        for bundle in repeat each bundles {
+            bundle.insert(into: entity, in: &self)
         }
     }
 

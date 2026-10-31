@@ -18,6 +18,13 @@ type the fewest entities hold and looks the others up.
 - ``Component``
 - ``EntitiesView``
 
+### Bundles
+
+- ``Bundle``
+- ``BundleBuilder``
+- ``TupleBundle``
+- ``EitherBundle``
+
 ### Reading many entities
 
 - ``QueryView``

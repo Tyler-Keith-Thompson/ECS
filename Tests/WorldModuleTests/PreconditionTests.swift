@@ -149,4 +149,36 @@ struct PreconditionTests {
             world.removeParent(of: child)
         }
     }
+
+    @Test("Inserting a bundle into a stale entity traps", .tags(.precondition))
+    func insertBundleStale() async {
+        await #expect(processExitsWith: .failure) {
+            struct Pair: Bundle {
+                var body: some Bundle {
+                    Health(1)
+                    Name("pair")
+                }
+            }
+            var world = World()
+            let entity = world.spawn()
+            world.despawn(entity)
+            world.insert(Pair(), into: entity)
+        }
+    }
+
+    @Test("Removing a bundle from a stale entity traps", .tags(.precondition))
+    func removeBundleStale() async {
+        await #expect(processExitsWith: .failure) {
+            struct Pair: Bundle {
+                var body: some Bundle {
+                    Health(1)
+                    Name("pair")
+                }
+            }
+            var world = World()
+            let entity = world.spawn()
+            world.despawn(entity)
+            world.remove(Pair.self, from: entity)
+        }
+    }
 }

@@ -43,7 +43,7 @@ public struct Commands: Sendable {
     @inlinable
     public var isEmpty: Bool { operations.isEmpty }
 
-    /// Records spawning an entity holding `components`, and returns a handle to it that the
+    /// Records spawning an entity holding the components of `bundles`, and returns a handle to it that the
     /// commands recorded after this one in this buffer can name.
     ///
     /// The handle stands for the entity only inside this buffer: the world holds no entity with
@@ -51,10 +51,10 @@ public struct Commands: Sendable {
     /// recorded.
     @inlinable
     @discardableResult
-    public mutating func spawn<each C: Component>(_ components: repeat each C) -> Entity {
+    public mutating func spawn<each B: Bundle>(_ bundles: repeat each B) -> Entity {
         let pending = Entity(index: UInt32(spawnCount), generation: Entity.pendingGeneration)
         spawnCount += 1
-        operations.append { world, spawned in spawned.append(world.spawn(repeat each components)) }
+        operations.append { world, spawned in spawned.append(world.spawn(repeat each bundles)) }
         return pending
     }
 
@@ -90,18 +90,13 @@ public struct Commands: Sendable {
         operations.append { world, spawned in _ = try? world.removeParent(checkedOf: Self.resolve(child, in: spawned)) }
     }
 
-    /// Records giving `entity` each of `components`, replacing any it holds of the same types.
+    /// Records giving `entity` the components of `bundles`, replacing any it holds of the same
+    /// types.
     @inlinable
-    public mutating func insert<each C: Component>(_ components: repeat each C, into entity: Entity) {
+    public mutating func insert<each B: Bundle>(_ bundles: repeat each B, into entity: Entity) {
         operations.append { world, spawned in
-            try? world.insert(repeat each components, checkedInto: Self.resolve(entity, in: spawned))
+            try? world.insert(repeat each bundles, checkedInto: Self.resolve(entity, in: spawned))
         }
-    }
-
-    /// Records taking the `C` away from `entity`.
-    @inlinable
-    public mutating func remove<C: Component>(_ type: C.Type, from entity: Entity) {
-        operations.append { world, spawned in _ = try? world.remove(C.self, checkedFrom: Self.resolve(entity, in: spawned)) }
     }
 
     /// Records storing `resource`, replacing any of its type.

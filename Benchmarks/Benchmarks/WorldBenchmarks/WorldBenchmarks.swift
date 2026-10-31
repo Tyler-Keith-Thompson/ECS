@@ -9,6 +9,15 @@ struct Velocity: Component { var dx: Double, dy: Double }
 struct Health: Component { var current: Int }
 struct Mass: Component { var kilograms: Double }
 
+/// Three components spawned as one bundle.
+struct Body: Bundle {
+    var body: some Bundle {
+        Position(x: 0, y: 0)
+        Velocity(dx: 1, dy: 1)
+        Health(current: 1)
+    }
+}
+
 /// Entities in each benchmark's world.
 let entityCount = 1_000_000
 
@@ -37,6 +46,22 @@ let benchmarks: @Sendable () -> Void = {
         for value in benchmark.scaledIterations {
             let entity = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 1))
             if value.isMultiple(of: 3) { world.insert(Health(current: 1), into: entity) }
+        }
+        blackHole(world.count)
+    }
+
+    Benchmark("spawn three components") { benchmark in
+        var world = World()
+        for _ in benchmark.scaledIterations {
+            world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 1), Health(current: 1))
+        }
+        blackHole(world.count)
+    }
+
+    Benchmark("spawn a bundle of three components") { benchmark in
+        var world = World()
+        for _ in benchmark.scaledIterations {
+            world.spawn(Body())
         }
         blackHole(world.count)
     }
