@@ -36,23 +36,24 @@ public struct SystemMacro: ExtensionMacro {
             return []
         }
         guard let signature = check(run, in: context) else { return [] }
+        let isolation: Isolation = isMainActor(declaration.attributes) || isMainActor(run.attributes) ? .mainActor : .none
         let extensionDecl: DeclSyntax
         switch signature {
         case .world(let label):
             if label == "in" {
-                extensionDecl = "extension \(type.trimmed): System {}"
+                extensionDecl = "extension \(type.trimmed): \(raw: isolation.conformance) {}"
             } else {
                 let call = label == "_" ? "run(&world)" : "run(\(label): &world)"
                 extensionDecl = """
-                    extension \(type.trimmed): System {
-                        public func run(in world: inout World) {
+                    extension \(type.trimmed): \(raw: isolation.conformance) {
+                        \(raw: isolation.runAttribute)public func run(in world: inout World) {
                             \(raw: call)
                         }
                     }
                     """
             }
         case .parameters(let parameters):
-            extensionDecl = parameterSystem(type.trimmed, parameters)
+            extensionDecl = parameterSystem(type.trimmed, parameters, isolation: isolation)
         }
         guard let result = extensionDecl.as(ExtensionDeclSyntax.self) else { return [] }
         return [result]
@@ -303,8 +304,15 @@ public struct SystemMacro: ExtensionMacro {
         }
     }
 
+    /// Whether `attributes` include `@MainActor`.
+    static func isMainActor(_ attributes: AttributeListSyntax) -> Bool {
+        attributes.contains { element in
+            element.as(AttributeSyntax.self)?.attributeName.trimmedDescription == "MainActor"
+        }
+    }
+
     /// The conformance of a system whose `run` takes `parameters`.
-    static func parameterSystem(_ type: some TypeSyntaxProtocol, _ parameters: [Parameter]) -> DeclSyntax {
+    static func parameterSystem(_ type: some TypeSyntaxProtocol, _ parameters: [Parameter], isolation: Isolation) -> DeclSyntax {
         let accesses = parameters.map { "\($0.type)._access(in: Self.self)" }.joined(separator: ", ")
         var fetches: [String] = []
         var restores: [String] = []
@@ -352,17 +360,17 @@ public struct SystemMacro: ExtensionMacro {
         let initialize = initializations.isEmpty ? "" : """
 
 
-                public func initialize(in world: inout World) {
+                \(isolation.nonisolatedAttribute)public func initialize(in world: inout World) {
             \(initializations.joined(separator: "\n"))
                 }
             """
         return """
-            extension \(type): System {
-                public var access: Access? {
+            extension \(type): \(raw: isolation.conformance) {
+                \(raw: isolation.nonisolatedAttribute)public var access: Access? {
                     _parameterAccess(\(raw: accesses))
                 }
 
-                public func run(in world: inout World) {
+                \(raw: isolation.runAttribute)public func run(in world: inout World) {
             \(raw: body)
                 }\(raw: initialize)
             }
@@ -376,6 +384,35 @@ extension String {
         while text.first?.isWhitespace == true { text.removeFirst() }
         while text.last?.isWhitespace == true { text.removeLast() }
         return String(text)
+    }
+}
+
+/// Where a system made by `@System` runs.
+enum Isolation {
+    /// Anywhere: a `System`.
+    case none
+    /// On the main actor: a `MainActorSystem`.
+    case mainActor
+
+    var conformance: String {
+        switch self {
+        case .none: "System"
+        case .mainActor: "MainActorSystem"
+        }
+    }
+
+    var runAttribute: String {
+        switch self {
+        case .none: ""
+        case .mainActor: "@MainActor "
+        }
+    }
+
+    var nonisolatedAttribute: String {
+        switch self {
+        case .none: ""
+        case .mainActor: "nonisolated "
+        }
     }
 }
 

@@ -111,6 +111,8 @@ public struct ScheduledSystem: Sendable {
     @usableFromInline let initializer: @Sendable (inout World) -> Void
     /// What the system reads and writes, or nil if it must run alone.
     public let access: Access?
+    /// Whether the system runs on the main actor (``MainActorSystem``).
+    public let runsOnMainActor: Bool
 
     /// `system`, unordered.
     @inlinable
@@ -121,6 +123,23 @@ public struct ScheduledSystem: Sendable {
         type = ObjectIdentifier(S.self)
         body = { world in system.run(in: &world) }
         initializer = { world in system.initialize(in: &world) }
+        runsOnMainActor = false
+    }
+
+    /// The main-actor `system`, unordered.
+    @inlinable
+    public init<S: MainActorSystem>(_ system: S) {
+        access = system.access
+        name = String(describing: S.self)
+        id = nextSystemID.wrappingAdd(1, ordering: .relaxed).newValue
+        type = ObjectIdentifier(S.self)
+        body = { world in
+            MainActor.assumeIsolated {
+                system.run(in: &world)
+            }
+        }
+        initializer = { world in system.initialize(in: &world) }
+        runsOnMainActor = true
     }
 
     /// The sets the system is in: its type's, then those it joined.
@@ -196,6 +215,8 @@ public struct ScheduledSystem: Sendable {
     }
 
     /// Runs the system once on `world`, whatever its conditions.
+    ///
+    /// - Precondition: A main-actor system runs on the main actor.
     @inlinable
     public func run(in world: inout World) {
         body(&world)

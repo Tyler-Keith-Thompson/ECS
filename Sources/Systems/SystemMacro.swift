@@ -38,5 +38,5 @@ import WorldModule
 ///
 /// The expansion refers to `World`, `Access` and `Commands`, so the file imports `ECS`, or
 /// `WorldModule` and `Systems`.
-@attached(extension, conformances: System, names: named(access), named(run), named(initialize))
+@attached(extension, conformances: System, MainActorSystem, names: named(access), named(run), named(initialize))
 public macro System() = #externalMacro(module: "SystemMacros", type: "SystemMacro")

@@ -253,6 +253,85 @@ struct SystemMacroExpansionTests {
             failureHandler: { Issue.record(Comment(rawValue: $0.message)) }
         )
     }
+
+    @Test("A @MainActor type makes a main-actor system whose access is nonisolated")
+    func mainActorType() {
+        assertMacroExpansion(
+            """
+            @MainActor
+            @System
+            struct ScoreLabel {
+                func run(score: ResourceReader<Score>) {}
+            }
+            """,
+            expandedSource: """
+                @MainActor
+                struct ScoreLabel {
+                    func run(score: ResourceReader<Score>) {}
+                }
+
+                extension ScoreLabel: MainActorSystem {
+                    nonisolated public var access: Access? {
+                        _parameterAccess(ResourceReader<Score>._access(in: Self.self))
+                    }
+
+                    @MainActor public func run(in world: inout World) {
+                        let parameter0 = ResourceReader<Score>._fetch(from: world)
+                        run(score: parameter0)
+                    }
+                }
+                """,
+            macroSpecs: ["System": MacroSpec(type: SystemMacro.self)],
+            failureHandler: { Issue.record(Comment(rawValue: $0.message)) }
+        )
+    }
+
+    @Test("A @MainActor run taking the world makes a main-actor system")
+    func mainActorRun() {
+        assertMacroExpansion(
+            """
+            @System
+            struct Window {
+                @MainActor func run(_ world: inout World) {}
+            }
+            """,
+            expandedSource: """
+                struct Window {
+                    @MainActor func run(_ world: inout World) {}
+                }
+
+                extension Window: MainActorSystem {
+                    @MainActor public func run(in world: inout World) {
+                        run(&world)
+                    }
+                }
+                """,
+            macroSpecs: ["System": MacroSpec(type: SystemMacro.self)],
+            failureHandler: { Issue.record(Comment(rawValue: $0.message)) }
+        )
+    }
+
+    @Test("A @MainActor run taking the world in: conforms to MainActorSystem with nothing added")
+    func mainActorRunIn() {
+        assertMacroExpansion(
+            """
+            @System
+            struct Window {
+                @MainActor func run(in world: inout World) {}
+            }
+            """,
+            expandedSource: """
+                struct Window {
+                    @MainActor func run(in world: inout World) {}
+                }
+
+                extension Window: MainActorSystem {
+                }
+                """,
+            macroSpecs: ["System": MacroSpec(type: SystemMacro.self)],
+            failureHandler: { Issue.record(Comment(rawValue: $0.message)) }
+        )
+    }
 }
 
 @Suite("@System diagnostics")

@@ -179,7 +179,8 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   and `inout Commands` queues structural changes that apply after the system's wave. The filter
   types `With`, `Without`, `Added`, `Changed`, `Allows` and `AnyOf` mirror the filter values.
   Parameters that conflict are a compile-time error. A `run(in world: inout World)` makes a
-  system that may change anything.
+  system that may change anything. A `@MainActor` type or `run` makes a `MainActorSystem`,
+  which a schedule run on the main actor runs there, after the other systems of its wave.
 - **`Schedule`**: systems in the order written, adjusted by `after` and `before` constraints,
   and skipped when a `runIf { world in … }` condition does not hold. `run(on:)` runs systems
   that neither conflict nor are ordered at the same time, in waves, with the result running them

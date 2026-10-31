@@ -14,6 +14,7 @@ public struct CyclicOrdering: Error, Hashable, Sendable {
 @resultBuilder
 public enum ScheduleBuilder {
     public static func buildExpression(_ system: some System) -> [ScheduledSystem] { [ScheduledSystem(system)] }
+    public static func buildExpression(_ system: some MainActorSystem) -> [ScheduledSystem] { [ScheduledSystem(system)] }
     public static func buildExpression(_ system: ScheduledSystem) -> [ScheduledSystem] { [system] }
     public static func buildExpression(_ schedule: Schedule) -> [ScheduledSystem] { schedule.systems }
     public static func buildBlock(_ parts: [ScheduledSystem]...) -> [ScheduledSystem] { parts.flatMap(\.self) }
@@ -157,8 +158,11 @@ public struct Schedule: Sendable {
     /// of the wave, in the order the systems run. The tick advances once more after the last wave,
     /// so changes made to the world between runs are newer than every system's previous run.
     ///
+    /// A ``MainActorSystem`` runs on the calling thread after the other systems of its wave.
+    ///
     /// - Precondition: Every system with an access reads and writes only what it lists; see
-    ///   ``WorldModule/World/runConcurrently(_:)``.
+    ///   ``WorldModule/World/runConcurrently(_:)``. A schedule whose main-actor systems run is run
+    ///   on the main actor.
     public func run(on world: inout World) {
         run(on: &world, concurrently: true)
     }
@@ -186,19 +190,24 @@ public struct Schedule: Sendable {
             guard !group.isEmpty else { continue }
             let runs = world.resources.contains(SystemRuns.self) ? world.resources[SystemRuns.self].ticks : [:]
             let tick = world.advanceChangeTick()
-            if group.count == 1 || !concurrently {
+            let concurrent = group.filter { !$0.runsOnMainActor }
+            if concurrent.count <= 1 || !concurrently {
                 for system in group {
                     world.lastRun = runs[system.id] ?? .zero
                     system.run(in: &world)
                 }
             } else {
-                world.runConcurrently(group.map { system in
+                world.runConcurrently(concurrent.map { system in
                     let lastRun = runs[system.id] ?? .zero
                     return ConcurrentChange(access: system.access!) { world in
                         world.lastRun = lastRun
                         system.run(in: &world)
                     }
                 })
+                for system in group where system.runsOnMainActor {
+                    world.lastRun = runs[system.id] ?? .zero
+                    system.run(in: &world)
+                }
             }
             world.applyQueuedCommands()
             var updated = world.resources.contains(SystemRuns.self) ? world.resources[SystemRuns.self] : SystemRuns(ticks: [:])
