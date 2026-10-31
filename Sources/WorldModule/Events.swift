@@ -184,6 +184,6 @@ extension Commands {
     /// Records sending `event`.
     @inlinable
     public mutating func send<E: Event>(_ event: E) {
-        record { world in world.send(event) }
+        operations.append { world, _ in world.send(event) }
     }
 }

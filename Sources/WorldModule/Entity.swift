@@ -7,7 +7,8 @@
 public struct Entity: Hashable, Comparable, Sendable, Codable {
     /// The slot the entity occupies.
     public let index: UInt32
-    /// How many entities held the slot before this one, wrapping at `UInt32.max`.
+    /// How many entities held the slot before this one, wrapping to 0 before `UInt32.max`,
+    /// which marks the handles ``Commands/spawn(_:)`` returns.
     public let generation: UInt32
 
     /// The handle for slot `index` at generation `generation`.
@@ -19,6 +20,9 @@ public struct Entity: Hashable, Comparable, Sendable, Codable {
         self.index = index
         self.generation = generation
     }
+
+    /// The generation of handles to entities that commands will spawn.
+    @usableFromInline static let pendingGeneration = UInt32.max
 
     @inlinable
     public static func < (lhs: Entity, rhs: Entity) -> Bool {

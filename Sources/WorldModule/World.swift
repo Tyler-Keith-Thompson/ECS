@@ -454,7 +454,7 @@ public struct World: Sendable {
         }
         let slot = Int(entity.index)
         isLive[slot] = false
-        generations[slot] &+= 1
+        generations[slot] = generations[slot] == Entity.pendingGeneration - 1 ? 0 : generations[slot] + 1
         vacant.append(entity.index)
     }
 }
