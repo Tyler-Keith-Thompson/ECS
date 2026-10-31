@@ -198,10 +198,15 @@ public struct Schedule: Sendable {
         return waves
     }
 
+    /// Whether an `after` or `before` constraint orders `later` after `earlier`.
+    static func isConstrained(_ later: ScheduledSystem, after earlier: ScheduledSystem) -> Bool {
+        later.predecessors.contains(earlier.type) || earlier.successors.contains(later.type)
+    }
+
     /// Whether `later` must run after `earlier`, which comes before it in the schedule: a
     /// constraint orders them, or they conflict.
     static func dependsOn(_ later: ScheduledSystem, _ earlier: ScheduledSystem) -> Bool {
-        if later.predecessors.contains(earlier.type) || earlier.successors.contains(later.type) {
+        if isConstrained(later, after: earlier) {
             return true
         }
         guard let laterAccess = later.access, let earlierAccess = earlier.access else { return true }
@@ -238,6 +243,63 @@ public struct Schedule: Sendable {
             return nil
         }
         return order.reversed().map { systems[$0] }
+    }
+}
+
+/// Two systems of a schedule whose accesses conflict but which no `after` or `before`
+/// constraint orders, directly or through other systems, so the order they run in rests on the
+/// order they were written in.
+@frozen
+public struct Ambiguity: Hashable, Sendable {
+    /// The position in ``Schedule/systems`` of the system that runs first.
+    public let first: Int
+    /// The position in ``Schedule/systems`` of the system that runs second.
+    public let second: Int
+
+    @inlinable
+    public init(first: Int, second: Int) {
+        self.first = first
+        self.second = second
+    }
+}
+
+extension Schedule {
+    /// Every pair of systems whose accesses conflict but which no constraint orders, in the
+    /// order of ``systems``.
+    ///
+    /// Such a pair runs in the order written, which is easy to change by accident. Order each
+    /// pair with `after` or `before`, or mark it with
+    /// ``ScheduledSystem/ambiguous(with:)`` when either order is right. Systems without an access
+    /// run alone, in the order written, and are left out.
+    ///
+    /// ```swift
+    /// #expect(frame.ambiguities().isEmpty)
+    /// ```
+    ///
+    /// - Complexity: O(*s*·(*s* + *c*)) for *s* systems and *c* ordered pairs.
+    public func ambiguities() -> [Ambiguity] {
+        var successors = [[Int]](repeating: [], count: systems.count)
+        for later in systems.indices {
+            for earlier in 0 ..< later where Self.isConstrained(systems[later], after: systems[earlier]) {
+                successors[earlier].append(later)
+            }
+        }
+        var ambiguities: [Ambiguity] = []
+        for first in systems.indices {
+            guard let firstAccess = systems[first].access else { continue }
+            var ordered: Set<Int> = []
+            for case .discover(let reached) in depthFirstSearch(from: [first], successors: { successors[$0] }) {
+                ordered.insert(reached)
+            }
+            for second in systems.indices where second > first && !ordered.contains(second) {
+                guard let secondAccess = systems[second].access, firstAccess.conflicts(with: secondAccess),
+                      !systems[first].ambiguousTypes.contains(systems[second].type),
+                      !systems[second].ambiguousTypes.contains(systems[first].type)
+                else { continue }
+                ambiguities.append(Ambiguity(first: first, second: second))
+            }
+        }
+        return ambiguities
     }
 }
 

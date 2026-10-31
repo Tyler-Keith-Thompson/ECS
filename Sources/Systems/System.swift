@@ -52,6 +52,13 @@ extension System {
         ScheduledSystem(self).before(repeat each types)
     }
 
+    /// This system, free to run in either order with every system of each of `types`; see
+    /// ``ScheduledSystem/ambiguous(with:)``.
+    @inlinable
+    public func ambiguous<each S: System>(with types: repeat (each S).Type) -> ScheduledSystem {
+        ScheduledSystem(self).ambiguous(with: repeat each types)
+    }
+
     /// This system, run only when `condition` holds for the world at the start of its wave.
     ///
     /// ```swift
@@ -76,6 +83,9 @@ public struct ScheduledSystem: Sendable {
     @usableFromInline var predecessors: [ObjectIdentifier] = []
     /// Types whose systems must run after this one.
     @usableFromInline var successors: [ObjectIdentifier] = []
+    /// Types whose systems this one may run in either order with, though their accesses
+    /// conflict: ``Schedule/ambiguities()`` leaves those pairs out.
+    @usableFromInline var ambiguousTypes: [ObjectIdentifier] = []
     /// What must hold for the world, every one, for the system to run.
     @usableFromInline var conditions: [@Sendable (World) -> Bool] = []
     @usableFromInline let body: @Sendable (inout World) -> Void
@@ -108,6 +118,19 @@ public struct ScheduledSystem: Sendable {
         var system = self
         for type in repeat each types {
             system.successors.append(ObjectIdentifier(type))
+        }
+        return system
+    }
+
+    /// This system, also free to run in either order with every system of each of `types`:
+    /// ``Schedule/ambiguities()`` does not report it with them.
+    ///
+    /// For systems whose conflicting writes commute, such as two that add to one score.
+    @inlinable
+    public func ambiguous<each S: System>(with types: repeat (each S).Type) -> ScheduledSystem {
+        var system = self
+        for type in repeat each types {
+            system.ambiguousTypes.append(ObjectIdentifier(type))
         }
         return system
     }

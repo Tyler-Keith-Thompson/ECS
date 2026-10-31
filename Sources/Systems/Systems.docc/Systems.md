@@ -14,6 +14,9 @@ same time, in waves, and the world ends as it would running them one after anoth
 ``Schedule/runSerially(on:)`` runs the same waves one system at a time. A system without a
 ``System/access`` runs alone.
 
+Systems that conflict but that no constraint orders run in the order written.
+``Schedule/ambiguities()`` lists them, so a test can keep a schedule free of them.
+
 `@System` declares a system by its `run` method's parameters, whose types state what it reads
 and writes, so the access is never written by hand:
 
@@ -49,3 +52,4 @@ struct Movement {
 - ``Schedule``
 - ``ScheduleBuilder``
 - ``CyclicOrdering``
+- ``Ambiguity``
