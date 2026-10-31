@@ -33,6 +33,8 @@ public struct World: Sendable {
     @usableFromInline var columnPositions = ColumnTable()
     /// The parent and children of every entity.
     @usableFromInline var hierarchy = Hierarchy()
+    /// The component hooks and the hook calls waiting to run.
+    @usableFromInline var hooks = Hooks()
 
     /// The world's resources: values it holds once, outside any entity.
     public var resources = Resources()
@@ -116,6 +118,7 @@ public struct World: Sendable {
         for bundle in repeat each bundles {
             bundle.insert(into: entity, in: &self)
         }
+        endOperation()
         return entity
     }
 
@@ -125,6 +128,7 @@ public struct World: Sendable {
     public mutating func spawn<A: Component>(_ a: A) -> Entity {
         let entity = makeEntity()
         store(a, for: entity)
+        endOperation()
         return entity
     }
 
@@ -135,6 +139,7 @@ public struct World: Sendable {
         let entity = makeEntity()
         store(a, for: entity)
         store(b, for: entity)
+        endOperation()
         return entity
     }
 
@@ -147,6 +152,7 @@ public struct World: Sendable {
         store(a, for: entity)
         store(b, for: entity)
         store(c, for: entity)
+        endOperation()
         return entity
     }
 
@@ -164,6 +170,7 @@ public struct World: Sendable {
         } else {
             destroySubtree(entity)
         }
+        endOperation()
     }
 
     /// Despawns `entity`, its descendants and every component they hold, and detaches it from
@@ -180,6 +187,7 @@ public struct World: Sendable {
         } else {
             destroySubtree(entity)
         }
+        endOperation()
     }
 
     // MARK: Components
@@ -265,6 +273,7 @@ public struct World: Sendable {
         for bundle in repeat each bundles {
             bundle.insert(into: entity, in: &self)
         }
+        endOperation()
     }
 
     /// Gives `entity` the component `a`, replacing any it holds of its type.
@@ -275,6 +284,7 @@ public struct World: Sendable {
     public mutating func insert<A: Component>(_ a: A, into entity: Entity) {
         precondition(contains(entity), "Inserting into stale entity \(entity)")
         store(a, for: entity)
+        endOperation()
     }
 
     /// Gives `entity` the components `a` and `b`, replacing any it holds of their types.
@@ -286,6 +296,7 @@ public struct World: Sendable {
         precondition(contains(entity), "Inserting into stale entity \(entity)")
         store(a, for: entity)
         store(b, for: entity)
+        endOperation()
     }
 
     /// Gives `entity` the components `a`, `b` and `c`, replacing any it holds of their types.
@@ -298,6 +309,7 @@ public struct World: Sendable {
         store(a, for: entity)
         store(b, for: entity)
         store(c, for: entity)
+        endOperation()
     }
 
     /// Gives `entity` the components of `bundles`, replacing any it holds of the same types.
@@ -310,6 +322,7 @@ public struct World: Sendable {
         for bundle in repeat each bundles {
             bundle.insert(into: entity, in: &self)
         }
+        endOperation()
     }
 
     /// Takes the `C` away from `entity`.
@@ -321,6 +334,7 @@ public struct World: Sendable {
     @discardableResult
     public mutating func remove<C: Component>(_ type: C.Type, from entity: Entity) -> C? {
         precondition(contains(entity), "Removing a \(C.self) from stale entity \(entity)")
+        defer { endOperation() }
         return discard(C.self, from: entity)
     }
 
@@ -333,6 +347,7 @@ public struct World: Sendable {
     @discardableResult
     public mutating func remove<C: Component>(_ type: C.Type, checkedFrom entity: Entity) throws(StaleEntity) -> C? {
         guard contains(entity) else { throw StaleEntity() }
+        defer { endOperation() }
         return discard(C.self, from: entity)
     }
 
@@ -406,14 +421,27 @@ public struct World: Sendable {
     @inlinable
     mutating func store<C: Component>(_ component: C, for entity: Entity) {
         let tick = changeTick
-        uniqueUnretainedColumn(at: columnSlot(of: C.self), of: C.self)._withUnsafeGuaranteedRef { column in
+        let added = uniqueUnretainedColumn(at: columnSlot(of: C.self), of: C.self)._withUnsafeGuaranteedRef { column in
             if let position = column.index.position(of: entity) {
                 column.values[position] = component
                 column.index.ticks[position].changed = tick
+                return false
             } else {
                 _ = column.index.append(entity, at: tick)
                 column.values.append(component)
+                return true
             }
+        }
+        if !hooks.isEmpty {
+            fireInsertHooks(C.self, for: entity, added: added)
+        }
+    }
+
+    /// Runs the hook calls the operation that is ending fired.
+    @inlinable
+    mutating func endOperation() {
+        if !hooks.pending.isEmpty {
+            runPendingHooks()
         }
     }
 
@@ -422,11 +450,15 @@ public struct World: Sendable {
         guard let slot = columnPositions.position(of: ObjectIdentifier(C.self)),
               let position = unretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef({ $0.index.position(of: entity) })
         else { return nil }
-        return uniqueUnretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef { column in
+        let component = uniqueUnretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef { column in
             let component = column.values[position]
             column.swapRemove(at: position)
             return component
         }
+        if !hooks.isEmpty {
+            fireRemoveHooks(component, of: entity)
+        }
+        return component
     }
 
     @inlinable
@@ -443,6 +475,9 @@ public struct World: Sendable {
 
     @usableFromInline
     mutating func destroy(_ entity: Entity) {
+        if !hooks.isEmpty {
+            fireDespawnHooks(for: entity)
+        }
         for slot in columns.indices {
             let held = columns.withUnsafeBufferPointer { columns in
                 Unmanaged.passUnretained(columns[slot])._withUnsafeGuaranteedRef { $0.index.position(of: entity) }

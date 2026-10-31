@@ -27,10 +27,15 @@ public protocol Bundle: Sendable {
 
     /// Gives `entity` this bundle's components, replacing any it holds of the same types.
     ///
+    /// ``World/spawn(_:)`` and ``World/insert(_:into:)`` call this, and run the hooks it fires
+    /// when they finish.
+    ///
     /// - Precondition: `entity` is live.
     func insert(into entity: Entity, in world: inout World)
 
     /// Takes away from `entity` every component type this bundle can hold.
+    ///
+    /// ``World/remove(_:from:)`` calls this, and runs the hooks it fires when it finishes.
     ///
     /// - Precondition: `entity` is live.
     static func remove(from entity: Entity, in world: inout World)
@@ -56,12 +61,14 @@ extension Component {
 
     @inlinable
     public func insert(into entity: Entity, in world: inout World) {
-        world.insert(self, into: entity)
+        precondition(world.contains(entity), "Inserting into stale entity \(entity)")
+        world.store(self, for: entity)
     }
 
     @inlinable
     public static func remove(from entity: Entity, in world: inout World) {
-        _ = world.remove(Self.self, from: entity)
+        precondition(world.contains(entity), "Removing a \(Self.self) from stale entity \(entity)")
+        _ = world.discard(Self.self, from: entity)
     }
 }
 
@@ -183,6 +190,7 @@ extension World {
     public mutating func remove<B: Bundle>(_ type: B.Type, from entity: Entity) {
         precondition(contains(entity), "Removing a \(B.self) from stale entity \(entity)")
         B.remove(from: entity, in: &self)
+        endOperation()
     }
 
     /// Takes away from `entity` every component type a `B` can hold.
@@ -193,6 +201,7 @@ extension World {
     public mutating func remove<B: Bundle>(_ type: B.Type, checkedFrom entity: Entity) throws(StaleEntity) {
         guard contains(entity) else { throw StaleEntity() }
         B.remove(from: entity, in: &self)
+        endOperation()
     }
 }
 

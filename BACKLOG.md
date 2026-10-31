@@ -5,17 +5,15 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Observers.** Hooks run when a component of a type is added, changed or removed, for
-   maintaining indexes and reacting to state without polling.
-2. **Snapshots.** Saving a world to `Codable` data and loading it back, for components that are
+1. **Snapshots.** Saving a world to `Codable` data and loading it back, for components that are
    `Codable`, with entity handles preserved.
-3. **World equality.** `==` on worlds whose components are `Equatable`, for determinism tests,
+2. **World equality.** `==` on worlds whose components are `Equatable`, for determinism tests,
    replays and rollback checks.
-4. **Parallel updates.** `update` split across cores for large worlds, with a deterministic
+3. **Parallel updates.** `update` split across cores for large worlds, with a deterministic
    result.
-5. **Parallel schedules.** Systems that declare what they read and write, and a schedule that
+4. **Parallel schedules.** Systems that declare what they read and write, and a schedule that
    runs systems with disjoint access concurrently.
-6. **Groups.** EnTT-style owning groups that keep several component types packed in the same
+5. **Groups.** EnTT-style owning groups that keep several component types packed in the same
    order, for multi-type iteration with no lookups.
 
 ## Done
@@ -33,3 +31,5 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 - Entity reservation: `Commands.spawn` returns a handle later commands in the buffer resolve;
   `apply` returns the spawned entities.
 - Bundles: the `Bundle` protocol and `BundleBuilder`; components are bundles of themselves.
+- Observers, as component hooks: `onAdd`, `onInsert`, `onRemove`, run after the firing
+  operation. In-place changes are left to change detection.

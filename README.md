@@ -109,6 +109,8 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   ran; `.added(…)` lists what is new. Outside a schedule, pass a tick: `since: checkpoint`.
 - **Bundles**: a `Bundle` lists components that go together in a `body`, with `if` and
   `switch`; spawn, insert and remove it as one. Every component is a bundle of itself.
+- **Hooks**: `world.onAdd(Name.self) { world, entity in … }`, `onInsert` and `onRemove` run
+  after the operation that fired them, for keeping indexes without polling.
 - **Hierarchy**: `try world.addChild(turret, to: ship)`; `parent(of:)`, `children(of:)`,
   `ancestors(of:)` and `descendants(of:)` walk it, and despawning an entity despawns its
   descendants.
