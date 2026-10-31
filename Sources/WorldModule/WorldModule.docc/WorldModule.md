@@ -95,9 +95,12 @@ Lent by `withSpan(of:_:)` and `withMutableSpan(of:_:)` on ``World``.
 
 - ``RemovedComponent``
 
-### Snapshots
+### Snapshots and scenes
 
 - ``WorldSnapshot``
+- ``Scene``
+- ``TypeRegistry``
+- ``TypeRegistryError``
 
 ### Concurrent changes
 

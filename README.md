@@ -166,6 +166,9 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
 - **Snapshots**: `world.snapshot(Position.self, Velocity.self)` is `Codable`;
   `World(restoring:)` rebuilds the world with every entity handle unchanged. Snapshots of
   `Equatable` components compare with `==`, which is how to compare two worlds.
+- **Scenes**: register component and resource types once in a `TypeRegistry`;
+  `world.scene(registry)` is `Codable` and saves every registered type, and decoding takes the
+  registry from the decoder's `userInfo[.typeRegistry]`.
 - **`Commands`**: spawns, despawns and insertions recorded during an update and applied after it.
   `commands.spawn(…)` returns a handle later commands in the buffer can name.
 - **`Resources`**: values the world holds once, such as a clock or the frame's input.

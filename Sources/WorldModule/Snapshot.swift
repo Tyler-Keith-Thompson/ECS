@@ -1,7 +1,7 @@
 /// A world's entities, hierarchy and components of the types `C`, as a `Codable` value.
 ///
 /// Take one with ``World/snapshot(_:)`` and rebuild a world from it with
-/// ``World/init(restoring:)``. Every entity handle, live or stale, means the same in the restored
+/// `World(restoring:)`. Every entity handle, live or stale, means the same in the restored
 /// world, and the restored world hands out the same handles from later spawns.
 ///
 /// ```swift
@@ -50,45 +50,11 @@ public struct WorldSnapshot<each C: Component & Codable>: Sendable, Codable {
         let families = try container.decode([Family].self, forKey: .families)
         var components = try container.nestedUnkeyedContainer(forKey: .components)
         let columns = (repeat try components.decode(ComponentRows<each C>.self))
-        func corrupted(_ description: String) -> DecodingError {
-            .dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath, debugDescription: description))
-        }
-        guard generations.count < Int(UInt32.max) else { throw corrupted("Too many slots") }
-        var isLive = [Bool](repeating: true, count: generations.count)
-        for slot in vacant {
-            guard Int(slot) < generations.count, isLive[Int(slot)] else { throw corrupted("Invalid vacant slot \(slot)") }
-            isLive[Int(slot)] = false
-        }
-        func isLiveEntity(_ entity: Entity) -> Bool {
-            Int(entity.index) < generations.count && isLive[Int(entity.index)] && generations[Int(entity.index)] == entity.generation
-        }
+        var saved: [any SavedComponents] = []
         for column in repeat each columns {
-            guard column.entities.count == column.values.count else { throw corrupted("Mismatched component rows") }
-            var seen = Set<Entity>()
-            for entity in column.entities {
-                guard isLiveEntity(entity), seen.insert(entity).inserted else {
-                    throw corrupted("Invalid or repeated entity \(entity) in a component column")
-                }
-            }
+            saved.append(column)
         }
-        var parentOf: [Entity: Entity] = [:]
-        for family in families {
-            guard isLiveEntity(family.parent) else { throw corrupted("Invalid parent \(family.parent)") }
-            for child in family.children {
-                guard isLiveEntity(child), parentOf.updateValue(family.parent, forKey: child) == nil else {
-                    throw corrupted("Invalid or repeated child \(child)")
-                }
-            }
-        }
-        for start in parentOf.keys {
-            var steps = 0
-            var current = parentOf[start]
-            while let walking = current {
-                steps += 1
-                guard walking != start, steps <= parentOf.count else { throw corrupted("Cyclic hierarchy") }
-                current = parentOf[walking]
-            }
-        }
+        try validateLayout(generations: generations, vacant: vacant, families: families, columns: saved, codingPath: decoder.codingPath)
         self.init(generations: generations, vacant: vacant, families: families, columns: (repeat each columns))
     }
 }
@@ -133,15 +99,10 @@ extension World {
     /// - Complexity: O(*n*) for *n* entities and components saved.
     @inlinable
     public func snapshot<each C: Component & Codable>(_ types: repeat (each C).Type) -> WorldSnapshot<repeat each C> {
-        var families: [Family] = []
-        let index = childOfIndex
-        for slot in index.sourcesByTarget.indices where !index.sourcesByTarget[slot].isEmpty {
-            families.append(Family(parent: Entity(index: UInt32(slot), generation: generations[slot]), children: index.sourcesByTarget[slot]))
-        }
         return WorldSnapshot(
             generations: generations,
             vacant: vacant,
-            families: families,
+            families: families(),
             columns: (repeat rows(of: each types))
         )
     }
@@ -158,18 +119,7 @@ extension World {
     /// - Complexity: O(*n*) for *n* entities and components restored.
     @inlinable
     public init<each C: Component & Codable>(restoring snapshot: WorldSnapshot<repeat each C>) {
-        self.init()
-        generations = snapshot.generations
-        vacant = snapshot.vacant
-        isLive = [Bool](repeating: true, count: generations.count)
-        for slot in vacant {
-            isLive[Int(slot)] = false
-        }
-        for family in snapshot.families {
-            for child in family.children {
-                storeRelation(ChildOf(), from: child, to: family.parent)
-            }
-        }
+        self.init(slots: snapshot.generations, vacant: snapshot.vacant, families: snapshot.families)
         for column in repeat each snapshot.columns {
             restore(column)
         }
