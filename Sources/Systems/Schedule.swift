@@ -123,6 +123,9 @@ public struct Schedule: Sendable {
     /// not run on this world before sees every component as added and changed. A skipped system
     /// has not run: the next time it runs, it sees everything since it last did.
     ///
+    /// Before the first wave, each system that has not run on this world is initialized
+    /// (``System/initialize(in:)``).
+    ///
     /// Command buffers the wave's systems queue (``WorldModule/World/queue(_:)``) apply at the end
     /// of the wave, in the order the systems run. The tick advances once more after the last wave,
     /// so changes made to the world between runs are newer than every system's previous run.
@@ -146,6 +149,10 @@ public struct Schedule: Sendable {
         defer {
             world.lastRun = outerLastRun
             world.advanceChangeTick()
+        }
+        let previousRuns = world.resources.contains(SystemRuns.self) ? world.resources[SystemRuns.self].ticks : [:]
+        for system in systems where previousRuns[system.id] == nil {
+            system.initialize(in: &world)
         }
         for wave in waves {
             let group = wave.map { systems[$0] }.filter { $0.shouldRun(in: world) }

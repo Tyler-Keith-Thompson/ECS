@@ -6,8 +6,9 @@ import WorldModule
 /// `@System` builds a system's ``System/access`` from its parameters' types and fetches them
 /// before each run. The parameters are ``WorldModule/Query`` and ``WorldModule/Query/Where`` for
 /// reading components, ``Update`` for writing them, ``ResourceReader`` and ``ResourceWriter``,
-/// ``EventReader`` and ``EventWriter``, and `inout` ``WorldModule/Commands`` for structural
-/// changes, which conflict with nothing and apply at the end of the wave the system runs in.
+/// ``EventReader`` and ``EventWriter``, ``RemovedComponents``, and `inout`
+/// ``WorldModule/Commands`` for structural changes, which conflict with nothing and apply at the
+/// end of the wave the system runs in.
 public protocol SystemParameter {
     /// What the parameter reads and writes, as a parameter of a system of type `system`.
     static func _access<S>(in system: S.Type) -> Access
@@ -212,6 +213,49 @@ public final class EventWriter<E: Event>: SystemParameter, @unchecked Sendable {
     @inlinable
     public func _restore(into world: inout World) {
         world.merge(writing: Self._access(in: Self.self), from: part)
+    }
+}
+
+// MARK: Removals
+
+/// The entities that lost a `C`, by removal or despawn, since the system last read them, oldest
+/// first.
+///
+/// The system's schedule starts recording removals of `C` (``WorldModule/World/trackRemovals(of:)``)
+/// before the system first runs; removals are kept as events are.
+@frozen
+public struct RemovedComponents<C: Component>: SystemParameter, RandomAccessCollection, Sendable {
+    /// The removals, oldest first.
+    public let removals: EventsView<RemovedComponent<C>>
+
+    @inlinable
+    init(removals: EventsView<RemovedComponent<C>>) {
+        self.removals = removals
+    }
+
+    @inlinable
+    public var startIndex: Int { removals.startIndex }
+    @inlinable
+    public var endIndex: Int { removals.endIndex }
+    @inlinable
+    public subscript(position: Int) -> Entity { removals[position].entity }
+
+    @inlinable
+    public static func _access<S>(in system: S.Type) -> Access {
+        .readsEvents(RemovedComponent<C>.self, by: S.self)
+    }
+
+    /// Starts recording removals of `C` in `world`.
+    @inlinable
+    public static func _initialize(in world: inout World) {
+        world.trackRemovals(of: C.self)
+    }
+
+    /// The removals `world` recorded that a system of type `system` has not read, marking them
+    /// read.
+    @inlinable
+    public static func _fetch<S>(from world: inout World, system: S.Type) -> RemovedComponents {
+        RemovedComponents(removals: world.readEvents(RemovedComponent<C>.self, by: S.self))
     }
 }
 

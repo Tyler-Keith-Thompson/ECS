@@ -329,3 +329,47 @@ struct SystemParameterTests {
         }
     }
 }
+
+@System
+struct ParameterReaper {
+    func run(_ health: Query<Health>, commands: inout Commands) {
+        for (entity, health) in health where health.current <= 0 {
+            commands.despawn(entity)
+        }
+    }
+}
+
+@System
+struct ParameterMourner {
+    func run(_ gone: RemovedComponents<Health>, seen: ResourceWriter<Seen>) {
+        seen.value.values += gone.map { _ in 1 }
+    }
+}
+
+@Suite("System parameters: removals")
+struct RemovedComponentsTests {
+    @Test("A system sees the removals since its last run, starting before its first run")
+    func removals() {
+        var world = World()
+        world.resources.insert(Seen())
+        world.spawn(Health(0))
+        world.spawn(Health(0))
+        world.spawn(Health(5))
+        let schedule = Schedule {
+            ParameterReaper()
+            ParameterMourner().after(ParameterReaper.self)
+        }
+        schedule.run(on: &world)
+        let firstRun: Seen = Seen(values: [1, 1])
+        #expect(world.resources[Seen.self] == firstRun)
+        schedule.run(on: &world)
+        #expect(world.resources[Seen.self] == firstRun)
+    }
+
+    @Test("A system's access reads the removal record and writes its own place in it")
+    func access() throws {
+        let access = try #require(ParameterMourner().access)
+        #expect(access.conflicts(with: .writes(resources: Events<RemovedComponent<Health>>.self)))
+        #expect(!access.conflicts(with: .reads(resources: Events<RemovedComponent<Health>>.self)))
+    }
+}

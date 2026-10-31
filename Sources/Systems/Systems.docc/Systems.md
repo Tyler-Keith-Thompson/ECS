@@ -46,6 +46,7 @@ struct Movement {
 - ``ResourceWriter``
 - ``EventReader``
 - ``EventWriter``
+- ``RemovedComponents``
 
 ### Schedules
 

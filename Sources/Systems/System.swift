@@ -33,10 +33,19 @@ public protocol System: Sendable {
 
     /// Runs the rule once on `world`.
     func run(in world: inout World)
+
+    /// Prepares `world` for the system, before its first run on it: a schedule calls this
+    /// before the wave the system first runs in, outside any concurrent run. Nothing, by default.
+    ///
+    /// `@System` starts what its parameters record, such as the removals a
+    /// ``RemovedComponents`` reads.
+    func initialize(in world: inout World)
 }
 
 extension System {
     public var access: Access? { nil }
+
+    public func initialize(in world: inout World) {}
 }
 
 extension System {
@@ -89,6 +98,7 @@ public struct ScheduledSystem: Sendable {
     /// What must hold for the world, every one, for the system to run.
     @usableFromInline var conditions: [@Sendable (World) -> Bool] = []
     @usableFromInline let body: @Sendable (inout World) -> Void
+    @usableFromInline let initializer: @Sendable (inout World) -> Void
     /// What the system reads and writes, or nil if it must run alone.
     public let access: Access?
 
@@ -100,6 +110,7 @@ public struct ScheduledSystem: Sendable {
         id = nextSystemID.wrappingAdd(1, ordering: .relaxed).newValue
         type = ObjectIdentifier(S.self)
         body = { world in system.run(in: &world) }
+        initializer = { world in system.initialize(in: &world) }
     }
 
     /// This system, also ordered after every system of each of `types`.
@@ -150,6 +161,12 @@ public struct ScheduledSystem: Sendable {
     @inlinable
     public func shouldRun(in world: World) -> Bool {
         conditions.allSatisfy { $0(world) }
+    }
+
+    /// Prepares `world` for the system; see ``System/initialize(in:)``.
+    @inlinable
+    public func initialize(in world: inout World) {
+        initializer(&world)
     }
 
     /// Runs the system once on `world`, whatever its conditions.

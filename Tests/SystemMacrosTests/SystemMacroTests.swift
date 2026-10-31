@@ -188,6 +188,43 @@ struct SystemMacroExpansionTests {
         )
     }
 
+    @Test("Removed components are fetched like events and started in initialize")
+    func removedComponents() {
+        assertMacroExpansion(
+            """
+            @System
+            struct Cleanup {
+                func run(_ gone: RemovedComponents<Health>, _ names: Query<Name>) {}
+            }
+            """,
+            expandedSource: """
+                struct Cleanup {
+                    func run(_ gone: RemovedComponents<Health>, _ names: Query<Name>) {}
+                }
+
+                extension Cleanup: System {
+                    public var access: Access? {
+                        _parameterAccess(RemovedComponents<Health>._access(in: Self.self), Query<Name>._access(in: Self.self))
+                    }
+
+                    public func run(in world: inout World) {
+                        let parameter0 = RemovedComponents<Health>._fetch(from: &world, system: Self.self)
+                        let parameter1 = Query<Name>._fetch(from: world) { world, query in
+                            world.query(query)
+                        }
+                        run(parameter0, parameter1)
+                    }
+
+                    public func initialize(in world: inout World) {
+                        RemovedComponents<Health>._initialize(in: &world)
+                    }
+                }
+                """,
+            macroSpecs: ["System": MacroSpec(type: SystemMacro.self)],
+            failureHandler: { Issue.record(Comment(rawValue: $0.message)) }
+        )
+    }
+
     @Test("A run with no parameters makes a system that accesses nothing")
     func noParameters() {
         assertMacroExpansion(
@@ -404,7 +441,7 @@ struct SystemMacroDiagnosticTests {
                 }
                 """,
             diagnostics: [
-                DiagnosticSpec(message: "'Int' is not a system parameter: use Query, Update, ResourceReader, ResourceWriter, EventReader, EventWriter or inout Commands", line: 3, column: 21)
+                DiagnosticSpec(message: "'Int' is not a system parameter: use Query, Update, ResourceReader, ResourceWriter, EventReader, EventWriter, RemovedComponents or inout Commands", line: 3, column: 21)
             ],
             macroSpecs: ["System": MacroSpec(type: SystemMacro.self)],
             failureHandler: { Issue.record(Comment(rawValue: $0.message)) }
@@ -426,7 +463,7 @@ struct SystemMacroDiagnosticTests {
                 }
                 """,
             diagnostics: [
-                DiagnosticSpec(message: "'Update<A>.And<B>.And<C>.And<D>' is not a system parameter: use Query, Update, ResourceReader, ResourceWriter, EventReader, EventWriter or inout Commands", line: 3, column: 21)
+                DiagnosticSpec(message: "'Update<A>.And<B>.And<C>.And<D>' is not a system parameter: use Query, Update, ResourceReader, ResourceWriter, EventReader, EventWriter, RemovedComponents or inout Commands", line: 3, column: 21)
             ],
             macroSpecs: ["System": MacroSpec(type: SystemMacro.self)],
             failureHandler: { Issue.record(Comment(rawValue: $0.message)) }

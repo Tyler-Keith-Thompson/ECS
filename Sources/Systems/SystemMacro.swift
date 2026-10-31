@@ -31,12 +31,12 @@ import WorldModule
 /// ```
 ///
 /// The parameters are ``WorldModule/Query`` (optionally `.Where<…>`), ``Update``,
-/// ``ResourceReader``, ``ResourceWriter``, ``EventReader``, ``EventWriter`` and `inout`
-/// ``WorldModule/Commands``. The macro reads only the signature, so the access is exact: a
+/// ``ResourceReader``, ``ResourceWriter``, ``EventReader``, ``EventWriter``,
+/// ``RemovedComponents`` and `inout` ``WorldModule/Commands``. The macro reads only the signature, so the access is exact: a
 /// parameter reads and writes what its type says. Two parameters that conflict are an error when
 /// their written types show it, and a trap when the system is scheduled otherwise.
 ///
 /// The expansion refers to `World`, `Access` and `Commands`, so the file imports `ECS`, or
 /// `WorldModule` and `Systems`.
-@attached(extension, conformances: System, names: named(access), named(run))
+@attached(extension, conformances: System, names: named(access), named(run), named(initialize))
 public macro System() = #externalMacro(module: "SystemMacros", type: "SystemMacro")

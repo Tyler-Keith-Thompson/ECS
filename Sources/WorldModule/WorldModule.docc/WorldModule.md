@@ -65,6 +65,10 @@ type the fewest entities hold and looks the others up.
 
 Registered with `onAdd`, `onInsert` and `onRemove` on ``World``.
 
+### Removal detection
+
+- ``RemovedComponent``
+
 ### Snapshots
 
 - ``WorldSnapshot``

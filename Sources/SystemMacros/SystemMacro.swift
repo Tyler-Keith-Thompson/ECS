@@ -77,7 +77,7 @@ public struct SystemMacro: ExtensionMacro {
         let writeNames: [String]
 
         enum Kind {
-            case query, update, resourceReader, resourceWriter, eventReader, eventWriter, commands
+            case query, update, resourceReader, resourceWriter, eventReader, eventWriter, removedComponents, commands
         }
     }
 
@@ -294,6 +294,8 @@ public struct SystemMacro: ExtensionMacro {
             return make(.eventReader)
         case "EventWriter" where rest.isEmpty && first.arguments.count == 1:
             return make(.eventWriter, writes: ["Events<\(first.arguments[0])>"])
+        case "RemovedComponents" where rest.isEmpty && first.arguments.count == 1:
+            return make(.removedComponents)
         case "Commands" where rest.isEmpty && first.arguments.isEmpty:
             return make(.commands)
         default:
@@ -309,7 +311,7 @@ public struct SystemMacro: ExtensionMacro {
         var arguments: [String] = []
         // Writers first, so readers see the world without what they write; event readers mark
         // events read in the world itself.
-        let order: [Parameter.Kind] = [.update, .resourceWriter, .eventWriter, .eventReader, .query, .resourceReader, .commands]
+        let order: [Parameter.Kind] = [.update, .resourceWriter, .eventWriter, .eventReader, .removedComponents, .query, .resourceReader, .commands]
         var names = [String](repeating: "", count: parameters.count)
         for kind in order {
             for (index, parameter) in parameters.enumerated() where parameter.kind == kind {
@@ -327,7 +329,7 @@ public struct SystemMacro: ExtensionMacro {
                 case .resourceWriter, .eventWriter:
                     fetches.append("let \(name) = \(parameter.type)._fetch(from: &world)")
                     restores.insert("\(name)._restore(into: &world)", at: 0)
-                case .eventReader:
+                case .eventReader, .removedComponents:
                     fetches.append("let \(name) = \(parameter.type)._fetch(from: &world, system: Self.self)")
                 case .query:
                     fetches.append("let \(name) = \(parameter.type)._fetch(from: world) { world, query in world.query(query) }")
@@ -345,6 +347,15 @@ public struct SystemMacro: ExtensionMacro {
         }
         let body = (fetches + ["run(\(arguments.joined(separator: ", ")))"] + restores)
             .map { "        " + $0 }.joined(separator: "\n")
+        let initializations = parameters.filter { $0.kind == .removedComponents }
+            .map { "        \($0.type)._initialize(in: &world)" }
+        let initialize = initializations.isEmpty ? "" : """
+
+
+                public func initialize(in world: inout World) {
+            \(initializations.joined(separator: "\n"))
+                }
+            """
         return """
             extension \(type): System {
                 public var access: Access? {
@@ -353,7 +364,7 @@ public struct SystemMacro: ExtensionMacro {
 
                 public func run(in world: inout World) {
             \(raw: body)
-                }
+                }\(raw: initialize)
             }
             """
     }
@@ -402,7 +413,7 @@ enum SystemDiagnostic: DiagnosticMessage {
         case .worldWithParameters:
             "A 'run' takes either the world or system parameters, not both"
         case .notAParameter(let type):
-            "'\(type)' is not a system parameter: use Query, Update, ResourceReader, ResourceWriter, EventReader, EventWriter or inout Commands"
+            "'\(type)' is not a system parameter: use Query, Update, ResourceReader, ResourceWriter, EventReader, EventWriter, RemovedComponents or inout Commands"
         case .inoutParameter:
             "Only Commands is passed 'inout'; parameters that write are reference types"
         case .commandsNotInout:
