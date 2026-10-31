@@ -181,3 +181,43 @@ extension World {
         }
     }
 }
+
+extension WorldSnapshot: Equatable where repeat each C: Equatable {
+    /// Whether the two snapshots hold the same entities, hierarchy and components, whatever
+    /// order the worlds stored their components in.
+    ///
+    /// Comparing the snapshots of two worlds compares the worlds:
+    ///
+    /// ```swift
+    /// #expect(replayed.snapshot(Position.self, Health.self) == recorded.snapshot(Position.self, Health.self))
+    /// ```
+    ///
+    /// Slots, generations and the order of vacated slots must match, so equal worlds also hand
+    /// out the same handles from later spawns, and children must be in the same order.
+    ///
+    /// - Complexity: O(*n* log *n*) for *n* entities and components.
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        guard lhs.generations == rhs.generations, lhs.vacant == rhs.vacant,
+              lhs.families.sorted(by: { $0.parent < $1.parent }) == rhs.families.sorted(by: { $0.parent < $1.parent })
+        else { return false }
+        for (left, right) in repeat (each lhs.columns, each rhs.columns) {
+            guard left.hasSameRows(as: right) else { return false }
+        }
+        return true
+    }
+}
+
+extension Family: Equatable {}
+
+extension ComponentRows where C: Equatable {
+    /// Whether both hold the same entities with equal components, in any order.
+    @usableFromInline
+    func hasSameRows(as other: ComponentRows<C>) -> Bool {
+        guard entities.count == other.entities.count else { return false }
+        let order = entities.indices.sorted { entities[$0] < entities[$1] }
+        let otherOrder = other.entities.indices.sorted { other.entities[$0] < other.entities[$1] }
+        return zip(order, otherOrder).allSatisfy { position, otherPosition in
+            entities[position] == other.entities[otherPosition] && values[position] == other.values[otherPosition]
+        }
+    }
+}

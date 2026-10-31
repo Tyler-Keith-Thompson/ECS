@@ -118,7 +118,8 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   by: Damage.self)` in another. Each reader reads each event once; an `UpdateEvents` system at the
   start of a frame drops events older than the previous frame.
 - **Snapshots**: `world.snapshot(Position.self, Velocity.self)` is `Codable`;
-  `World(restoring:)` rebuilds the world with every entity handle unchanged.
+  `World(restoring:)` rebuilds the world with every entity handle unchanged. Snapshots of
+  `Equatable` components compare with `==`, which is how to compare two worlds.
 - **`Commands`**: spawns, despawns and insertions recorded during an update and applied after it.
   `commands.spawn(…)` returns a handle later commands in the buffer can name.
 - **`Resources`**: values the world holds once, such as a clock or the frame's input.
