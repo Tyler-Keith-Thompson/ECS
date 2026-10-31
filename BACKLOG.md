@@ -5,20 +5,17 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Hierarchy as a relation.** Rebase `addChild`, `parent(of:)` and recursive despawn on a
-   `ChildOf` relation (exclusive, despawning its sources), so the hierarchy is queryable with
-   `.related(ChildOf.self, to:)` and `Targets<ChildOf>`.
-2. **Observers on custom triggers.** `world.trigger(Explode(), on: entity)` with handlers that can
+1. **Observers on custom triggers.** `world.trigger(Explode(), on: entity)` with handlers that can
    propagate up the hierarchy, and observers for an entity starting or stopping to match a
    query.
-3. **Indexes by value.** `world.index(Name.self)` keeps a map from a `Hashable` component's value
+2. **Indexes by value.** `world.index(Name.self)` keeps a map from a `Hashable` component's value
    to its entities, current through hooks.
-4. **Scenes and a type registry.** Register component types once; save and load whole worlds
+3. **Scenes and a type registry.** Register component types once; save and load whole worlds
    without listing types per snapshot.
-5. **Swift concurrency bridges.** Events and changes as an `AsyncSequence` (Afluent), and
+4. **Swift concurrency bridges.** Events and changes as an `AsyncSequence` (Afluent), and
    `@MainActor` systems run on the main actor by a schedule.
-6. **Profiling.** Time per system per run, and the schedule's dependency graph as DOT.
-7. **Checked accesses.** A debug-build record of the columns and resources a system with a
+5. **Profiling.** Time per system per run, and the schedule's dependency graph as DOT.
+6. **Checked accesses.** A debug-build record of the columns and resources a system with a
    hand-written `access` touches while it runs concurrently, trapping on undeclared reads as
    undeclared writes already trap. Systems declared by their parameters cannot reach anything
    else, so this covers hand-written conformances only; it needs a lookup check that costs
@@ -81,3 +78,5 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 - Relations: `Relation` types (exclusive, carrying values, cleaning up by removing or despawning
   sources), `relate`/`unrelate`, `targets`/`sources`, `Targets<R>` components, and
   `.related(_:to:)` filters that walk only a target's sources.
+- The hierarchy as the `ChildOf` relation: exclusive, despawning its sources, queryable with
+  `.related(ChildOf.self, to:)` and `Targets<ChildOf>`.

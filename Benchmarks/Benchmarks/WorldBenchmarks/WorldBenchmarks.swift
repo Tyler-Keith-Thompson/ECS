@@ -389,6 +389,18 @@ let benchmarks: @Sendable () -> Void = {
         blackHole(world)
     }
 
+    Benchmark("add every entity as a child of one of a thousand parents") { benchmark in
+        var world = populatedWorld()
+        let entities = world.query(Position.self).map { $0.entity }
+        let parents = (0 ..< 1_000).map { _ in world.spawn() }
+        benchmark.startMeasurement()
+        for (index, entity) in entities.enumerated() {
+            try? world.addChild(entity, to: parents[index % parents.count])
+        }
+        benchmark.stopMeasurement()
+        blackHole(world)
+    }
+
     Benchmark("despawn every entity") { benchmark in
         var world = populatedWorld()
         let entities = Array(world.entities)

@@ -59,6 +59,7 @@ Groups are made with `group(_:)` and cached queries with `cache(_:)` on ``World`
 
 ### Hierarchy
 
+- ``ChildOf``
 - ``AncestorsView``
 - ``DescendantsView``
 - ``CyclicHierarchy``

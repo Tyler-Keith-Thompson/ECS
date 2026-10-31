@@ -49,16 +49,21 @@ struct CloningTests {
         #expect(world.resources[Clock.self] == hooks)
     }
 
-    @Test("A clone does not join the original's place in the hierarchy")
+    @Test("A clone of a child is its sibling, and the original's children are not cloned")
     func cloneHierarchy() throws {
         var world = World()
         let parent = world.spawn(Name("parent"))
         let child = world.spawn(Name("child"))
+        let grandchild = world.spawn(Name("grandchild"))
         try world.addChild(child, to: parent)
+        try world.addChild(grandchild, to: child)
         let copy = world.clone(child)
-        #expect(world.parent(of: copy) == nil)
-        let children: [Entity] = [child]
-        #expect(Array(world.children(of: parent)) == children)
+        let expectedParent: Entity? = parent
+        #expect(world.parent(of: copy) == expectedParent)
+        let children: [Entity] = [child, copy]
+        #expect(world.children(of: parent) == children)
+        let none: [Entity] = []
+        #expect(world.children(of: copy) == none)
     }
 
     @Test("A prefab is skipped by queries, and spawning from it copies all but the mark")

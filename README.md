@@ -152,7 +152,8 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   their target.
 - **Hierarchy**: `try world.addChild(turret, to: ship)`; `parent(of:)`, `children(of:)`,
   `ancestors(of:)` and `descendants(of:)` walk it, and despawning an entity despawns its
-  descendants.
+  descendants. The hierarchy is the `ChildOf` relation, so `.related(ChildOf.self, to: ship)`
+  queries children and `.without(Targets<ChildOf>.self)` finds roots.
 - **Events**: `world.send(Collision(…))` in one system, `world.readEvents(Collision.self,
   by: Damage.self)` in another. Each reader reads each event once; an `UpdateEvents` system at the
   start of a frame drops events older than the previous frame.

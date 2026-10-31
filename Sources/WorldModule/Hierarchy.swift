@@ -1,95 +1,21 @@
-/// The parent and children of every entity in a world, indexed by slot.
-@usableFromInline
-struct Hierarchy: Sendable {
-    /// Each slot's parent, or nil; shorter than the slots when the last ones have none.
-    @usableFromInline var parents: [Entity?] = []
-    /// Each slot's children in the order they were added; shorter than the slots when the last
-    /// ones have none.
-    @usableFromInline var children: [[Entity]] = []
-    /// The number of parent links.
-    @usableFromInline var links = 0
+/// The relation of a child to its parent: exclusive, and despawning a parent despawns its
+/// children.
+///
+/// ``World/addChild(_:to:)`` relates a child to its parent, refusing cycles; queries find
+/// children with `.related(ChildOf.self, to: parent)`, entities with a parent with
+/// `.with(Targets<ChildOf>.self)` and roots with `.without(Targets<ChildOf>.self)`.
+@frozen
+public struct ChildOf: Relation, Hashable, Codable {
+    /// Exclusive: an entity has at most one parent.
+    @inlinable
+    public static var isExclusive: Bool { true }
 
-    @usableFromInline
-    init() {}
+    /// ``CleanupAction/despawn``: despawning a parent despawns its children.
+    @inlinable
+    public static var onTargetDespawn: CleanupAction { .despawn }
 
     @inlinable
-    func parent(of entity: Entity) -> Entity? {
-        let slot = Int(entity.index)
-        return slot < parents.count ? parents[slot] : nil
-    }
-
-    @inlinable
-    func children(of entity: Entity) -> [Entity] {
-        let slot = Int(entity.index)
-        return slot < children.count ? children[slot] : []
-    }
-
-    /// Makes `child` the last child of `parent`, detaching it from its current parent first.
-    @usableFromInline
-    mutating func link(_ child: Entity, to parent: Entity) {
-        unlink(child)
-        let childSlot = Int(child.index)
-        let parentSlot = Int(parent.index)
-        if parents.count <= childSlot {
-            parents.append(contentsOf: repeatElement(nil, count: childSlot + 1 - parents.count))
-        }
-        if children.count <= parentSlot {
-            children.append(contentsOf: repeatElement([], count: parentSlot + 1 - children.count))
-        }
-        parents[childSlot] = parent
-        children[parentSlot].append(child)
-        links += 1
-    }
-
-    /// Detaches `child` from its parent, returning the parent.
-    @usableFromInline
-    @discardableResult
-    mutating func unlink(_ child: Entity) -> Entity? {
-        guard let parent = parent(of: child) else { return nil }
-        parents[Int(child.index)] = nil
-        let parentSlot = Int(parent.index)
-        if let position = children[parentSlot].firstIndex(of: child) {
-            children[parentSlot].remove(at: position)
-        }
-        links -= 1
-        return parent
-    }
-
-    /// Whether `ancestor` is `entity` or one of its ancestors.
-    @usableFromInline
-    func isAncestor(_ ancestor: Entity, ofOrIs entity: Entity) -> Bool {
-        var current: Entity? = entity
-        while let walking = current {
-            if walking == ancestor { return true }
-            current = parent(of: walking)
-        }
-        return false
-    }
-
-    /// `entity` and its descendants, depth-first, each before its children.
-    @usableFromInline
-    func subtree(of entity: Entity) -> [Entity] {
-        var result: [Entity] = []
-        var stack = [entity]
-        while let next = stack.popLast() {
-            result.append(next)
-            stack.append(contentsOf: children(of: next).reversed())
-        }
-        return result
-    }
-
-    /// Forgets the links of `entity`, which is being despawned with all its descendants.
-    @usableFromInline
-    mutating func forget(_ entity: Entity) {
-        let slot = Int(entity.index)
-        if slot < parents.count, parents[slot] != nil {
-            parents[slot] = nil
-            links -= 1
-        }
-        if slot < children.count {
-            children[slot] = []
-        }
-    }
+    public init() {}
 }
 
 /// The error ``World/addChild(_:to:)`` throws when the parent is the child or one of its
@@ -132,9 +58,9 @@ extension World {
     public mutating func addChild(_ child: Entity, to parent: Entity) throws(CyclicHierarchy) {
         precondition(contains(child), "Adding stale child \(child)")
         precondition(contains(parent), "Adding a child to stale parent \(parent)")
-        guard !hierarchy.isAncestor(child, ofOrIs: parent) else { throw CyclicHierarchy() }
-        hierarchy.link(child, to: parent)
-        structureVersion &+= 1
+        guard !isAncestor(child, ofOrIs: parent) else { throw CyclicHierarchy() }
+        link(child, to: parent)
+        endOperation()
     }
 
     /// Makes `child` the last child of `parent`, moving it from its current parent if it has
@@ -148,9 +74,9 @@ extension World {
     @inlinable
     public mutating func addChild(_ child: Entity, checkedTo parent: Entity) throws(HierarchyError) {
         guard contains(child), contains(parent) else { throw .staleEntity }
-        guard !hierarchy.isAncestor(child, ofOrIs: parent) else { throw .cyclicHierarchy }
-        hierarchy.link(child, to: parent)
-        structureVersion &+= 1
+        guard !isAncestor(child, ofOrIs: parent) else { throw .cyclicHierarchy }
+        link(child, to: parent)
+        endOperation()
     }
 
     /// Detaches `child` from its parent, keeping both entities, and returns the parent, or nil
@@ -162,8 +88,9 @@ extension World {
     @discardableResult
     public mutating func removeParent(of child: Entity) -> Entity? {
         precondition(contains(child), "Removing the parent of stale entity \(child)")
-        structureVersion &+= 1
-        return hierarchy.unlink(child)
+        let parent = unlink(child)
+        endOperation()
+        return parent
     }
 
     /// Detaches `child` from its parent, keeping both entities, and returns the parent, or nil
@@ -175,8 +102,9 @@ extension World {
     @discardableResult
     public mutating func removeParent(checkedOf child: Entity) throws(StaleEntity) -> Entity? {
         guard contains(child) else { throw StaleEntity() }
-        structureVersion &+= 1
-        return hierarchy.unlink(child)
+        let parent = unlink(child)
+        endOperation()
+        return parent
     }
 
     /// The parent of `entity`, or nil if it has none or is not live.
@@ -184,16 +112,16 @@ extension World {
     /// - Complexity: O(1).
     @inlinable
     public func parent(of entity: Entity) -> Entity? {
-        contains(entity) ? hierarchy.parent(of: entity) : nil
+        (try? self[checked: Targets<ChildOf>.self, of: entity])?.entities.first
     }
 
     /// The children of `entity` in the order they were added; empty if it has none or is not
     /// live.
     ///
-    /// - Complexity: O(1).
+    /// - Complexity: O(*r*) for *r* relations the world has stored.
     @inlinable
     public func children(of entity: Entity) -> [Entity] {
-        contains(entity) ? hierarchy.children(of: entity) : []
+        sources(ChildOf.self, of: entity)
     }
 
     /// The ancestors of `entity`, its parent first and its root last; empty if it has no parent
@@ -202,7 +130,7 @@ extension World {
     /// - Complexity: O(1); each step of the walk is O(1).
     @inlinable
     public func ancestors(of entity: Entity) -> AncestorsView {
-        AncestorsView(hierarchy: hierarchy, first: parent(of: entity))
+        AncestorsView(index: childOfIndex, first: parent(of: entity))
     }
 
     /// The descendants of `entity`, depth-first, each before its own children and children in
@@ -217,54 +145,79 @@ extension World {
     /// - Complexity: O(1); the walk is O(*n*) for *n* descendants.
     @inlinable
     public func descendants(of entity: Entity) -> DescendantsView {
-        DescendantsView(hierarchy: hierarchy, roots: children(of: entity))
+        DescendantsView(index: childOfIndex, roots: children(of: entity))
     }
 
-    /// Despawns `entity` and its descendants, detaching it from its parent.
-    @usableFromInline
-    @inline(never)
-    mutating func destroySubtree(_ entity: Entity, cascade: inout [Entity]) {
-        hierarchy.unlink(entity)
-        for member in hierarchy.subtree(of: entity) {
-            hierarchy.forget(member)
-            destroy(member, cascade: &cascade)
+    /// The index of the ``ChildOf`` relation, empty if no entity has had a parent.
+    @inlinable
+    var childOfIndex: RelationIndex {
+        let key = ObjectIdentifier(Targets<ChildOf>.self)
+        return relationIndexes.first { $0.key == key } ?? Targets<ChildOf>.makeIndex()
+    }
+
+    /// Whether `ancestor` is `entity` or one of its ancestors.
+    @inlinable
+    func isAncestor(_ ancestor: Entity, ofOrIs entity: Entity) -> Bool {
+        let index = childOfIndex
+        var current: Entity? = entity
+        while let walking = current {
+            if walking == ancestor { return true }
+            current = index.targets(of: walking).first
         }
+        return false
+    }
+
+    /// Makes `child` the last child of `parent`, without ending the operation.
+    @inlinable
+    mutating func link(_ child: Entity, to parent: Entity) {
+        if let current = self.parent(of: child) {
+            removeTarget(ChildOf.self, current, from: child)
+        }
+        storeRelation(ChildOf(), from: child, to: parent)
+    }
+
+    /// Detaches `child` from its parent, returning the parent, without ending the operation.
+    @inlinable
+    mutating func unlink(_ child: Entity) -> Entity? {
+        guard let parent = parent(of: child) else { return nil }
+        removeTarget(ChildOf.self, parent, from: child)
+        return parent
     }
 }
 
 /// The ancestors of an entity, its parent first, lazily.
 @frozen
 public struct AncestorsView: Sequence, Sendable {
-    @usableFromInline let hierarchy: Hierarchy
+    @usableFromInline let index: RelationIndex
     @usableFromInline let first: Entity?
 
     @inlinable
-    init(hierarchy: Hierarchy, first: Entity?) {
-        self.hierarchy = hierarchy
+    init(index: RelationIndex, first: Entity?) {
+        self.index = index
         self.first = first
     }
 
     @inlinable
     public func makeIterator() -> Iterator {
-        Iterator(hierarchy: hierarchy, next: first)
+        Iterator(index: index, next: first)
     }
 
     /// Walks from an entity's parent to its root.
     @frozen
     public struct Iterator: IteratorProtocol {
-        @usableFromInline let hierarchy: Hierarchy
+        @usableFromInline let index: RelationIndex
         @usableFromInline var upcoming: Entity?
 
         @inlinable
-        init(hierarchy: Hierarchy, next: Entity?) {
-            self.hierarchy = hierarchy
+        init(index: RelationIndex, next: Entity?) {
+            self.index = index
             upcoming = next
         }
 
         @inlinable
         public mutating func next() -> Entity? {
             guard let current = upcoming else { return nil }
-            upcoming = hierarchy.parent(of: current)
+            upcoming = index.targets(of: current).first
             return current
         }
     }
@@ -273,37 +226,37 @@ public struct AncestorsView: Sequence, Sendable {
 /// The descendants of an entity, depth-first with each before its own children, lazily.
 @frozen
 public struct DescendantsView: Sequence, Sendable {
-    @usableFromInline let hierarchy: Hierarchy
+    @usableFromInline let index: RelationIndex
     @usableFromInline let roots: [Entity]
 
     @inlinable
-    init(hierarchy: Hierarchy, roots: [Entity]) {
-        self.hierarchy = hierarchy
+    init(index: RelationIndex, roots: [Entity]) {
+        self.index = index
         self.roots = roots
     }
 
     @inlinable
     public func makeIterator() -> Iterator {
-        Iterator(hierarchy: hierarchy, stack: roots.reversed())
+        Iterator(index: index, stack: roots.reversed())
     }
 
     /// Walks a subtree depth-first.
     @frozen
     public struct Iterator: IteratorProtocol {
-        @usableFromInline let hierarchy: Hierarchy
+        @usableFromInline let index: RelationIndex
         /// Entities still to visit, the next last.
         @usableFromInline var stack: [Entity]
 
         @inlinable
-        init(hierarchy: Hierarchy, stack: [Entity]) {
-            self.hierarchy = hierarchy
+        init(index: RelationIndex, stack: [Entity]) {
+            self.index = index
             self.stack = stack
         }
 
         @inlinable
         public mutating func next() -> Entity? {
             guard let current = stack.popLast() else { return nil }
-            stack.append(contentsOf: hierarchy.children(of: current).reversed())
+            stack.append(contentsOf: index.sources(of: current).reversed())
             return current
         }
     }

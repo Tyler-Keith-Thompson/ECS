@@ -137,6 +137,12 @@ struct RelationIndex: Sendable {
     }
 
     @inlinable
+    func targets(of source: Entity) -> [Entity] {
+        let slot = Int(source.index)
+        return slot < targetsBySource.count ? targetsBySource[slot] : []
+    }
+
+    @inlinable
     func sources(of target: Entity) -> [Entity] {
         let slot = Int(target.index)
         return slot < sourcesByTarget.count ? sourcesByTarget[slot] : []
@@ -328,14 +334,18 @@ extension World {
             relationIndexes[position].setTargets([], of: entity)
             let sources = relationIndexes[position].takeSources(of: entity)
             let removeTarget = relationIndexes[position].removeTarget
+            var despawned: [Entity] = []
             for source in sources where source != entity && contains(source) {
                 switch relationIndexes[position].onTargetDespawn {
                 case .remove:
                     removeTarget(&self, source, entity)
                 case .despawn:
-                    cascade.append(source)
+                    despawned.append(source)
                 }
             }
+            // Reversed, so the first source is despawned next: a parent's children in order,
+            // each before its own.
+            cascade.append(contentsOf: despawned.reversed())
         }
     }
 }

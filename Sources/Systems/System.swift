@@ -27,8 +27,8 @@ public protocol System: SystemSet, Sendable {
     /// }
     /// ```
     ///
-    /// A system with an access reads and writes only what it lists, and spawns, despawns and
-    /// changes the hierarchy not at all.
+    /// A system with an access reads and writes only what it lists (relations through their
+    /// `Targets`, the hierarchy through `Targets<ChildOf>`), and spawns and despawns not at all.
     var access: Access? { get }
 
     /// Runs the rule once on `world`.

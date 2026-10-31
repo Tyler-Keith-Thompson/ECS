@@ -15,7 +15,8 @@ extension World {
     /// Spawns an entity holding a copy of every component `entity` holds, and returns its handle.
     ///
     /// The copies are new components: added and changed at the current ``changeTick``, firing
-    /// add and insert hooks. The entity's place in the hierarchy is not copied.
+    /// add and insert hooks. Its relations are copied with its ``Targets`` components, so a
+    /// clone of a child is its sibling; the entity's own children are not cloned.
     ///
     /// - Complexity: O(*t*) for *t* component types the world has stored.
     /// - Precondition: `entity` is live. Use ``clone(checked:)`` to throw instead.

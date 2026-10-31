@@ -158,6 +158,70 @@ struct HierarchyTests {
         #expect(world.isEmpty)
     }
 
+    @Test("The hierarchy is the ChildOf relation: queries find children, entities with a parent and roots")
+    func childOfQueries() throws {
+        var world = World()
+        let ship = world.spawn(Name("ship"))
+        let turret = world.spawn(Name("turret"))
+        let hull = world.spawn(Name("hull"))
+        let rock = world.spawn(Name("rock"))
+        try world.addChild(turret, to: ship)
+        try world.addChild(hull, to: ship)
+        let children: [Entity] = world.query(Name.self).related(ChildOf.self, to: ship).map { $0.entity }.sorted()
+        let expectedChildren: [Entity] = [turret, hull].sorted()
+        #expect(children == expectedChildren)
+        let parented: [Entity] = world.query(Query(Name.self).with(Targets<ChildOf>.self)).map { $0.entity }.sorted()
+        #expect(parented == expectedChildren)
+        let roots: [Entity] = world.query(Query(Name.self).without(Targets<ChildOf>.self)).map { $0.entity }.sorted()
+        let expectedRoots: [Entity] = [ship, rock].sorted()
+        #expect(roots == expectedRoots)
+        let viaRelation: [Entity] = world.sources(ChildOf.self, of: ship)
+        #expect(viaRelation == world.children(of: ship))
+    }
+
+    @Test("Adding a child marks its ChildOf targets added at the current tick")
+    func childOfChangeDetection() throws {
+        var world = World()
+        let ship = world.spawn()
+        let turret = world.spawn()
+        let checkpoint = world.changeTick
+        world.advanceChangeTick()
+        try world.addChild(turret, to: ship)
+        let added: [Entity] = Array(world.query().added(Targets<ChildOf>.self, since: checkpoint))
+        let expected: [Entity] = [turret]
+        #expect(added == expected)
+    }
+
+    @Test("Despawning the root of a deep hierarchy despawns it all without recursion")
+    func deepDespawn() throws {
+        var world = World()
+        var root = world.spawn()
+        for _ in 0 ..< 20_000 {
+            let parent = world.spawn()
+            try world.addChild(root, to: parent)
+            root = parent
+        }
+        world.despawn(root)
+        let none: Int = 0
+        #expect(world.count == none)
+    }
+
+    @Test("A concurrent change writing Targets<ChildOf> changes the hierarchy")
+    func concurrentHierarchy() {
+        var world = World()
+        let ship = world.spawn()
+        let turret = world.spawn()
+        world.runConcurrently([
+            ConcurrentChange(access: .writes(Targets<ChildOf>.self)) { world in
+                try? world.addChild(turret, to: ship)
+            },
+        ])
+        let children: [Entity] = [turret]
+        #expect(world.children(of: ship) == children)
+        let parent: Entity? = ship
+        #expect(world.parent(of: turret) == parent)
+    }
+
     @Test("A slot reused after a despawn starts with no hierarchy")
     func reusedSlot() throws {
         var world = World()

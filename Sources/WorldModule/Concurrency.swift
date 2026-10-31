@@ -168,8 +168,9 @@ extension World {
     /// - Complexity: O(*c*·*t*) besides the changes themselves, for *c* changes and *t* stored
     ///   component types.
     /// - Precondition: No two accesses conflict. Each change writes only the component and
-    ///   resource types its access lists, and spawns, despawns and changes the hierarchy not at
-    ///   all; a change that writes another component type or changes the entities traps.
+    ///   resource types its access lists (relations through their ``Targets``, the hierarchy
+    ///   through `Targets<ChildOf>`), and spawns and despawns not at all; a change that writes
+    ///   another component type or changes the entities traps.
     public mutating func runConcurrently(_ changes: [ConcurrentChange]) {
         for first in changes.indices {
             for second in changes.indices where second > first {
@@ -227,7 +228,7 @@ extension World {
             let copy = copies[index]
             precondition(
                 copy.structureVersion == base.structureVersion && copy.columns.count == base.columns.count,
-                "Concurrent change \(index) spawned, despawned, changed the hierarchy or stored a new component type"
+                "Concurrent change \(index) spawned, despawned or stored a new component type"
             )
             let written = Set(writtenSlots[index])
             for slot in copy.columns.indices where !written.contains(slot) {

@@ -134,8 +134,9 @@ extension World {
     @inlinable
     public func snapshot<each C: Component & Codable>(_ types: repeat (each C).Type) -> WorldSnapshot<repeat each C> {
         var families: [Family] = []
-        for slot in hierarchy.children.indices where !hierarchy.children[slot].isEmpty {
-            families.append(Family(parent: Entity(index: UInt32(slot), generation: generations[slot]), children: hierarchy.children[slot]))
+        let index = childOfIndex
+        for slot in index.sourcesByTarget.indices where !index.sourcesByTarget[slot].isEmpty {
+            families.append(Family(parent: Entity(index: UInt32(slot), generation: generations[slot]), children: index.sourcesByTarget[slot]))
         }
         return WorldSnapshot(
             generations: generations,
@@ -166,7 +167,7 @@ extension World {
         }
         for family in snapshot.families {
             for child in family.children {
-                hierarchy.link(child, to: family.parent)
+                storeRelation(ChildOf(), from: child, to: family.parent)
             }
         }
         for column in repeat each snapshot.columns {

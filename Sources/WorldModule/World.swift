@@ -31,8 +31,6 @@ public struct World: Sendable {
     /// One column per component type ever stored, in the order the types were first stored.
     @usableFromInline var columns: ContiguousArray<AnyColumn> = []
     @usableFromInline var columnPositions = ColumnTable()
-    /// The parent and children of every entity.
-    @usableFromInline var hierarchy = Hierarchy()
     /// The component hooks and the hook calls waiting to run.
     @usableFromInline var hooks = Hooks()
     /// The owning groups, each column knowing its group by position here.
@@ -46,7 +44,7 @@ public struct World: Sendable {
     @usableFromInline var refreshesCaches = true
     /// The parts split off with ``split(writing:)`` and not yet merged back.
     @usableFromInline var splitParts = 0
-    /// Counts changes to which entities are live and to the hierarchy.
+    /// Counts changes to which entities are live.
     @usableFromInline var structureVersion: UInt64 = 0
     /// The component types whose entities queries skip unless they mention them.
     @usableFromInline var disablingComponents: [ObjectIdentifier] = [ObjectIdentifier(Disabled.self), ObjectIdentifier(Prefab.self)]
@@ -554,27 +552,34 @@ public struct World: Sendable {
         return Entity(index: UInt32(generations.count - 1), generation: 0)
     }
 
-    /// Destroys `entity`, its descendants and the sources whose relations despawn with it, one at
-    /// a time rather than recursively.
-    @usableFromInline
+    /// Destroys `entity` and the sources whose relations despawn with it, one at a time rather
+    /// than recursively.
+    @inlinable
     mutating func destroyCascading(_ entity: Entity) {
+        guard !relationIndexes.isEmpty else {
+            destroy(entity)
+            return
+        }
         var pending = [entity]
+        destroyPending(&pending)
+    }
+
+    /// Destroys the entities of `pending`, last first, and the sources whose relations despawn
+    /// with them.
+    @usableFromInline
+    @inline(never)
+    mutating func destroyPending(_ pending: inout [Entity]) {
         while let next = pending.popLast() {
             guard contains(next) else { continue }
-            if hierarchy.links == 0 {
-                destroy(next, cascade: &pending)
-            } else {
-                destroySubtree(next, cascade: &pending)
-            }
+            releaseRelations(of: next, cascade: &pending)
+            destroy(next)
         }
     }
 
+    /// Destroys `entity` and every component it holds, after its relations are released.
     @usableFromInline
-    mutating func destroy(_ entity: Entity, cascade: inout [Entity]) {
+    mutating func destroy(_ entity: Entity) {
         structureVersion &+= 1
-        if !relationIndexes.isEmpty {
-            releaseRelations(of: entity, cascade: &cascade)
-        }
         if !groups.isEmpty {
             leaveGroups(entity)
         }
