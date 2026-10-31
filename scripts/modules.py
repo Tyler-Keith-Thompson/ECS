@@ -23,7 +23,7 @@ TEST_SUPPORT = f"{PROJECT}TestSupport"
 PACKAGES = [
     # Tests only: property checks with shrinking, for Swift Testing.
     ("swift-property-based", "https://github.com/x-sheep/swift-property-based", "2.0.1"),
-    # Graphs and their algorithms (the owner's library): ordering a schedule's systems.
+    # Graphs and their algorithms (the owner's library): ordering a schedule's systems and drawing its graph.
     ("grafluent", "https://github.com/Tyler-Keith-Thompson/Grafluent", "0.0.58"),
     # Macros: the compiler plugins in MACROS, and their tests.
     ("swift-syntax", "https://github.com/swiftlang/swift-syntax", "603.0.0"),
@@ -43,7 +43,7 @@ MODULES = [
     # Storage
     ("WorldModule", "Storage", "World: entities, their components and resources, with queries, in-place updates and deferred commands.", []),
     # Scheduling
-    ("Systems", "Scheduling", "System and Schedule: rules that run on a world, ordered as written unless constrained otherwise.", ["WorldModule", "SystemMacros", "grafluent/Traversal"]),
+    ("Systems", "Scheduling", "System and Schedule: rules that run on a world, ordered as written unless constrained otherwise.", ["WorldModule", "SystemMacros", "grafluent/Traversal", "grafluent/GraphProtocols", "grafluent/AdjacencyListModule", "grafluent/GraphOperations", "grafluent/GraphFormats"]),
     ("SimulationModule", "Scheduling", "Simulation: a world and its schedules by label, stepped frame by frame with a fixed timestep and states.", ["WorldModule", "Systems"]),
 ]
 

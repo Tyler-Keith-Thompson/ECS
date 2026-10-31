@@ -29,7 +29,7 @@ let targets: [Target] = [
     // Storage
     .target(name: "WorldModule", exclude: bazelFiles),
     // Scheduling
-    .target(name: "Systems", dependencies: ["WorldModule", "SystemMacros", .product(name: "Traversal", package: "grafluent")], exclude: bazelFiles),
+    .target(name: "Systems", dependencies: ["WorldModule", "SystemMacros", .product(name: "Traversal", package: "grafluent"), .product(name: "GraphProtocols", package: "grafluent"), .product(name: "AdjacencyListModule", package: "grafluent"), .product(name: "GraphOperations", package: "grafluent"), .product(name: "GraphFormats", package: "grafluent")], exclude: bazelFiles),
     .target(name: "SimulationModule", dependencies: ["WorldModule", "Systems"], exclude: bazelFiles),
     // Scheduling: compiler plugin
     .macro(name: "SystemMacros", dependencies: [.product(name: "SwiftSyntax", package: "swift-syntax"), .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax"), .product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftDiagnostics", package: "swift-syntax")], exclude: bazelFiles),

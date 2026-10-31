@@ -5,13 +5,12 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Profiling.** Time per system per run, and the schedule's dependency graph as DOT.
-2. **Checked accesses.** A debug-build record of the columns and resources a system with a
+1. **Checked accesses.** A debug-build record of the columns and resources a system with a
    hand-written `access` touches while it runs concurrently, trapping on undeclared reads as
    undeclared writes already trap. Systems declared by their parameters cannot reach anything
    else, so this covers hand-written conformances only; it needs a lookup check that costs
    nothing in release builds.
-3. **Spawning a scene into a world.** Instantiate a saved scene as new entities in an existing
+2. **Spawning a scene into a world.** Instantiate a saved scene as new entities in an existing
    world (a prefab), mapping the entities its components and relations name to the new ones.
 
 ## Done
@@ -82,3 +81,5 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
   `Codable` save of every registered type restored by `World(restoring:)`.
 - Concurrency bridges: `ForwardEvents` and `ForwardChanges` yield to an `AsyncStream`;
   `MainActorSystem` (and `@System` on a `@MainActor` type or `run`) runs on the main actor.
+- Profiling: a `SystemProfile` resource records each system's runs and times;
+  `Schedule.writeDOT(to:)` draws the dependency graph.

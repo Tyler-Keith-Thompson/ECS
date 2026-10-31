@@ -189,7 +189,9 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   `ambiguities()` lists conflicting systems no constraint orders, whose order rests on how they
   were written. A `SystemSet` (`enum Physics: SystemSet {}`) names a group: systems join it with
   `inSet`, a nested `Schedule { … }` takes `inSet`, `after`, `before` and `runIf` for all its
-  systems, and `after(Physics.self)` orders after every system in it.
+  systems, and `after(Physics.self)` orders after every system in it. With a `SystemProfile`
+  resource in the world, schedules record each system's runs and times; `writeDOT(to:)` draws
+  the schedule's dependency graph for Graphviz.
 - **Streams**: `ForwardEvents(to: continuation)` and `ForwardChanges(to: continuation)` are
   systems that yield new events, or added and changed components, to an `AsyncStream`, so
   code outside the schedule can `for await` them.

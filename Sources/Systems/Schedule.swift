@@ -191,22 +191,34 @@ public struct Schedule: Sendable {
             let runs = world.resources.contains(SystemRuns.self) ? world.resources[SystemRuns.self].ticks : [:]
             let tick = world.advanceChangeTick()
             let concurrent = group.filter { !$0.runsOnMainActor }
+            let profiling = world.resources.contains(SystemProfile.self)
             if concurrent.count <= 1 || !concurrently {
                 for system in group {
                     world.lastRun = runs[system.id] ?? .zero
-                    system.run(in: &world)
+                    Self.run(system, on: &world, profiling: profiling)
                 }
             } else {
+                let times = WaveTimes()
                 world.runConcurrently(concurrent.map { system in
                     let lastRun = runs[system.id] ?? .zero
                     return ConcurrentChange(access: system.access!) { world in
                         world.lastRun = lastRun
-                        system.run(in: &world)
+                        if profiling {
+                            times.record(ContinuousClock().measure { system.run(in: &world) }, for: system.id)
+                        } else {
+                            system.run(in: &world)
+                        }
                     }
                 })
+                if profiling, world.resources.contains(SystemProfile.self) {
+                    let durations = times.durations.withLock { $0 }
+                    for system in concurrent {
+                        world.resources[SystemProfile.self].record(durations[system.id] ?? .zero, for: system)
+                    }
+                }
                 for system in group where system.runsOnMainActor {
                     world.lastRun = runs[system.id] ?? .zero
-                    system.run(in: &world)
+                    Self.run(system, on: &world, profiling: profiling)
                 }
             }
             world.applyQueuedCommands()
@@ -216,6 +228,18 @@ public struct Schedule: Sendable {
             }
             world.resources.insert(updated)
         }
+    }
+
+    /// Runs `system` on `world`, recording its time in the world's ``SystemProfile`` when
+    /// `profiling`.
+    static func run(_ system: ScheduledSystem, on world: inout World, profiling: Bool) {
+        guard profiling else {
+            system.run(in: &world)
+            return
+        }
+        let duration = ContinuousClock().measure { system.run(in: &world) }
+        guard world.resources.contains(SystemProfile.self) else { return }
+        world.resources[SystemProfile.self].record(duration, for: system)
     }
 
     /// The positions in `systems` of each wave's systems, waves in the order they run.

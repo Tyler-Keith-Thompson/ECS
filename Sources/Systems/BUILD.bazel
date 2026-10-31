@@ -11,6 +11,10 @@ swift_library(
     deps = [
         "//Sources/WorldModule",
         "@swiftpkg_grafluent//:Traversal",
+        "@swiftpkg_grafluent//:GraphProtocols",
+        "@swiftpkg_grafluent//:AdjacencyListModule",
+        "@swiftpkg_grafluent//:GraphOperations",
+        "@swiftpkg_grafluent//:GraphFormats",
     ],
     plugins = [
         "//Sources/SystemMacros",
