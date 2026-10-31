@@ -1,326 +1,172 @@
-/// An entity and the components an update reads, in the order the update listed their types.
+/// Which entities to visit and what to read of each, independent of any world.
 ///
-/// An update reading one type has that component itself as `components`, not a one-element
-/// tuple; reading none, `components` is `()`.
-@frozen
-public struct QueryRow<each C: Component> {
-    /// The entity.
-    public let entity: Entity
-    /// Its components, in the order the query listed their types.
-    public let components: (repeat each C)
-
-    @inlinable
-    public init(entity: Entity, components: (repeat each C)) {
-        self.entity = entity
-        self.components = components
-    }
-}
-
-extension QueryRow: Sendable where repeat each C: Sendable {}
-
-/// The entities holding every component type of a query and passing its filter, with those
-/// components, lazily.
-///
-/// Each row is a tuple of the entity, labeled `entity`, and its components in the order the query
-/// listed their types, so a loop can name them all:
+/// A query lists its terms, components and ``AnyOf`` groups, and narrows them with filters. An
+/// entity matches when it matches every term and passes the filter. Queries are values: keep one
+/// in a system, compare it, pass it around, and run it against any world.
 ///
 /// ```swift
-/// for (entity, position, velocity) in world.query(Position.self, Velocity.self).without(Frozen.self) {
-///     print(entity, position, velocity)
+/// let movers = Query(Position.self, Velocity.self, AnyOf<Wind, Current>.self)
+///     .without(Frozen.self)
+///
+/// for (entity, position, velocity, (wind, current)) in world.query(movers) {
+///     print(entity, position, velocity, wind, current)
+/// }
+/// world.update(Position.self, over: Query(Velocity.self)) { position, row in
+///     position.x += row.components.dx
 /// }
 /// ```
-///
-/// A view is a snapshot of the world it came from: writing to the world while iterating does not
-/// change what the view shows, though the first write to each component type copies that type's
-/// storage. To change components while visiting them, use ``World/update(_:reading:where:body:)``.
-///
-/// Rows come in the storage order of the queried or required type held by the fewest entities,
-/// which depends only on the history of insertions and removals.
 @frozen
-public struct QueryView<each C: Component>: Sequence, Sendable {
-    @usableFromInline let world: World
-    /// The types the rows must hold and must not hold, beyond the components they carry.
+public struct Query<each T: QueryTerm>: Hashable, Sendable {
+    /// The conditions entities must meet beyond matching the terms.
     public let filter: QueryFilter
-    @usableFromInline let makeReader: @Sendable (World) -> Reader<(entity: Entity, repeat each C)>
+
+    /// A query of `terms`, passing every entity that matches them all.
+    ///
+    /// - Complexity: O(1).
+    @inlinable
+    public init(_ terms: repeat (each T).Type) {
+        filter = QueryFilter()
+    }
 
     @inlinable
-    init(world: World, filter: QueryFilter, makeReader: @escaping @Sendable (World) -> Reader<(entity: Entity, repeat each C)>) {
-        self.world = world
+    init(filter: QueryFilter) {
         self.filter = filter
-        self.makeReader = makeReader
     }
 
-    /// This view, keeping only entities that also hold every one of `types`.
+    /// This query, keeping only entities that also hold every one of `types`.
     @inlinable
-    public func with<each F: Component>(_ types: repeat (each F).Type) -> QueryView {
-        QueryView(world: world, filter: filter.with(repeat each types), makeReader: makeReader)
+    public func with<each F: Component>(_ types: repeat (each F).Type) -> Query {
+        Query(filter: filter.with(repeat each types))
     }
 
-    /// This view, keeping only entities that hold none of `types`.
+    /// This query, keeping only entities that hold none of `types`.
     @inlinable
-    public func without<each F: Component>(_ types: repeat (each F).Type) -> QueryView {
-        QueryView(world: world, filter: filter.without(repeat each types), makeReader: makeReader)
+    public func without<each F: Component>(_ types: repeat (each F).Type) -> Query {
+        Query(filter: filter.without(repeat each types))
     }
 
-    /// This view, keeping only entities whose `F` was added after `since` (nil for the world's
+    /// This query, keeping only entities whose `F` was added after `since` (nil for the world's
     /// ``World/lastRun``).
     @inlinable
-    public func added<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> QueryView {
-        QueryView(world: world, filter: filter.added(F.self, since: since), makeReader: makeReader)
+    public func added<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> Query {
+        Query(filter: filter.added(F.self, since: since))
     }
 
-    /// This view, keeping only entities whose `F` was added or changed after `since` (nil for the
-    /// world's ``World/lastRun``).
+    /// This query, keeping only entities whose `F` was added or changed after `since` (nil for
+    /// the world's ``World/lastRun``).
     @inlinable
-    public func changed<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> QueryView {
-        QueryView(world: world, filter: filter.changed(F.self, since: since), makeReader: makeReader)
+    public func changed<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> Query {
+        Query(filter: filter.changed(F.self, since: since))
     }
 
-    /// This view, keeping only entities that `filter` passes as well.
-    @inlinable
-    public func filtered(by filter: QueryFilter) -> QueryView {
-        QueryView(world: world, filter: self.filter.merging(filter), makeReader: makeReader)
-    }
-
-    /// The number of rows.
+    /// This query, keeping only entities that at least one of `filters` passes.
     ///
-    /// - Complexity: O(*n*) for *n* entities in the smallest queried or required type.
+    /// ```swift
+    /// let damaged = Query(Health.self).anyOf(.changed(Health.self), .without(Shield.self))
+    /// ```
     @inlinable
-    public var count: Int {
-        var count = 0
-        var iterator = makeIterator()
-        while iterator.next() != nil { count += 1 }
-        return count
+    public func anyOf(_ filters: QueryFilter...) -> Query {
+        Query(filter: filter.anyOf(filters))
     }
 
-    /// Steps through a query's rows.
-    @frozen
-    public struct Iterator: IteratorProtocol {
-        @usableFromInline let reader: Reader<(entity: Entity, repeat each C)>
-        @usableFromInline let filter: ResolvedFilter
-        /// The entities visited, in order.
-        @usableFromInline let driver: [Entity]
-        /// Which read column `driver` is, -1 for a filter type or the live entities, or
-        /// `alignedDriver` for the front of an owning group's columns.
-        @usableFromInline let driverColumn: Int
-        /// The end of the visited part of `driver`.
-        @usableFromInline let end: Int
-        @usableFromInline var cursor = 0
-
-        @inlinable
-        init(world: World, filter: QueryFilter, reader: Reader<(entity: Entity, repeat each C)>) {
-            let resolved = ResolvedFilter(filter, in: world)
-            var driver: [Entity] = []
-            var driverColumn = -1
-            var hasDriver = false
-            for (column, entities) in reader.columns.enumerated() where !hasDriver || entities.count < driver.count {
-                driver = entities
-                driverColumn = column
-                hasDriver = true
-            }
-            for index in resolved.candidates where !hasDriver || index.dense.count < driver.count {
-                driver = index.dense
-                driverColumn = -1
-                hasDriver = true
-            }
-            if resolved.isUnsatisfiable {
-                driver = []
-            } else if !hasDriver {
-                driver = Array(world.entities)
-            }
-            var end = driver.count
-            if !resolved.isUnsatisfiable, let aligned = world.alignedCount(of: reader.types) {
-                driver = reader.columns[0]
-                driverColumn = alignedDriver
-                end = aligned
-            }
-            self.reader = reader
-            self.filter = resolved
-            self.driver = driver
-            self.driverColumn = driverColumn
-            self.end = end
-        }
-
-        @inlinable
-        public mutating func next() -> Optional<(entity: Entity, repeat each C)> {
-            let checksFilter = !filter.isEmpty
-            while cursor < end {
-                let position = cursor
-                let entity = driver[position]
-                cursor += 1
-                if checksFilter, !filter.passes(entity) { continue }
-                if let row = reader.row(entity, position, driverColumn) { return .some(row) }
-            }
-            return nil
-        }
-    }
-
+    /// This query, keeping only entities that `filter` passes as well.
     @inlinable
-    public func makeIterator() -> Iterator {
-        Iterator(world: world, filter: filter, reader: makeReader(world))
+    public func filtered(by filter: QueryFilter) -> Query {
+        Query(filter: self.filter.merging(filter))
     }
 }
 
 extension World {
-    /// The entities holding every one of `types`, with those components, lazily.
+    /// The entities matching `query`, with its terms' values, lazily.
+    ///
+    /// Each row is the entity, labeled `entity`, followed by one value per term: the component
+    /// for a component term, a tuple of optionals for an ``AnyOf`` term.
     ///
     /// ```swift
-    /// for (entity, position, velocity, health) in world.query(Position.self, Velocity.self, Health.self) {
-    ///     print(entity, position, velocity, health)
+    /// for (entity, position, (wind, current)) in world.query(Query(Position.self, AnyOf<Wind, Current>.self)) {
+    ///     print(entity, position, wind, current)
     /// }
     /// ```
     ///
-    /// Queries of one, two or three types have overloads specialized for speed.
+    /// Queries of one, two or three terms, with ``AnyOf`` groups of two to four types, have
+    /// overloads specialized for speed.
     ///
     /// - Complexity: O(*t*) to create. Iterating is O(*n*) for *n* entities in the smallest
-    ///   queried or required type.
+    ///   component term or required type, or every entity when there is none.
     @inlinable
-    public func query<each C: Component>(_ types: repeat (each C).Type) -> QueryView<repeat each C> {
-        QueryView(world: self, filter: QueryFilter()) { world in
-            world.packReader(repeat (each C).self) { entity, components in (entity: entity, repeat each components) }
+    public func query<each T: QueryTerm>(_ query: Query<repeat each T>) -> QueryView<repeat (each T).Value> {
+        QueryView(world: self, filter: query.filter) { world in
+            world.termReader(repeat (each T).self) { entity, values in (entity: entity, repeat each values) }
         }
     }
 
-    /// The entities holding an `A`, with it, lazily.
+    /// Changes the `W` of every entity holding one and matching `query`, in place.
     ///
-    /// - Complexity: O(1) to create. Iterating is O(*n*) for *n* entities in the smallest
-    ///   queried or required type.
-    @inlinable
-    public func query<A: Component>(_ a: A.Type) -> QueryView<A> {
-        QueryView(world: self, filter: QueryFilter()) { world in
-            world.reader(A.self) { entity, a in (entity: entity, a) }
-        }
-    }
-
-    /// The entities holding an `A` and a `B`, with them, lazily.
+    /// `body` receives the `W` to change and a row of the entity with the query's values. Every
+    /// `W` visited is marked changed at the current ``changeTick``.
     ///
-    /// - Complexity: O(1) to create. Iterating is O(*n*) for *n* entities in the smallest
-    ///   queried or required type.
-    @inlinable
-    public func query<A: Component, B: Component>(_ a: A.Type, _ b: B.Type) -> QueryView<A, B> {
-        QueryView(world: self, filter: QueryFilter()) { world in
-            world.reader(A.self, B.self) { entity, a, b in (entity: entity, a, b) }
-        }
-    }
-
-    /// The entities holding an `A`, a `B` and a `C`, with them, lazily.
+    /// ```swift
+    /// world.update(Position.self, over: Query(Velocity.self, AnyOf<Wind, Current>.self)) { position, row in
+    ///     let (velocity, (wind, current)) = row.components
+    ///     position.x += velocity.dx + (wind?.force ?? 0) + (current?.force ?? 0)
+    /// }
+    /// ```
     ///
-    /// - Complexity: O(1) to create. Iterating is O(*n*) for *n* entities in the smallest
-    ///   queried or required type.
-    @inlinable
-    public func query<A: Component, B: Component, C: Component>(_ a: A.Type, _ b: B.Type, _ c: C.Type) -> QueryView<A, B, C> {
-        QueryView(world: self, filter: QueryFilter()) { world in
-            world.reader(A.self, B.self, C.self) { entity, a, b, c in (entity: entity, a, b, c) }
-        }
-    }
-}
-
-/// The live entities passing a filter, lazily: a query of no component types.
-///
-/// Like ``QueryView``, a view is a snapshot of the world it came from.
-///
-/// ```swift
-/// for entity in world.query().with(Player.self).without(Dead.self) {
-///     print(entity)
-/// }
-/// ```
-@frozen
-public struct EntityQueryView: Sequence, Sendable {
-    @usableFromInline let world: World
-    /// The types the entities must hold and must not hold.
-    public let filter: QueryFilter
-
-    @inlinable
-    init(world: World, filter: QueryFilter) {
-        self.world = world
-        self.filter = filter
-    }
-
-    /// This view, keeping only entities that also hold every one of `types`.
-    @inlinable
-    public func with<each F: Component>(_ types: repeat (each F).Type) -> EntityQueryView {
-        EntityQueryView(world: world, filter: filter.with(repeat each types))
-    }
-
-    /// This view, keeping only entities that hold none of `types`.
-    @inlinable
-    public func without<each F: Component>(_ types: repeat (each F).Type) -> EntityQueryView {
-        EntityQueryView(world: world, filter: filter.without(repeat each types))
-    }
-
-    /// This view, keeping only entities whose `F` was added after `since` (nil for the world's
-    /// ``World/lastRun``).
-    @inlinable
-    public func added<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> EntityQueryView {
-        EntityQueryView(world: world, filter: filter.added(F.self, since: since))
-    }
-
-    /// This view, keeping only entities whose `F` was added or changed after `since` (nil for the
-    /// world's ``World/lastRun``).
-    @inlinable
-    public func changed<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> EntityQueryView {
-        EntityQueryView(world: world, filter: filter.changed(F.self, since: since))
-    }
-
-    /// This view, keeping only entities that `filter` passes as well.
-    @inlinable
-    public func filtered(by filter: QueryFilter) -> EntityQueryView {
-        EntityQueryView(world: world, filter: self.filter.merging(filter))
-    }
-
-    /// The number of entities.
+    /// Queries of one, two or three terms, with ``AnyOf`` groups of two to four types, have
+    /// overloads specialized for speed.
     ///
-    /// - Complexity: O(*n*) for *n* entities in the smallest required type, or the world's slots
-    ///   when no type is required.
+    /// - Parameters:
+    ///   - type: The component type to change.
+    ///   - query: The entities to visit and what to read of them.
+    ///   - body: Changes one entity's `W`. If it throws, the visit stops; changes already made
+    ///     are kept.
+    /// - Complexity: O(*n*) for *n* entities in the smallest of `W` and the component terms,
+    ///   plus a copy of the `W` storage when another world shares it.
+    /// - Precondition: `query` reads no `W`.
     @inlinable
-    public var count: Int {
-        var count = 0
-        var iterator = makeIterator()
-        while iterator.next() != nil { count += 1 }
-        return count
+    public mutating func update<W: Component, each T: QueryTerm, Failure: Error>(
+        _ type: W.Type,
+        over query: Query<repeat each T>,
+        body: (inout W, QueryRow<repeat (each T).Value>) throws(Failure) -> Void
+    ) throws(Failure) {
+        try update(
+            W.self, reads: termReads(repeat (each T).self),
+            reader: { world in world.termReader(repeat (each T).self) { entity, values in QueryRow(entity: entity, components: (repeat each values)) } },
+            filter: query.filter, body: body)
     }
 
-    /// Steps through the entities.
-    @frozen
-    public struct Iterator: IteratorProtocol {
-        @usableFromInline let filter: ResolvedFilter
-        @usableFromInline let driver: [Entity]
-        @usableFromInline var cursor = 0
-
-        @inlinable
-        init(world: World, filter: QueryFilter) {
-            let resolved = ResolvedFilter(filter, in: world)
-            var driver: [Entity]? = nil
-            for index in resolved.candidates where driver == nil || index.dense.count < driver!.count {
-                driver = index.dense
-            }
-            self.filter = resolved
-            self.driver = resolved.isUnsatisfiable ? [] : driver ?? Array(world.entities)
-        }
-
-        @inlinable
-        public mutating func next() -> Entity? {
-            let checksFilter = !filter.isEmpty
-            while cursor < driver.count {
-                let entity = driver[cursor]
-                cursor += 1
-                if !checksFilter || filter.passes(entity) { return entity }
-            }
-            return nil
-        }
-    }
-
-    @inlinable
-    public func makeIterator() -> Iterator { Iterator(world: world, filter: filter) }
-}
-
-extension World {
-    /// The live entities, lazily, to be narrowed with ``EntityQueryView/with(_:)`` and
-    /// ``EntityQueryView/without(_:)``.
+    /// Changes the `A` and `B` of every entity holding both and matching `query`, in place;
+    /// see ``update(_:over:body:)``.
     ///
-    /// - Complexity: O(1) to create.
+    /// - Precondition: `A` and `B` differ, and `query` reads neither.
     @inlinable
-    public func query() -> EntityQueryView {
-        EntityQueryView(world: self, filter: QueryFilter())
+    public mutating func update<A: Component, B: Component, each T: QueryTerm, Failure: Error>(
+        _ first: A.Type,
+        _ second: B.Type,
+        over query: Query<repeat each T>,
+        body: (inout A, inout B, QueryRow<repeat (each T).Value>) throws(Failure) -> Void
+    ) throws(Failure) {
+        try update(
+            A.self, B.self, reads: termReads(repeat (each T).self),
+            reader: { world in world.termReader(repeat (each T).self) { entity, values in QueryRow(entity: entity, components: (repeat each values)) } },
+            filter: query.filter, body: body)
+    }
+
+    /// Changes the `A`, `B` and `C` of every entity holding all three and matching `query`, in
+    /// place; see ``update(_:over:body:)``.
+    ///
+    /// - Precondition: `A`, `B` and `C` differ, and `query` reads none of them.
+    @inlinable
+    public mutating func update<A: Component, B: Component, C: Component, each T: QueryTerm, Failure: Error>(
+        _ first: A.Type,
+        _ second: B.Type,
+        _ third: C.Type,
+        over query: Query<repeat each T>,
+        body: (inout A, inout B, inout C, QueryRow<repeat (each T).Value>) throws(Failure) -> Void
+    ) throws(Failure) {
+        try update(
+            A.self, B.self, C.self, reads: termReads(repeat (each T).self),
+            reader: { world in world.termReader(repeat (each T).self) { entity, values in QueryRow(entity: entity, components: (repeat each values)) } },
+            filter: query.filter, body: body)
     }
 }

@@ -8,6 +8,9 @@ struct Velocity: Component { var dx: Double, dy: Double }
 struct Health: Component { var current: Int }
 struct Frozen: Component {}
 struct Clock: Resource { var ticks = 0 }
+struct Wind: Component { var speed: Double }
+struct Current: Component { var speed: Double }
+struct Anchored: Component {}
 
 struct Movement: System {
     func run(in world: inout World) {
@@ -69,5 +72,31 @@ struct READMEExamplesTests {
         #expect(!world.contains(ghost))
         #expect(world.resources[Clock.self].ticks == 1)
         #expect(world.query(Position.self, Velocity.self).without(Frozen.self).map(\.entity) == [ball])
+    }
+
+    @Test("Query values")
+    func queryValues() {
+        var world = World()
+        let raft = world.spawn(Position(x: 0, y: 0), Wind(speed: 1), Current(speed: 2))
+        let kite = world.spawn(Position(x: 0, y: 0), Wind(speed: 3))
+        let buoy = world.spawn(Position(x: 0, y: 0), Current(speed: 4), Anchored())
+        let rock = world.spawn(Position(x: 0, y: 0))
+
+        let drifting = Query(AnyOf<Wind, Current>.self).without(Anchored.self)
+        world.update(Position.self, over: drifting) { position, row in
+            let (wind, current) = row.components
+            position.x += (wind?.speed ?? 0) + (current?.speed ?? 0)
+        }
+        for (entity, position, (wind, current)) in world.query(Query(Position.self, AnyOf<Wind, Current>.self)) {
+            print(entity, position, wind?.speed ?? 0, current?.speed ?? 0)
+        }
+
+        let expectedRaft = 3.0
+        let expectedKite = 3.0
+        let expectedStill = 0.0
+        #expect(world[Position.self, of: raft].x == expectedRaft)
+        #expect(world[Position.self, of: kite].x == expectedKite)
+        #expect(world[Position.self, of: buoy].x == expectedStill)
+        #expect(world[Position.self, of: rock].x == expectedStill)
     }
 }

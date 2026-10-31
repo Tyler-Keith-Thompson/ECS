@@ -64,6 +64,19 @@ bench-compare name:
 modules:
     python3 {{PROJECT_ROOT}}/scripts/modules.py
 
+[doc('Refresh the checked-in copies of generated sources (GENERATED_SOURCES in scripts/modules.py) that SwiftPM compiles')]
+sources:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{PROJECT_ROOT}}
+    targets=$({{BAZEL}} query 'attr(generator_function, generated_swift_source, kind(genrule, //Sources/...))')
+    {{BAZEL}} build $targets
+    for target in $targets; do
+        package="${target#//}"; package="${package%%:*}"; name="${target##*:}"
+        mkdir -p "$package/Generated"
+        install -m 644 "bazel-bin/$package/$name.swift" "$package/Generated/$name.swift"
+    done
+
 [doc('Build the combined DocC site for every library module into .build/docs (what the DocC workflow publishes)')]
 docs:
     {{BAZEL}} build //:docs

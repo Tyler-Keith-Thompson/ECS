@@ -102,8 +102,22 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
 - **`query`**: a lazy view of the entities holding every listed type, narrowed with `with` and
   `without`. Each row is a tuple, `(entity, component, …)`. A view is a snapshot; writing to the
   world while iterating is safe.
+- **`Query`**: a query as a value, kept and run against any world. `AnyOf<Wind, Current>`
+  matches entities holding at least one of its types and yields a tuple of optionals, and
+  `.anyOf(…)` filters pass entities meeting at least one condition:
+
+  ```swift
+  let drifting = Query(AnyOf<Wind, Current>.self).without(Anchored.self)
+  world.update(Position.self, over: drifting) { position, row in
+      let (wind, current) = row.components
+      position.x += (wind?.speed ?? 0) + (current?.speed ?? 0)
+  }
+  for (entity, position, (wind, current)) in world.query(Query(Position.self, AnyOf<Wind, Current>.self)) {
+      print(entity, position, wind?.speed ?? 0, current?.speed ?? 0)
+  }
+  ```
 - **`update`**: changes one or two component types in place across every matching entity,
-  reading any others. This is the fast path for systems. `parallelUpdate` spreads one across cores, with
+  reading any others, or one to three types over a `Query`. This is the fast path for systems. `parallelUpdate` spreads one across cores, with
   the same result. `world.group(Position.self, Velocity.self)` keeps two or more types
   packed in the same order, so queries and updates over exactly those types make no lookups.
 - **Change detection**: every component remembers when it was added and last changed.

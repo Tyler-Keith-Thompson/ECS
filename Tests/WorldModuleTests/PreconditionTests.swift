@@ -216,4 +216,31 @@ struct PreconditionTests {
             world.group(Name.self, Frozen.self)
         }
     }
+
+    @Test("An update over a query whose AnyOf reads the written type traps", .tags(.precondition))
+    func updateOverReadsWritten() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            _ = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
+            world.update(Position.self, over: Query(AnyOf<Velocity, Position>.self)) { _, _ in }
+        }
+    }
+
+    @Test("An update over a query wider than the specialized overloads that reads the written type traps", .tags(.precondition))
+    func updateOverWideReadsWritten() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            _ = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
+            world.update(Position.self, over: Query(Velocity.self, Health.self, Name.self, Position.self)) { _, _ in }
+        }
+    }
+
+    @Test("An update over a query writing one type twice of three traps", .tags(.precondition))
+    func updateOverWritesTwice() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            _ = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0), Health(1))
+            world.update(Position.self, Velocity.self, Position.self, over: Query(Health.self)) { _, _, _, _ in }
+        }
+    }
 }

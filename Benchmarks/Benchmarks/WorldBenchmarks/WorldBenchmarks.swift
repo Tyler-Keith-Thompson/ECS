@@ -190,6 +190,61 @@ let benchmarks: @Sendable () -> Void = {
         blackHole(total)
     }
 
+    Benchmark("query a query value of two types") { benchmark in
+        let world = populatedWorld()
+        let query = Query(Position.self, Velocity.self)
+        benchmark.startMeasurement()
+        var total = 0.0
+        for (_, position, velocity) in world.query(query) { total += position.x + velocity.dx }
+        benchmark.stopMeasurement()
+        blackHole(total)
+    }
+
+    Benchmark("query one type and any of two, seven fifteenths matching") { benchmark in
+        let world = populatedWorld()
+        let query = Query(Position.self, AnyOf<Health, Mass>.self)
+        benchmark.startMeasurement()
+        var total = 0.0
+        for (_, position, (health, mass)) in world.query(query) {
+            total += position.x + Double(health?.current ?? 0) + (mass?.kilograms ?? 0)
+        }
+        benchmark.stopMeasurement()
+        blackHole(total)
+    }
+
+    Benchmark("query four terms with any of two (parameter pack)") { benchmark in
+        let world = populatedWorld()
+        let query = Query(Position.self, Velocity.self, AnyOf<Health, Mass>.self, Velocity.self)
+        benchmark.startMeasurement()
+        var total = 0.0
+        for (_, position, _, (health, _), _) in world.query(query) { total += position.x + Double(health?.current ?? 0) }
+        benchmark.stopMeasurement()
+        blackHole(total)
+    }
+
+    Benchmark("update one type over four terms (parameter pack)") { benchmark in
+        var world = populatedWorld()
+        world.update(Health.self) { health, _ in health.current = 1 }
+        benchmark.startMeasurement()
+        world.update(Position.self, over: Query(Velocity.self, Health.self, Mass.self, Velocity.self)) { position, row in
+            position.x += Double(row.components.1.current)
+        }
+        benchmark.stopMeasurement()
+        blackHole(world)
+    }
+
+    Benchmark("update one type over one type and any of two") { benchmark in
+        var world = populatedWorld()
+        let query = Query(Velocity.self, AnyOf<Health, Mass>.self)
+        benchmark.startMeasurement()
+        world.update(Position.self, over: query) { position, row in
+            let (velocity, (_, mass)) = row.components
+            position.x += velocity.dx + (mass?.kilograms ?? 0)
+        }
+        benchmark.stopMeasurement()
+        blackHole(world)
+    }
+
     Benchmark("query one type without another") { benchmark in
         let world = populatedWorld()
         benchmark.startMeasurement()

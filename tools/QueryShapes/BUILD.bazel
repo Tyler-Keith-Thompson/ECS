@@ -1,0 +1,9 @@
+# Writes WorldModule's fixed-arity query and update overloads; see main.swift.
+
+load("//tools:swift_rules.bzl", "swift_binary")
+
+swift_binary(
+    name = "QueryShapes",
+    srcs = ["main.swift"],
+    visibility = ["//Sources:__subpackages__"],
+)

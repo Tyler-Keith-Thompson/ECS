@@ -27,6 +27,9 @@ type the fewest entities hold and looks the others up.
 
 ### Reading many entities
 
+- ``Query``
+- ``QueryTerm``
+- ``AnyOf``
 - ``QueryView``
 - ``EntityQueryView``
 - ``QueryRow``

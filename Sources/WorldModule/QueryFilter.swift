@@ -1,11 +1,14 @@
 /// Component types an entity must hold, types it must not, and types that must have been added or
 /// changed since a tick, beyond the ones a query reads.
 ///
-/// Filters compose: each modifier returns a new filter.
+/// Filters compose: each modifier returns a new filter, which an entity passes only if it meets
+/// every condition. ``anyOf(_:)-swift.type.method`` passes entities meeting at least one of several
+/// filters, so any condition on which components an entity holds can be written.
 ///
 /// ```swift
 /// let living = QueryFilter.with(Player.self).without(Dead.self)
 /// let moved = QueryFilter.changed(Position.self)
+/// let armedOrShielded = QueryFilter.anyOf(.with(Sword.self, Arm.self), .with(Shield.self))
 /// ```
 @frozen
 public struct QueryFilter: Hashable, Sendable {
@@ -13,6 +16,8 @@ public struct QueryFilter: Hashable, Sendable {
     @usableFromInline var excluded: [ObjectIdentifier] = []
     @usableFromInline var addedSince: [TickCondition] = []
     @usableFromInline var changedSince: [TickCondition] = []
+    /// Groups of filters, each passed when at least one of its filters passes.
+    @usableFromInline var alternatives: [[QueryFilter]] = []
 
     /// A type whose component must carry a tick after `since`, or after the world's
     /// ``World/lastRun`` when `since` is nil.
@@ -63,6 +68,30 @@ public struct QueryFilter: Hashable, Sendable {
         QueryFilter().changed(C.self, since: since)
     }
 
+    /// A filter that passes entities that at least one of `filters` passes.
+    ///
+    /// With no filters, it passes nothing.
+    @inlinable
+    public static func anyOf(_ filters: QueryFilter...) -> QueryFilter {
+        QueryFilter().anyOf(filters)
+    }
+
+    /// This filter, also requiring that at least one of `filters` passes.
+    ///
+    /// With no filters, it passes nothing.
+    @inlinable
+    public func anyOf(_ filters: QueryFilter...) -> QueryFilter {
+        anyOf(filters)
+    }
+
+    /// This filter, also requiring that at least one of `filters` passes.
+    @inlinable
+    func anyOf(_ filters: [QueryFilter]) -> QueryFilter {
+        var filter = self
+        filter.alternatives.append(filters)
+        return filter
+    }
+
     /// This filter, also requiring every one of `types`.
     @inlinable
     public func with<each C: Component>(_ types: repeat (each C).Type) -> QueryFilter {
@@ -99,6 +128,7 @@ public struct QueryFilter: Hashable, Sendable {
         filter.excluded += other.excluded
         filter.addedSince += other.addedSince
         filter.changedSince += other.changedSince
+        filter.alternatives += other.alternatives
         return filter
     }
 
@@ -122,7 +152,10 @@ struct ResolvedFilter: Sendable {
     @usableFromInline let excluded: [SparseIndex]
     @usableFromInline let addedSince: [ResolvedTickCondition]
     @usableFromInline let changedSince: [ResolvedTickCondition]
-    /// Whether some required or tick-checked type has no column, so nothing passes.
+    /// Groups of filters, each passed when at least one of its satisfiable filters passes.
+    @usableFromInline let alternatives: [[ResolvedFilter]]
+    /// Whether some required or tick-checked type has no column, or some group of alternatives
+    /// has no filter that can pass, so nothing passes.
     @usableFromInline let isUnsatisfiable: Bool
 
     /// A tick-checked column and the tick its components must be newer than.
@@ -157,7 +190,10 @@ struct ResolvedFilter: Sendable {
             index(condition.type).map { ResolvedTickCondition(index: $0, since: condition.since ?? world.lastRun) }
         }
         excluded = filter.excluded.compactMap { type in world.columnPositions.position(of: type).map { world.columns[$0].index } }
-        self.isUnsatisfiable = isUnsatisfiable
+        alternatives = filter.alternatives.map { group in
+            group.map { ResolvedFilter($0, in: world) }.filter { !$0.isUnsatisfiable }
+        }
+        self.isUnsatisfiable = isUnsatisfiable || alternatives.contains(where: \.isEmpty)
     }
 
     /// The columns an entity must be in to pass: candidates for the column a visit walks.
@@ -179,10 +215,13 @@ struct ResolvedFilter: Sendable {
             guard let position = condition.index.position(of: entity),
                   condition.index.ticks[position].changed > condition.since else { return false }
         }
+        for group in alternatives where !group.contains(where: { $0.passes(entity) }) { return false }
         return true
     }
 
     /// Whether the filter passes every entity, so checking it can be skipped.
     @inlinable
-    var isEmpty: Bool { required.isEmpty && excluded.isEmpty && addedSince.isEmpty && changedSince.isEmpty }
+    var isEmpty: Bool {
+        required.isEmpty && excluded.isEmpty && addedSince.isEmpty && changedSince.isEmpty && alternatives.isEmpty
+    }
 }

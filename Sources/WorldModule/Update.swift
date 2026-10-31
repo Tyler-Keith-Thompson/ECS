@@ -154,7 +154,7 @@ extension World {
 
     /// Visits every entity holding a `W`, the read types and passing `filter`, changing its `W`.
     @inlinable
-    mutating func update<W: Component, each R: Component, Failure: Error>(
+    mutating func update<W: Component, each R, Failure: Error>(
         _ type: W.Type,
         reads: [ObjectIdentifier],
         reader makeReader: (World) -> Reader<QueryRow<repeat each R>>,
@@ -192,7 +192,7 @@ extension World {
             driverColumn = -1
         }
         var end = driver.count
-        if let aligned = alignedCount(of: [ObjectIdentifier(W.self)] + reads) {
+        if let aligned = alignedCount(of: [ObjectIdentifier(W.self)] + reader.types) {
             driver = index.dense
             driverColumn = alignedDriver
             end = aligned
@@ -221,7 +221,7 @@ extension World {
     /// Visits every entity holding an `A`, a `B`, the read types and passing `filter`, changing
     /// its `A` and `B`.
     @inlinable
-    mutating func update<A: Component, B: Component, each R: Component, Failure: Error>(
+    mutating func update<A: Component, B: Component, each R, Failure: Error>(
         _ first: A.Type,
         _ second: B.Type,
         reads: [ObjectIdentifier],
@@ -274,7 +274,7 @@ extension World {
             driverColumn = -1
         }
         var end = driver.count
-        if let aligned = alignedCount(of: [ObjectIdentifier(A.self), ObjectIdentifier(B.self)] + reads) {
+        if let aligned = alignedCount(of: [ObjectIdentifier(A.self), ObjectIdentifier(B.self)] + reader.types) {
             driver = firstIndex.dense
             driverColumn = alignedDriver
             end = aligned
@@ -303,6 +303,122 @@ extension World {
                             firstTicks[firstPosition].changed = tick
                             secondTicks[secondPosition].changed = tick
                             try body(&firstValues[firstPosition], &secondValues[secondPosition], row)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Visits every entity holding an `A`, a `B`, a `C`, the read types and passing `filter`,
+    /// changing its `A`, `B` and `C`.
+    @inlinable
+    mutating func update<A: Component, B: Component, C: Component, each R, Failure: Error>(
+        _ first: A.Type,
+        _ second: B.Type,
+        _ third: C.Type,
+        reads: [ObjectIdentifier],
+        reader makeReader: (World) -> Reader<QueryRow<repeat each R>>,
+        filter: QueryFilter,
+        body: (inout A, inout B, inout C, QueryRow<repeat each R>) throws(Failure) -> Void
+    ) throws(Failure) {
+        let written = [ObjectIdentifier(A.self), ObjectIdentifier(B.self), ObjectIdentifier(C.self)]
+        precondition(Set(written).count == 3, "update writes a type twice")
+        precondition(!reads.contains(where: written.contains), "update reads a type it writes")
+        guard let firstSlot = columnPositions.position(of: ObjectIdentifier(A.self)),
+              let secondSlot = columnPositions.position(of: ObjectIdentifier(B.self)),
+              let thirdSlot = columnPositions.position(of: ObjectIdentifier(C.self)) else { return }
+        let resolved = ResolvedFilter(filter, in: self)
+        guard !resolved.isUnsatisfiable else { return }
+        let reader = makeReader(self)
+        let firstColumn = uniqueColumn(at: firstSlot, of: A.self)
+        let secondColumn = uniqueColumn(at: secondSlot, of: B.self)
+        let thirdColumn = uniqueColumn(at: thirdSlot, of: C.self)
+        var firstValues: [A] = []
+        var secondValues: [B] = []
+        var thirdValues: [C] = []
+        var firstTicks: [ComponentTicks] = []
+        var secondTicks: [ComponentTicks] = []
+        var thirdTicks: [ComponentTicks] = []
+        swap(&firstValues, &firstColumn.values)
+        swap(&secondValues, &secondColumn.values)
+        swap(&thirdValues, &thirdColumn.values)
+        swap(&firstTicks, &firstColumn.index.ticks)
+        swap(&secondTicks, &secondColumn.index.ticks)
+        swap(&thirdTicks, &thirdColumn.index.ticks)
+        defer {
+            swap(&firstValues, &firstColumn.values)
+            swap(&secondValues, &secondColumn.values)
+            swap(&thirdValues, &thirdColumn.values)
+            swap(&firstTicks, &firstColumn.index.ticks)
+            swap(&secondTicks, &secondColumn.index.ticks)
+            swap(&thirdTicks, &thirdColumn.index.ticks)
+        }
+        let firstIndex = firstColumn.index
+        let secondIndex = secondColumn.index
+        let thirdIndex = thirdColumn.index
+        let tick = changeTick
+
+        // The column walked: -2 for A, -3 for B, -4 for C, k for the k-th read type, -1 for a
+        // filter type.
+        var driver = firstIndex.dense
+        var driverColumn = -2
+        if secondIndex.dense.count < driver.count {
+            driver = secondIndex.dense
+            driverColumn = -3
+        }
+        if thirdIndex.dense.count < driver.count {
+            driver = thirdIndex.dense
+            driverColumn = -4
+        }
+        for (column, entities) in reader.columns.enumerated() where entities.count < driver.count {
+            driver = entities
+            driverColumn = column
+        }
+        for required in resolved.candidates where required.dense.count < driver.count {
+            driver = required.dense
+            driverColumn = -1
+        }
+        var end = driver.count
+        if let aligned = alignedCount(of: written + reader.types) {
+            driver = firstIndex.dense
+            driverColumn = alignedDriver
+            end = aligned
+        }
+        let checksFilter = !resolved.isEmpty
+
+        // Through buffer pointers, so the loop pays no uniqueness or bounds check per write.
+        try firstTicks.withUnsafeMutableBufferPointer { firstTicks throws(Failure) in
+            try secondTicks.withUnsafeMutableBufferPointer { secondTicks throws(Failure) in
+                try thirdTicks.withUnsafeMutableBufferPointer { thirdTicks throws(Failure) in
+                    try firstValues.withUnsafeMutableBufferPointer { firstValues throws(Failure) in
+                        try secondValues.withUnsafeMutableBufferPointer { secondValues throws(Failure) in
+                            try thirdValues.withUnsafeMutableBufferPointer { thirdValues throws(Failure) in
+                                for cursor in 0 ..< end {
+                                    let entity = driver[cursor]
+                                    var firstPosition = cursor
+                                    var secondPosition = cursor
+                                    var thirdPosition = cursor
+                                    if driverColumn != -2, driverColumn != alignedDriver {
+                                        guard let found = firstIndex.position(of: entity) else { continue }
+                                        firstPosition = found
+                                    }
+                                    if driverColumn != -3, driverColumn != alignedDriver {
+                                        guard let found = secondIndex.position(of: entity) else { continue }
+                                        secondPosition = found
+                                    }
+                                    if driverColumn != -4, driverColumn != alignedDriver {
+                                        guard let found = thirdIndex.position(of: entity) else { continue }
+                                        thirdPosition = found
+                                    }
+                                    if checksFilter, !resolved.passes(entity) { continue }
+                                    guard let row = reader.row(entity, cursor, driverColumn) else { continue }
+                                    firstTicks[firstPosition].changed = tick
+                                    secondTicks[secondPosition].changed = tick
+                                    thirdTicks[thirdPosition].changed = tick
+                                    try body(&firstValues[firstPosition], &secondValues[secondPosition], &thirdValues[thirdPosition], row)
+                                }
+                            }
                         }
                     }
                 }
