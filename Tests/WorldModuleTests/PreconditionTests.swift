@@ -117,4 +117,36 @@ struct PreconditionTests {
             world.update(Health.self, Name.self, reading: Name.self) { _, _, _ in }
         }
     }
+
+    @Test("Adding a stale child traps", .tags(.precondition))
+    func addStaleChild() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            let parent = world.spawn()
+            let child = world.spawn()
+            world.despawn(child)
+            try? world.addChild(child, to: parent)
+        }
+    }
+
+    @Test("Adding a child to a stale parent traps", .tags(.precondition))
+    func addChildToStaleParent() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            let parent = world.spawn()
+            let child = world.spawn()
+            world.despawn(parent)
+            try? world.addChild(child, to: parent)
+        }
+    }
+
+    @Test("Removing the parent of a stale entity traps", .tags(.precondition))
+    func removeParentOfStale() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            let child = world.spawn()
+            world.despawn(child)
+            world.removeParent(of: child)
+        }
+    }
 }

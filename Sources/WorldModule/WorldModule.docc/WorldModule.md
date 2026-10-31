@@ -29,6 +29,13 @@ type the fewest entities hold and looks the others up.
 
 - ``ChangeTick``
 
+### Hierarchy
+
+- ``AncestorsView``
+- ``DescendantsView``
+- ``CyclicHierarchy``
+- ``HierarchyError``
+
 ### Events
 
 - ``Event``

@@ -107,6 +107,9 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
 - **Change detection**: every component remembers when it was added and last changed.
   `query(…).changed(Position.self)` inside a system lists what changed since that system last
   ran; `.added(…)` lists what is new. Outside a schedule, pass a tick: `since: checkpoint`.
+- **Hierarchy**: `try world.addChild(turret, to: ship)`; `parent(of:)`, `children(of:)`,
+  `ancestors(of:)` and `descendants(of:)` walk it, and despawning an entity despawns its
+  descendants.
 - **Events**: `world.send(Collision(…))` in one system, `world.readEvents(Collision.self,
   by: Damage.self)` in another. Each reader reads each event once; an `UpdateEvents` system at the
   start of a frame drops events older than the previous frame.

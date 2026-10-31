@@ -31,6 +31,8 @@ public struct World: Sendable {
     /// One column per component type ever stored, in the order the types were first stored.
     @usableFromInline var columns: ContiguousArray<AnyColumn> = []
     @usableFromInline var columnPositions = ColumnTable()
+    /// The parent and children of every entity.
+    @usableFromInline var hierarchy = Hierarchy()
 
     /// The world's resources: values it holds once, outside any entity.
     public var resources = Resources()
@@ -145,25 +147,36 @@ public struct World: Sendable {
         return entity
     }
 
-    /// Despawns `entity` and every component it holds. Every copy of its handle is stale from
-    /// now on.
+    /// Despawns `entity`, its descendants and every component they hold, and detaches it from
+    /// its parent. Every copy of their handles is stale from now on.
     ///
-    /// - Complexity: O(*t*) for *t* component types the world has stored.
+    /// - Complexity: O(*n*·*t*) for *n* entities despawned and *t* component types the world has
+    ///   stored.
     /// - Precondition: `entity` is live. Use ``despawn(checked:)`` to throw instead.
     @inlinable
     public mutating func despawn(_ entity: Entity) {
         precondition(contains(entity), "Despawning stale entity \(entity)")
-        destroy(entity)
+        if hierarchy.links == 0 {
+            destroy(entity)
+        } else {
+            destroySubtree(entity)
+        }
     }
 
-    /// Despawns `entity` and every component it holds.
+    /// Despawns `entity`, its descendants and every component they hold, and detaches it from
+    /// its parent.
     ///
-    /// - Complexity: O(*t*) for *t* component types the world has stored.
+    /// - Complexity: O(*n*·*t*) for *n* entities despawned and *t* component types the world has
+    ///   stored.
     /// - Throws: ``StaleEntity`` when `entity` is not live; the world is unchanged.
     @inlinable
     public mutating func despawn(checked entity: Entity) throws(StaleEntity) {
         guard contains(entity) else { throw StaleEntity() }
-        destroy(entity)
+        if hierarchy.links == 0 {
+            destroy(entity)
+        } else {
+            destroySubtree(entity)
+        }
     }
 
     // MARK: Components

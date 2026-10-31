@@ -41,6 +41,20 @@ public struct Commands: Sendable {
         operations.append { world in try? world.despawn(checked: entity) }
     }
 
+    /// Records making `child` the last child of `parent`. When it applies, nothing happens if
+    /// either entity is not live or `parent` is `child` or one of its descendants.
+    @inlinable
+    public mutating func addChild(_ child: Entity, to parent: Entity) {
+        operations.append { world in try? world.addChild(child, checkedTo: parent) }
+    }
+
+    /// Records detaching `child` from its parent. When it applies, nothing happens if `child` is
+    /// not live.
+    @inlinable
+    public mutating func removeParent(of child: Entity) {
+        operations.append { world in _ = try? world.removeParent(checkedOf: child) }
+    }
+
     /// Records giving `entity` each of `components`, replacing any it holds of the same types.
     @inlinable
     public mutating func insert<each C: Component>(_ components: repeat each C, into entity: Entity) {
