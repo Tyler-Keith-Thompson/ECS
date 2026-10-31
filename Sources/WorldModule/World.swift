@@ -92,6 +92,18 @@
 /// }
 /// ```
 ///
+/// Because a world is a value, a call that reads a world reads it as it was before the call's
+/// arguments were evaluated. An entity spawned in an argument of a call on the same world, as in
+/// `world.children(of: world.spawn())`, isn't in the world the call reads, so the call traps as
+/// though the new entity were stale. Spawn into a constant first, then make the call:
+///
+/// ```swift
+/// var world = World()
+/// let ship = world.spawn(Position(x: 0, y: 0))
+/// print(world.children(of: ship).isEmpty)
+/// // Prints "true"
+/// ```
+///
 /// ### Storage
 ///
 /// The components of each type are stored in a sparse set: a dense array of components with a
