@@ -381,3 +381,322 @@ struct RemovedComponentsTests {
         #expect(!access.conflicts(with: .reads(resources: Events<RemovedComponent<Health>>.self)))
     }
 }
+
+// MARK: Update shapes
+
+@System
+struct ShapeWhere {
+    func run(_ firsts: Update<First>.Where<Without<Frozen>>) {
+        firsts { first, _ in first.value += 1 }
+    }
+}
+
+@System
+struct ShapeOver {
+    func run(_ firsts: Update<First>.Over<Third>) {
+        firsts { first, row in first.value += row.components.value }
+    }
+}
+
+@System
+struct ShapeAndWhere {
+    func run(_ pairs: Update<First>.And<Second>.Where<Without<Frozen>>) {
+        pairs { first, second, _ in
+            first.value += 1
+            second.value += 1
+        }
+    }
+}
+
+@System
+struct ShapeAndOver {
+    func run(_ pairs: Update<First>.And<Second>.Over<Third>) {
+        pairs { first, second, row in
+            first.value += row.components.value
+            second.value += row.components.value
+        }
+    }
+}
+
+@System
+struct ShapeAndOverWhere {
+    func run(_ pairs: Update<First>.And<Second>.Over<Third>.Where<Without<Frozen>>) {
+        pairs { first, second, row in
+            first.value += row.components.value
+            second.value += row.components.value
+        }
+    }
+}
+
+@System
+struct ShapeTriple {
+    func run(_ triples: Update<First>.And<Second>.And<Third>) {
+        triples { first, second, third, _ in
+            first.value += 1
+            second.value += 1
+            third.value += 1
+        }
+    }
+}
+
+@System
+struct ShapeTripleWhere {
+    func run(_ triples: Update<First>.And<Second>.And<Third>.Where<Without<Frozen>>) {
+        triples { first, second, third, _ in
+            first.value += 1
+            second.value += 1
+            third.value += 1
+        }
+    }
+}
+
+@System
+struct ShapeTripleOver {
+    func run(_ triples: Update<First>.And<Second>.And<Third>.Over<Health>) {
+        triples { first, second, third, row in
+            first.value += row.components.current
+            second.value += row.components.current
+            third.value += row.components.current
+        }
+    }
+}
+
+@System
+struct ShapeTripleOverWhere {
+    func run(_ triples: Update<First>.And<Second>.And<Third>.Over<Health>.Where<Without<Frozen>>) {
+        triples { first, second, third, row in
+            first.value += row.components.current
+            second.value += row.components.current
+            third.value += row.components.current
+        }
+    }
+}
+
+/// Visits every Health and changes nothing.
+@System
+struct HealthToucher {
+    func run(_ health: Update<Health>) {
+        health { _, _ in }
+    }
+}
+
+/// Counts the Health components changed since its last run.
+@System
+struct ChangedHealthCounter {
+    func run(_ changed: Query<Health>.Where<Changed<Health>>, tally: ResourceWriter<Tally>) {
+        tally.value.count = changed.reduce(0) { count, _ in count + 1 }
+    }
+}
+
+// MARK: Resources, events and commands
+
+@System
+struct ClockReader {
+    func run(clock: ResourceReader<Clock>) {}
+}
+
+@System
+struct ClockWriter {
+    func run(clock: ResourceWriter<Clock>) {
+        clock.value.ticks += 1
+    }
+}
+
+/// Queues a spawn and reaches nothing else.
+@System
+struct CommandsOnly {
+    func run(_ commands: inout Commands) {
+        commands.spawn(Name("queued"))
+    }
+}
+
+struct Echoes: Resource, Equatable { var values: [Int] = [] }
+
+/// A second reader of Signal events.
+@System
+struct ParameterEcho {
+    func run(_ pings: EventReader<Signal>, echoes: ResourceWriter<Echoes>) {
+        echoes.value.values += pings.map { $0.value }
+    }
+}
+
+extension SystemParameterTests {
+    @Test("Each update shape visits exactly the entities holding its written types that match its terms and pass its filters")
+    func updateShapes() {
+        func run(_ schedule: Schedule) -> [[Int]] {
+            var world = World()
+            let all = world.spawn(First(1), Second(10), Third(100), Health(1000))
+            let frozen = world.spawn(First(1), Second(10), Third(100), Health(1000), Frozen())
+            let pair = world.spawn(First(1), Second(10))
+            schedule.run(on: &world)
+            func values(_ entity: Entity) -> [Int] {
+                var values = [world[First.self, of: entity].value, world[Second.self, of: entity].value]
+                if world.contains(Third.self, in: entity) { values.append(world[Third.self, of: entity].value) }
+                return values
+            }
+            return [values(all), values(frozen), values(pair)]
+        }
+        let whereFiltered: [[Int]] = [[2, 10, 100], [1, 10, 100], [2, 10]]
+        let over: [[Int]] = [[101, 10, 100], [101, 10, 100], [1, 10]]
+        let andWhere: [[Int]] = [[2, 11, 100], [1, 10, 100], [2, 11]]
+        let andOver: [[Int]] = [[101, 110, 100], [101, 110, 100], [1, 10]]
+        let andOverWhere: [[Int]] = [[101, 110, 100], [1, 10, 100], [1, 10]]
+        let triple: [[Int]] = [[2, 11, 101], [2, 11, 101], [1, 10]]
+        let tripleWhere: [[Int]] = [[2, 11, 101], [1, 10, 100], [1, 10]]
+        let tripleOver: [[Int]] = [[1001, 1010, 1100], [1001, 1010, 1100], [1, 10]]
+        let tripleOverWhere: [[Int]] = [[1001, 1010, 1100], [1, 10, 100], [1, 10]]
+        #expect(run(Schedule { ShapeWhere() }) == whereFiltered)
+        #expect(run(Schedule { ShapeOver() }) == over)
+        #expect(run(Schedule { ShapeAndWhere() }) == andWhere)
+        #expect(run(Schedule { ShapeAndOver() }) == andOver)
+        #expect(run(Schedule { ShapeAndOverWhere() }) == andOverWhere)
+        #expect(run(Schedule { ShapeTriple() }) == triple)
+        #expect(run(Schedule { ShapeTripleWhere() }) == tripleWhere)
+        #expect(run(Schedule { ShapeTripleOver() }) == tripleOver)
+        #expect(run(Schedule { ShapeTripleOverWhere() }) == tripleOverWhere)
+    }
+
+    @Test("An update marks every written component it visits changed, even when the closure leaves it as it was")
+    func updateMarksChanged() {
+        func secondCount(touching: Bool) -> Int {
+            var world = World()
+            world.resources.insert(Tally())
+            world.spawn(Health(1))
+            let schedule = Schedule {
+                ChangedHealthCounter()
+                if touching { HealthToucher().after(ChangedHealthCounter.self) }
+            }
+            schedule.run(on: &world)
+            schedule.run(on: &world)
+            return world.resources[Tally.self].count
+        }
+        let touched: Int = 1
+        let untouched: Int = 0
+        #expect(secondCount(touching: true) == touched)
+        #expect(secondCount(touching: false) == untouched)
+    }
+
+    @Test("A resource reader traps when the world does not hold the resource")
+    func resourceReaderMissingTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            Schedule { ClockReader() }.run(on: &world)
+        }
+    }
+
+    @Test("A resource writer traps when the world does not hold the resource")
+    func resourceWriterMissingTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            Schedule { ClockWriter() }.run(on: &world)
+        }
+    }
+
+    @Test("Systems that only read a resource share a wave; a writer of it does not")
+    func resourceReadersShareWave() {
+        let readers = Schedule {
+            ParameterAger()
+            ParameterPinger()
+            ClockReader()
+        }
+        let withWriter = Schedule {
+            ParameterAger()
+            ClockWriter()
+        }
+        let one: Int = 1
+        let two: Int = 2
+        #expect(readers.waves.count == one)
+        #expect(withWriter.waves.count == two)
+    }
+
+    @Test("A commands parameter conflicts with nothing, so its system shares a wave with any other")
+    func commandsShareWave() {
+        let schedule = Schedule {
+            ParameterMovement()
+            CommandsOnly()
+            ClockWriter()
+        }
+        let one: Int = 1
+        #expect(schedule.waves.count == one)
+        var world = World()
+        world.resources.insert(Clock(ticks: 0))
+        schedule.run(on: &world)
+        let names: [Name] = world.query(Name.self).map { _, name in name }
+        let expected: [Name] = [Name("queued")]
+        #expect(names == expected)
+    }
+
+    @Test("Each event reader type reads every event once, however many other readers there are")
+    func eventReadersEachSeeAll() {
+        var world = World()
+        world.resources.insert(Clock(ticks: 1))
+        world.resources.insert(Seen())
+        world.resources.insert(Echoes())
+        let schedule = Schedule {
+            ParameterPinger()
+            ParameterListener().after(ParameterPinger.self)
+            ParameterEcho().after(ParameterPinger.self)
+        }
+        schedule.run(on: &world)
+        world.resources[Clock.self].ticks = 2
+        schedule.run(on: &world)
+        let seen: Seen = Seen(values: [1, 2])
+        let echoes: Echoes = Echoes(values: [1, 2])
+        #expect(world.resources[Seen.self] == seen)
+        #expect(world.resources[Echoes.self] == echoes)
+    }
+
+    @Test("An event reader that does not run while its events are dropped misses them")
+    func skippedReaderMissesEvents() {
+        func read(pausedFirstFrame: Bool) -> Seen {
+            var world = World()
+            world.resources.insert(Seen())
+            if pausedFirstFrame { world.resources.insert(Paused()) }
+            let frame = Schedule {
+                UpdateEvents()
+                ParameterListener().runIf { world in !world.resources.contains(Paused.self) }
+            }
+            world.send(Signal(value: 1))
+            frame.run(on: &world)
+            _ = world.resources.remove(Paused.self)
+            frame.run(on: &world)
+            return world.resources[Seen.self]
+        }
+        let missed: Seen = Seen(values: [])
+        let delivered: Seen = Seen(values: [1])
+        #expect(read(pausedFirstFrame: true) == missed)
+        #expect(read(pausedFirstFrame: false) == delivered)
+    }
+}
+
+/// The entities a `DepartureRecorder` was told lost a Health.
+struct Departures: Resource, Equatable { var entities: [Entity] = [] }
+
+@System
+struct DepartureRecorder {
+    func run(_ gone: RemovedComponents<Health>, departures: ResourceWriter<Departures>) {
+        departures.value.entities += Array(gone)
+    }
+}
+
+extension RemovedComponentsTests {
+    @Test("Removals list removed and despawned holders oldest first, and none from before the system's first run")
+    func removalsOrder() {
+        var world = World()
+        world.resources.insert(Departures())
+        let early = world.spawn(Health(1))
+        let despawned = world.spawn(Health(2))
+        let stripped = world.spawn(Health(3))
+        world.spawn(Health(4))
+        world.remove(Health.self, from: early)
+        let schedule = Schedule { DepartureRecorder() }
+        schedule.run(on: &world)
+        let none: [Entity] = []
+        #expect(world.resources[Departures.self].entities == none)
+        world.remove(Health.self, from: stripped)
+        world.despawn(despawned)
+        schedule.run(on: &world)
+        let expected: [Entity] = [stripped, despawned]
+        #expect(world.resources[Departures.self].entities == expected)
+    }
+}

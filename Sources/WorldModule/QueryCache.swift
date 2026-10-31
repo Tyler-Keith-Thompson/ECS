@@ -132,8 +132,11 @@ extension World {
     @inlinable
     mutating func cachePosition<each T: QueryTerm>(of query: Query<repeat each T>) -> Int {
         var required: [ObjectIdentifier] = []
+        var reads: [ObjectIdentifier] = []
         for term in repeat (each T).self {
-            if let type = term._termReader(in: self).required, !required.contains(type) {
+            let reader = term._termReader(in: self)
+            reads += reader.reads
+            if let type = reader.required, !required.contains(type) {
                 required.append(type)
             }
         }
@@ -142,7 +145,7 @@ extension World {
             required.append(type)
         }
         var excluded = filter.excluded
-        for type in disablingComponents where !required.contains(type) && !filter.mentions(type) && !excluded.contains(type) {
+        for type in disablingComponents where !reads.contains(type) && !filter.mentions(type) && !excluded.contains(type) {
             excluded.append(type)
         }
         let alternatives = filter.alternatives.filter { $0.allSatisfy(\.isStructural) }

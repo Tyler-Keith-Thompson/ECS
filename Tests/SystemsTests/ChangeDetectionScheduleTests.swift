@@ -115,3 +115,27 @@ struct ChangeDetectionScheduleTests {
         #expect(copy.resources[Observed.self].runs == expected)
     }
 }
+
+extension ChangeDetectionScheduleTests {
+    @Test("The change tick advances once per wave that runs a system, and once more after the last")
+    func tickPerWave() {
+        func advance(of schedule: Schedule) -> UInt64 {
+            var world = World()
+            world.resources.insert(Observed())
+            let before = world.changeTick.value
+            schedule.run(on: &world)
+            return world.changeTick.value - before
+        }
+        let running = Schedule {
+            HealthObserver()
+            HealthObserver()
+        }
+        let skipped = Schedule {
+            HealthObserver().runIf { _ in false }
+        }
+        let three: UInt64 = 3
+        let one: UInt64 = 1
+        #expect(advance(of: running) == three)
+        #expect(advance(of: skipped) == one)
+    }
+}

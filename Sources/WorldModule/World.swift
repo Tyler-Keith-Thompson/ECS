@@ -162,9 +162,9 @@ public struct World: Sendable {
     ///
     /// Filters such as ``QueryFilter/changed(_:since:)-swift.type.method`` compare against this
     /// tick when you give them none, so a system sees what changed since its previous run. A
-    /// schedule sets it around each system it runs; set it yourself only when you run systems
-    /// without one. It is ``ChangeTick/zero`` when the running system has not run before, or when
-    /// no schedule is running.
+    /// schedule sets it around each system it runs, to ``ChangeTick/zero`` for a system that has
+    /// not run before, and restores the earlier value when it finishes; set it yourself only when
+    /// you run systems without one. It is ``ChangeTick/zero`` in a new world.
     public var lastRun = ChangeTick.zero
 
     /// Starts a new change tick, so components added or changed from now on are newer than every

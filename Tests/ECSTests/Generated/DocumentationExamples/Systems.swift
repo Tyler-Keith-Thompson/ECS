@@ -22,7 +22,7 @@ fileprivate struct ShowScore: MainActorSystem {
     }
 }
 
-// Sources/Systems/Schedule.swift:259
+// Sources/Systems/Schedule.swift:261
 fileprivate struct Moves: Resource { var count: Int }
 
 @System
@@ -270,7 +270,7 @@ struct SystemsDocumentationExamples {
         #expect(printed(frame.names) == #"["Gravity", "Movement", "Scoring"]"#)
     }
 
-    @Test("Sources/Systems/Schedule.swift:124")
+    @Test("Sources/Systems/Schedule.swift:125")
     func example7() async throws {
         do {
             _ = try Schedule(checked: [
@@ -282,7 +282,7 @@ struct SystemsDocumentationExamples {
         }
     }
 
-    @Test("Sources/Systems/Schedule.swift:150")
+    @Test("Sources/Systems/Schedule.swift:151")
     func example8() async throws {
         var world = World()
         world.resources.insert(Score(points: 0))
@@ -302,7 +302,7 @@ struct SystemsDocumentationExamples {
         #expect(printed(world.resources[Score.self].points) == #"1"#)
     }
 
-    @Test("Sources/Systems/Schedule.swift:259")
+    @Test("Sources/Systems/Schedule.swift:261")
     func example9() async throws {
         var world = World()
         world.resources.insert(Moves(count: 0))
@@ -318,7 +318,7 @@ struct SystemsDocumentationExamples {
         #expect(printed(world.resources[Moves.self].count) == #"3"#)
     }
 
-    @Test("Sources/Systems/Schedule.swift:487")
+    @Test("Sources/Systems/Schedule.swift:498")
     func example10() async throws {
         let frame = Schedule {
             Gravity()

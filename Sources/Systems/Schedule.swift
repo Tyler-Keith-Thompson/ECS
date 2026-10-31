@@ -88,7 +88,8 @@ public enum ScheduleBuilder {
 ///
 /// Two systems *conflict* when one writes a type the other reads or writes, or when either has no
 /// ``System/access``. ``run(on:)`` runs conflicting systems in order and the rest at the same
-/// time, and the world ends as though the systems had run one after another in order.
+/// time. The world ends as though the systems had run one after another in order, except that
+/// the commands systems queue apply when their wave finishes.
 ///
 /// When two conflicting systems aren't ordered by any constraint, the order they run in rests
 /// only on how they happen to be written. ``ambiguities()`` lists those pairs, so a test can
@@ -234,7 +235,8 @@ public struct Schedule: Sendable {
     /// same time.
     ///
     /// The world ends as though the systems had run one after another, in the order of
-    /// ``systems``.
+    /// ``systems``, except that the commands systems queue apply when their wave finishes, so a
+    /// later system of the same wave doesn't see them.
     ///
     /// A system depends on the systems before it that a constraint orders it after, and on those
     /// it conflicts with: one writes what the other reads or writes, or either has no
@@ -243,14 +245,14 @@ public struct Schedule: Sendable {
     /// ``/WorldModule/World/runConcurrently(_:)``. A system without an access runs alone, and a
     /// ``MainActorSystem`` runs on the calling thread after the other systems of its wave.
     ///
-    /// Before the first wave, each system that hasn't run on this world before is initialized
-    /// (``System/initialize(in:)``). At the start of each wave, the conditions of its systems are
+    /// Before the first wave, each system not yet initialized on this world is initialized
+    /// (``System/initialize(in:)``), whether or not its conditions hold. At the start of each wave, the conditions of its systems are
     /// checked, and systems whose conditions don't hold are skipped. Commands the wave's systems
     /// queue apply at the end of the wave, in the order the systems run.
     ///
     /// ### Change Detection
     ///
-    /// The world's change tick advances at the start of each wave. While a system runs, the
+    /// The world's change tick advances at the start of each wave that runs a system. While a system runs, the
     /// world's ``/WorldModule/World/lastRun`` is the tick of that system's previous run, so a
     /// filter such as `Changed<Position>` shows it what changed since then: the changes the
     /// systems after it made on the previous run and the systems before it made on this one, but
@@ -313,9 +315,17 @@ public struct Schedule: Sendable {
             world.lastRun = outerLastRun
             world.advanceChangeTick()
         }
-        let previousRuns = world.resources.contains(SystemRuns.self) ? world.resources[SystemRuns.self].ticks : [:]
-        for system in systems where previousRuns[system.id] == nil {
-            system.initialize(in: &world)
+        let initialized = world.resources.contains(SystemRuns.self) ? world.resources[SystemRuns.self].initialized : []
+        let uninitialized = systems.filter { !initialized.contains($0.id) }
+        if !uninitialized.isEmpty {
+            for system in uninitialized {
+                system.initialize(in: &world)
+            }
+            var updated = world.resources.contains(SystemRuns.self) ? world.resources[SystemRuns.self] : SystemRuns()
+            for system in uninitialized {
+                updated.initialized.insert(system.id)
+            }
+            world.resources.insert(updated)
         }
         for wave in waves {
             let group = wave.map { systems[$0] }.filter { $0.shouldRun(in: world) }
@@ -325,7 +335,8 @@ public struct Schedule: Sendable {
             let concurrent = group.filter { !$0.runsOnMainActor }
             let profiling = world.resources.contains(SystemProfile.self)
             if concurrent.count <= 1 || !concurrently {
-                for system in group {
+                // Main-actor systems go last, as they do after a concurrent run, so both orders agree.
+                for system in concurrent + group.filter(\.runsOnMainActor) {
                     world.lastRun = runs[system.id] ?? .zero
                     Self.run(system, on: &world, profiling: profiling)
                 }
@@ -354,7 +365,7 @@ public struct Schedule: Sendable {
                 }
             }
             world.applyQueuedCommands()
-            var updated = world.resources.contains(SystemRuns.self) ? world.resources[SystemRuns.self] : SystemRuns(ticks: [:])
+            var updated = world.resources.contains(SystemRuns.self) ? world.resources[SystemRuns.self] : SystemRuns()
             for system in group {
                 updated.ticks[system.id] = tick
             }
@@ -537,8 +548,10 @@ extension Schedule {
     }
 }
 
-/// The change tick at which each system last started running on a world, kept in the world so
-/// that it is copied, saved and restored with everything else.
+/// The change tick at which each system last started running on a world, and the systems
+/// initialized on it, kept in the world so that they are copied, saved and restored with
+/// everything else.
 struct SystemRuns: Resource {
-    var ticks: [UInt64: ChangeTick]
+    var ticks: [UInt64: ChangeTick] = [:]
+    var initialized: Set<UInt64> = []
 }

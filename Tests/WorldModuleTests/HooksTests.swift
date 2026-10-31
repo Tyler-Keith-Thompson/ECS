@@ -153,6 +153,36 @@ struct HooksTests {
         #expect(entries == expected)
     }
 
+    @Test("For a new component the add hooks run before the insert hooks, whichever was registered first")
+    func addBeforeInsert() {
+        var world = World()
+        world.resources.insert(HookLog())
+        world.onInsert(Health.self) { world, _ in world.resources[HookLog.self].entries.append("insert") }
+        world.onAdd(Health.self) { world, _ in world.resources[HookLog.self].entries.append("add") }
+        world.spawn(Health(1))
+        let entries = world.resources[HookLog.self].entries
+        let expected = ["add", "insert"]
+        #expect(entries == expected)
+    }
+
+    @Test("Removing a type's hooks removes its add, insert and remove hooks")
+    func removeHooksOfEveryKind() {
+        var world = World()
+        world.resources.insert(HookLog())
+        world.onAdd(Health.self) { world, _ in world.resources[HookLog.self].entries.append("add") }
+        world.onInsert(Health.self) { world, _ in world.resources[HookLog.self].entries.append("insert") }
+        world.onRemove(Health.self) { world, _, _ in world.resources[HookLog.self].entries.append("remove") }
+        world.removeHooks(of: Health.self)
+        let entity = world.spawn(Health(1))
+        world.insert(Health(2), into: entity)
+        world.remove(Health.self, from: entity)
+        world.insert(Health(3), into: entity)
+        world.despawn(entity)
+        let entries = world.resources[HookLog.self].entries
+        let none: [String] = []
+        #expect(entries == none)
+    }
+
     @Test("Commands and checked spellings fire hooks when they apply")
     func commandsAndChecked() throws {
         var world = World()

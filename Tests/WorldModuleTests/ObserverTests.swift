@@ -117,6 +117,43 @@ struct ObserverTests {
         #expect(world.resources[Seen.self].entries == expected)
     }
 
+    @Test("An event that does not propagate, the default, stops at the entity it was triggered on")
+    func noPropagationByDefault() throws {
+        var world = World()
+        world.resources.insert(Seen())
+        let ship = world.spawn()
+        let cannon = world.spawn()
+        try world.addChild(cannon, to: ship)
+        world.observe(Explode.self, on: cannon) { world, trigger in
+            world.resources[Seen.self].entries.append("cannon propagates \(trigger.propagates)")
+        }
+        world.observe(Explode.self, on: ship) { world, _ in world.resources[Seen.self].entries.append("ship") }
+        world.trigger(Explode(radius: 1), on: cannon)
+        let expected: [String] = ["cannon propagates false"]
+        #expect(!Explode.propagates)
+        #expect(world.resources[Seen.self].entries == expected)
+    }
+
+    @Test("Each observer sees the world as the observers before it left it")
+    func observersSeeEarlierChanges() {
+        var world = World()
+        world.resources.insert(Seen())
+        let barrel = world.spawn(Health(3))
+        world.observe(Explode.self, on: barrel) { world, trigger in
+            world[Health.self, of: trigger.entity].current -= 1
+        }
+        world.observe(Explode.self) { world, trigger in
+            world.resources[Seen.self].entries.append("global sees \(world[Health.self, of: trigger.entity].current)")
+            world[Health.self, of: trigger.entity].current -= 1
+        }
+        world.observe(Explode.self) { world, trigger in
+            world.resources[Seen.self].entries.append("last sees \(world[Health.self, of: trigger.entity].current)")
+        }
+        world.trigger(Explode(radius: 1), on: barrel)
+        let expected: [String] = ["global sees 2", "last sees 1"]
+        #expect(world.resources[Seen.self].entries == expected)
+    }
+
     @Test("An observer that despawns its entity ends the event's propagation")
     func despawningObserver() throws {
         var world = World()
@@ -230,6 +267,48 @@ struct QueryHookTests {
         world.despawn(b)
         world.insert(Disabled(), into: c)
         let expected: [String] = ["removed \(a.index) live true", "removed \(b.index) live false", "removed \(c.index) live true"]
+        #expect(world.resources[Seen.self].entries == expected)
+    }
+
+    @Test("Query hooks run when applied commands make an entity start or stop matching, and when enabling or disabling it")
+    func commandsAndDisabling() {
+        var world = World()
+        world.resources.insert(Seen())
+        let query = Query(Position.self, Velocity.self)
+        let existing = world.spawn(Position(x: 0, y: 0))
+        let disabled = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0), Disabled())
+        world.onAdd(query) { world, entity in world.resources[Seen.self].entries.append("added \(entity.index)") }
+        world.onRemove(query) { world, entity in world.resources[Seen.self].entries.append("removed \(entity.index)") }
+        var commands = Commands()
+        _ = commands.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
+        commands.insert(Velocity(dx: 1, dy: 0), into: existing)
+        let applied = world.apply(commands)
+        let spawnedEntity = applied[0]
+        var removing = Commands()
+        removing.despawn(existing)
+        world.apply(removing)
+        world.remove(Disabled.self, from: disabled)
+        world.insert(Disabled(), into: disabled)
+        let expected: [String] = [
+            "added \(spawnedEntity.index)", "added \(existing.index)",
+            "removed \(existing.index)",
+            "added \(disabled.index)", "removed \(disabled.index)",
+        ]
+        #expect(world.resources[Seen.self].entries == expected)
+    }
+
+    @Test("Only a query's structural conditions count for its hooks: the types it requires do, a relation filter doesn't")
+    func structuralConditionsOnly() {
+        var world = World()
+        world.resources.insert(Seen())
+        let ship = world.spawn()
+        world.onAdd(Query(Position.self).with(Health.self).related(ChildOf.self, to: ship)) { world, entity in
+            world.resources[Seen.self].entries.append("added \(entity.index)")
+        }
+        world.spawn(Position(x: 0, y: 0))
+        let stranger = world.spawn(Position(x: 0, y: 0), Health(1))
+        let expected: [String] = ["added \(stranger.index)"]
+        #expect(world.parent(of: stranger) == nil)
         #expect(world.resources[Seen.self].entries == expected)
     }
 

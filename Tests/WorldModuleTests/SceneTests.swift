@@ -138,6 +138,57 @@ struct SceneTests {
         #expect(performing: { try decode(with: resourcesOnly) }, throws: isCorrupted)
     }
 
+    @Test("Resource registration keeps registration order, defaults to the full name, and throws as component registration does")
+    func resourceRegistration() throws {
+        var registry = TypeRegistry()
+        try registry.register(resource: Score.self, named: "Score")
+        try registry.register(resource: Score.self, named: "Score")
+        try registry.register(resource: Gold.self)
+        #expect(throws: TypeRegistryError.nameTaken) {
+            try registry.register(resource: Treasure.self, named: "Score")
+        }
+        let expectedNames: [String] = ["Score", String(reflecting: Gold.self)]
+        #expect(registry.resourceNames == expectedNames)
+        var world = World()
+        world.resources.insert(Gold(coins: 3))
+        world.resources.insert(Score(points: 1))
+        let scene = world.scene(registry)
+        #expect(scene.resourceNames == expectedNames)
+    }
+
+    @Test("A scene holds no hooks, observers or change ticks; the restored world adds its components at its first tick and hands out the same handles")
+    func leavesOutHooksObserversAndTicks() throws {
+        struct Ping: EntityEvent {}
+        var registry = TypeRegistry()
+        try registry.register(Health.self, named: "Health")
+        try registry.register(resource: Score.self, named: "Score")
+        var world = World()
+        world.resources.insert(Score(points: 0))
+        world.onAdd(Health.self) { world, _ in world.resources[Score.self].points += 1 }
+        world.observe(Ping.self) { world, _ in world.resources[Score.self].points += 10 }
+        world.advanceChangeTick()
+        world.advanceChangeTick()
+        let knight = world.spawn(Health(1))
+        let gone = world.spawn()
+        world.despawn(gone)
+        let decoder = JSONDecoder()
+        decoder.userInfo[.typeRegistry] = registry
+        let data = try JSONEncoder().encode(world.scene(registry))
+        var restored = World(restoring: try decoder.decode(Scene.self, from: data))
+        let firstTick = ChangeTick(1)
+        let savedPoints = 1
+        #expect(restored.changeTick == firstTick)
+        #expect(Array(restored.query().added(Health.self, since: .zero)) == [knight])
+        #expect(restored.query().added(Health.self, since: firstTick).count == 0)
+        #expect(restored.resources[Score.self].points == savedPoints)
+        let fromRestored = restored.spawn(Health(2))
+        let fromOriginal = world.spawn()
+        restored.trigger(Ping(), on: knight)
+        #expect(restored.resources[Score.self].points == savedPoints)
+        #expect(!restored.contains(gone))
+        #expect(fromRestored == fromOriginal)
+    }
+
     @Test("A registered type the data does not name is left out")
     func typesNotSaved() throws {
         var saving = TypeRegistry()
@@ -229,6 +280,10 @@ struct Gold: Resource, Codable {
     var coins: Int
 }
 
+struct Treasure: Resource, Codable {
+    var gems: Int
+}
+
 /// The entity a turret aims at, remapped when its scene is spawned.
 struct Aim: Component, Codable, MapEntities {
     var target: Entity
@@ -301,6 +356,22 @@ struct SceneSpawnTests {
         #expect(world[Aim.self, of: newTurret].target == mapping[target])
         #expect(world[Follows.self, of: newTurret].leader == target)
         #expect(world[Aim.self, of: newStray].target == outside)
+    }
+
+    @Test("Spawning a scene replaces the world's resources of the types it saved and keeps the others")
+    func spawnReplacesResources() throws {
+        var registry = TypeRegistry()
+        try registry.register(resource: Score.self, named: "Score")
+        var prefab = World()
+        prefab.resources.insert(Score(points: 4))
+        var world = World()
+        world.resources.insert(Score(points: 1))
+        world.resources.insert(Gold(coins: 9))
+        world.spawn(contentsOf: prefab.scene(registry))
+        let expectedScore = Score(points: 4)
+        let expectedCoins = 9
+        #expect(world.resources[Score.self] == expectedScore)
+        #expect(world.resources[Gold.self].coins == expectedCoins)
     }
 
     @Test("Spawning runs hooks and an empty scene spawns nothing")

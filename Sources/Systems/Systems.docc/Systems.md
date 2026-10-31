@@ -83,7 +83,8 @@ names a group of systems so constraints can refer to all of them at once; and `r
 a system when a condition doesn't hold.
 
 Systems whose accesses don't conflict, because neither writes what the other reads or writes,
-run at the same time, and the world ends as though they had run one after another. Systems that
+run at the same time, and the world ends as though they had run one after another (commands
+apply when each wave finishes). Systems that
 conflict run in order. When two conflicting systems aren't ordered by any constraint, their order
 rests only on how they happen to be written; ``Schedule/ambiguities()`` finds those pairs so a
 test can keep a schedule free of them.

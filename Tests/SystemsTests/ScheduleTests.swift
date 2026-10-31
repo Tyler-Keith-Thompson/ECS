@@ -193,3 +193,79 @@ struct ScheduleTests {
         #expect(values == [2, 3])
     }
 }
+
+/// The systems a schedule's builder chooses among in a `switch`.
+enum ScheduleVariant { case alpha, beta, both }
+
+extension ScheduleTests {
+    @Test("A switch in a schedule's closure contributes the systems of the case taken")
+    func builderSwitch() {
+        func schedule(_ variant: ScheduleVariant) -> Schedule {
+            Schedule {
+                Gamma()
+                switch variant {
+                case .alpha: Alpha()
+                case .beta: Beta()
+                case .both:
+                    Alpha()
+                    Beta()
+                }
+            }
+        }
+        let alpha: [String] = ["Gamma", "Alpha"]
+        let beta: [String] = ["Gamma", "Beta"]
+        let both: [String] = ["Gamma", "Alpha", "Beta"]
+        #expect(schedule(.alpha).names == alpha)
+        #expect(schedule(.beta).names == beta)
+        #expect(schedule(.both).names == both)
+    }
+
+    @Test("A schedule's after traps when the constraint it adds forms a cycle", .tags(.precondition))
+    func scheduleAfterCycleTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Schedule {
+                Alpha()
+                Beta().after(Alpha.self)
+            }
+            .after(Beta.self)
+        }
+    }
+
+    @Test("A schedule's before traps when the constraint it adds forms a cycle", .tags(.precondition))
+    func scheduleBeforeCycleTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Schedule {
+                Alpha().before(Beta.self)
+                Beta()
+            }
+            .before(Alpha.self)
+        }
+    }
+
+    @Test("A schedule's inSet traps when joining the set closes a cycle of constraints", .tags(.precondition))
+    func scheduleInSetCycleTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Schedule {
+                Alpha().after(PhysicsSet.self)
+                Beta().after(Alpha.self)
+            }
+            .inSet(PhysicsSet.self)
+        }
+    }
+
+    @Test("A schedule's modifiers keep a cycle-free schedule's order")
+    func scheduleModifiersWithoutCycle() {
+        let schedule = Schedule {
+            Gamma()
+            Schedule {
+                Alpha()
+                Beta().after(Alpha.self)
+            }
+            .after(Gamma.self)
+            .inSet(PhysicsSet.self)
+            Delta().before(PhysicsSet.self)
+        }
+        let expected: [String] = ["Gamma", "Delta", "Alpha", "Beta"]
+        #expect(schedule.names == expected)
+    }
+}

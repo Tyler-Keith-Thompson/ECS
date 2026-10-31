@@ -28,6 +28,48 @@ struct EventsTests {
         #expect(read == expected)
     }
 
+    @Test("The first event sent of a type creates the world's Events resource for it")
+    func sendCreatesResource() {
+        var world = World()
+        let before = world.resources.contains(Events<Hit>.self)
+        world.send(Hit(amount: 1))
+        let after = world.resources.contains(Events<Hit>.self)
+        let held = world.resources[Events<Hit>.self].count
+        let one = 1
+        #expect(!before)
+        #expect(after)
+        #expect(held == one)
+    }
+
+    @Test("Listing the events held marks none read, and the events value lists read ones too")
+    func listingMarksNothingRead() {
+        var world = World()
+        world.send(Hit(amount: 1))
+        world.send(Hit(amount: 2))
+        let listed = Array(world.events(Hit.self))
+        let read = Array(world.readEvents(Hit.self, by: FirstReader.self))
+        let all = Array(world.resources[Events<Hit>.self].all)
+        let expected = [Hit(amount: 1), Hit(amount: 2)]
+        #expect(listed == expected)
+        #expect(read == expected)
+        #expect(all == expected)
+    }
+
+    @Test("Updating events ends an update for every event type at once")
+    func updateEveryType() {
+        var world = World()
+        world.send(Hit(amount: 1))
+        world.send(Spoken(word: "ow"))
+        world.updateEvents()
+        world.updateEvents()
+        let hits = Array(world.events(Hit.self))
+        let words = Array(world.events(Spoken.self))
+        let noHits: [Hit] = []
+        let noWords: [Spoken] = []
+        #expect(hits == noHits)
+        #expect(words == noWords)
+    }
+
     @Test("Sent events are read in the order they were sent")
     func order() {
         var world = World()

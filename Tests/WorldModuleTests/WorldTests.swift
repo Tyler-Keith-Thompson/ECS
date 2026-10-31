@@ -214,3 +214,54 @@ struct WorldTests {
         #expect(world.count(of: Frozen.self) == 1)
     }
 }
+
+extension WorldTests {
+    @Test("The entities view includes entities with no components and disabled ones")
+    func entitiesIncludeEmptyAndDisabled() {
+        var world = World()
+        let empty = world.spawn()
+        let disabled = world.spawn(Position(x: 0, y: 0), Disabled())
+        let plain = world.spawn(Position(x: 1, y: 1))
+        let expected: [Entity] = [empty, disabled, plain]
+        #expect(Array(world.entities) == expected)
+    }
+
+    @Test("The entities view holds the entities live when it was read")
+    func entitiesViewIsASnapshot() {
+        var world = World()
+        let first = world.spawn(Health(1))
+        let second = world.spawn(Health(2))
+        let view = world.entities
+        world.despawn(first)
+        _ = world.spawn(Health(3))
+        _ = world.spawn(Health(4))
+        let expected: [Entity] = [first, second]
+        #expect(Array(view) == expected)
+    }
+
+    @Test("count(of:) includes the entities queries skip")
+    func countIncludesDisabled() {
+        var world = World()
+        world.spawn(Health(1))
+        world.spawn(Health(2), Disabled())
+        world.spawn(Health(3), Prefab())
+        let expected: Int = 3
+        #expect(world.count(of: Health.self) == expected)
+        let queried: Int = 1
+        #expect(world.query(Health.self).count == queried)
+    }
+
+    @Test("A slot's generation wraps to zero after UInt32.max - 1, never reaching the placeholder generation")
+    func generationWraps() throws {
+        let json = #"{"generations":[4294967294],"vacant":[],"families":[],"components":[{"entities":[],"values":[]}]}"#
+        let snapshot = try JSONDecoder().decode(WorldSnapshot<Health>.self, from: Data(json.utf8))
+        var world = World(restoring: snapshot)
+        let last = Entity(index: 0, generation: UInt32.max - 1)
+        #expect(world.contains(last))
+        world.despawn(last)
+        let next = world.spawn()
+        let expected = Entity(index: 0, generation: 0)
+        #expect(next == expected)
+        #expect(!world.contains(last))
+    }
+}

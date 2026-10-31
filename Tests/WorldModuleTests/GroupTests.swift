@@ -102,6 +102,76 @@ struct GroupTests {
         Self.run(operations)
     }
 
+    @Test("The entities holding every grouped type sit at the front of each type's storage, in the same order", .tags(.randomized), arguments: [1, 2, 3, 42, 1_000] as [UInt])
+    func packedFront(seed: UInt) {
+        var generator = SeededRandomNumberGenerator(seed: seed)
+        var world = World()
+        var live: [Entity] = []
+        for value in 0 ..< 40 {
+            let entity = world.spawn(First(value))
+            if Bool.random(using: &generator) { world.insert(Second(value), into: entity) }
+            live.append(entity)
+        }
+        world.group(First.self, Second.self)
+        for _ in 0 ..< 400 {
+            let entity = live[Int.random(in: 0 ..< live.count, using: &generator)]
+            switch Int.random(in: 0 ..< 6, using: &generator) {
+            case 0: live.append(world.spawn(First(0), Second(0)))
+            case 1: world.insert(First(1), into: entity)
+            case 2: world.insert(Second(2), into: entity)
+            case 3: world.remove(First.self, from: entity)
+            case 4: world.remove(Second.self, from: entity)
+            default:
+                guard live.count > 1 else { continue }
+                world.despawn(entity)
+                live.removeAll { $0 == entity }
+            }
+        }
+        let firsts: [Entity] = world.query(First.self).map { $0.entity }
+        let seconds: [Entity] = world.query(Second.self).map { $0.entity }
+        let both: Int = firsts.filter { world.contains(Second.self, in: $0) }.count
+        let firstFront = Array(firsts.prefix(both))
+        let secondFront = Array(seconds.prefix(both))
+        #expect(firstFront.allSatisfy { world.contains(Second.self, in: $0) })
+        #expect(firstFront == secondFront)
+    }
+
+    @Test("A checked grouping that throws leaves the world unchanged")
+    func failedGroupingChangesNothing() throws {
+        var world = World()
+        for value in 0 ..< 10 {
+            let entity = world.spawn(Velocity(dx: Double(value), dy: 0), Health(value))
+            if value.isMultiple(of: 3) { world.remove(Velocity.self, from: entity) }
+        }
+        try world.group(checked: Position.self, Velocity.self)
+        let velocities: [Entity] = world.query(Velocity.self).map { $0.entity }
+        let healths: [Entity] = world.query(Health.self).map { $0.entity }
+        #expect(throws: GroupError.alreadyOwned) { try world.group(checked: Health.self, Velocity.self) }
+        #expect(throws: GroupError.tooFewTypes) { try world.group(checked: Health.self, Health.self) }
+        #expect(world.query(Velocity.self).map { $0.entity } == velocities)
+        #expect(world.query(Health.self).map { $0.entity } == healths)
+        try world.group(checked: Health.self, Name.self)
+    }
+
+    @Test("A world restored from a snapshot doesn't keep the group")
+    func snapshotDropsGroup() throws {
+        var world = World()
+        world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
+        world.group(Position.self, Velocity.self)
+        var restored = World(restoring: world.snapshot(Position.self, Velocity.self))
+        try restored.group(checked: Velocity.self, Position.self)
+        let one: Int = 1
+        #expect(restored.query(Position.self, Velocity.self).count == one)
+    }
+
+    @Test("Grouping a type twice traps", .tags(.precondition))
+    func groupRepeatedType() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            world.group(Health.self, Health.self)
+        }
+    }
+
     static func run(_ operations: [Int]) {
         var grouped = World()
         grouped.group(First.self, Second.self)

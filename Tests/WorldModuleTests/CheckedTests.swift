@@ -73,3 +73,34 @@ struct CheckedTests {
         #expect(try resources[checked: Clock.self] == expected)
     }
 }
+
+extension CheckedTests {
+    @Test("The checked spellings throw StaleEntity for an entity the world never spawned, and change nothing")
+    func neverSpawned() {
+        var world = World()
+        let live = world.spawn(Health(1))
+        let foreign = Entity(index: 7, generation: 0)
+        #expect(throws: StaleEntity()) { try world.despawn(checked: foreign) }
+        #expect(throws: StaleEntity()) { try world.insert(Health(2), checkedInto: foreign) }
+        #expect(throws: StaleEntity()) { try world.remove(Health.self, checkedFrom: foreign) }
+        #expect(throws: MissingComponent()) { try world[checked: Health.self, of: foreign] }
+        let count: Int = 1
+        #expect(world.count == count)
+        #expect(world.count(of: Health.self) == count)
+        let health = Health(1)
+        #expect(world[Health.self, of: live] == health)
+    }
+
+    @Test("remove(_:checkedFrom:) on a stale entity leaves every other entity's component in place")
+    func removeCheckedStaleChangesNothing() {
+        var world = World()
+        let stale = world.spawn(Health(1))
+        let kept = world.spawn(Health(2))
+        world.despawn(stale)
+        #expect(throws: StaleEntity()) { try world.remove(Health.self, checkedFrom: stale) }
+        let health = Health(2)
+        #expect(world[Health.self, of: kept] == health)
+        let count: Int = 1
+        #expect(world.count(of: Health.self) == count)
+    }
+}

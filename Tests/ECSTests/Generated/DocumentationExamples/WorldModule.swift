@@ -128,7 +128,7 @@ fileprivate struct Follows: Component, Codable, MapEntities {
     }
 }
 
-// Sources/WorldModule/Update.swift:102
+// Sources/WorldModule/Update.swift:103
 fileprivate struct Stamina: Component { var current: Int }
 
 fileprivate struct Regeneration: Component { var health: Int, stamina: Int }
@@ -261,7 +261,7 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(world.contains(Velocity.self, in: spawned[0])) == #"true"#)
     }
 
-    @Test("Sources/WorldModule/Commands.swift:271")
+    @Test("Sources/WorldModule/Commands.swift:275")
     func example9() async throws {
         var world = World()
         var commands = Commands()
@@ -273,7 +273,7 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(world.count(of: Health.self)) == #"3"#)
     }
 
-    @Test("Sources/WorldModule/Commands.swift:319")
+    @Test("Sources/WorldModule/Commands.swift:323")
     func example10() async throws {
         var world = World()
         var commands = Commands()
@@ -935,7 +935,7 @@ struct WorldModuleDocumentationExamples {
         }
     }
 
-    @Test("Sources/WorldModule/QueryView.swift:255")
+    @Test("Sources/WorldModule/QueryView.swift:256")
     func example63() async throws {
         var world = World()
         world.spawn(Name(value: "comet"), Position(x: 1, y: 2), Velocity(dx: 3, dy: 4), Health(current: 5))
@@ -946,7 +946,7 @@ struct WorldModuleDocumentationExamples {
         }
     }
 
-    @Test("Sources/WorldModule/QueryView.swift:283")
+    @Test("Sources/WorldModule/QueryView.swift:284")
     func example64() async throws {
         var world = World()
         world.spawn(Health(current: 3))
@@ -959,7 +959,7 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(total) == #"7"#)
     }
 
-    @Test("Sources/WorldModule/QueryView.swift:345")
+    @Test("Sources/WorldModule/QueryView.swift:346")
     func example65() async throws {
         var world = World()
         world.spawn(Position(x: 0, y: 0), Frozen())
@@ -1044,7 +1044,7 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(world[Targets<Owes>.self, of: alice].relations.map(\.amount)) == #"[35]"#)
     }
 
-    @Test("Sources/WorldModule/Relations.swift:349")
+    @Test("Sources/WorldModule/Relations.swift:354")
     func example72() async throws {
         var world = World()
         let alice = world.spawn(Name(value: "Alice"))
@@ -1260,12 +1260,12 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(world[Position.self, of: statue]) == #"Position(x: 5.0, y: 5.0)"#)
     }
 
-    @Test("Sources/WorldModule/Update.swift:102")
+    @Test("Sources/WorldModule/Update.swift:103")
     func example90() async throws {
 
     }
 
-    @Test("Sources/WorldModule/Update.swift:107")
+    @Test("Sources/WorldModule/Update.swift:108")
     func example91() async throws {
         var world = World()
         let hero = world.spawn(Health(current: 5), Stamina(current: 2), Regeneration(health: 1, stamina: 3))

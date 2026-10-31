@@ -14,8 +14,12 @@ let alignedDriver = Int.max
 @frozen
 @usableFromInline
 struct Reader<Row> {
-    /// The read types, in the order they were listed.
+    /// The types every matched entity holds, in the order they were listed: the types of the
+    /// read columns.
     @usableFromInline let types: [ObjectIdentifier]
+    /// Every type the rows read, `types` and the members of ``AnyOf`` terms, so a visit doesn't
+    /// skip the entities holding a disabling component it reads.
+    @usableFromInline let reads: [ObjectIdentifier]
     /// The entities of each read column, in the order the types were listed.
     @usableFromInline let columns: [[Entity]]
     /// The row of `entity`, or nil if it lacks a read type. When `entity` was found at `cursor`
@@ -24,8 +28,9 @@ struct Reader<Row> {
     @usableFromInline let row: (_ entity: Entity, _ cursor: Int, _ driver: Int) -> Row?
 
     @inlinable
-    init(types: [ObjectIdentifier], columns: [[Entity]], row: @escaping (Entity, Int, Int) -> Row?) {
+    init(types: [ObjectIdentifier], reads: [ObjectIdentifier]? = nil, columns: [[Entity]], row: @escaping (Entity, Int, Int) -> Row?) {
         self.types = types
+        self.reads = reads ?? types
         self.columns = columns
         self.row = row
     }

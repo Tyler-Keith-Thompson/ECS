@@ -51,6 +51,31 @@ struct PingCounter: System {
     }
 }
 
+/// Logs the frame's time delta and the total elapsed time.
+struct NoteTime: System {
+    let entry: String
+    func run(in world: inout World) {
+        let time = world.resources[Time.self]
+        world.resources[Log.self].entries.append("\(entry) \(time.delta) \(time.elapsed)")
+    }
+}
+
+/// Logs its own name, so ordering constraints can name its type.
+struct First: System {
+    func run(in world: inout World) {
+        world.resources[Log.self].entries.append("first")
+    }
+}
+
+/// Logs its own name, so ordering constraints can name its type.
+struct Second: System {
+    func run(in world: inout World) {
+        world.resources[Log.self].entries.append("second")
+    }
+}
+
+enum Weather: States { case sunny, rainy }
+
 @Suite("Simulation")
 struct SimulationTests {
     @Test("Startup runs once, before the first frame's update")
@@ -286,6 +311,167 @@ struct SimulationTests {
             var simulation = Simulation()
             simulation.add(state: Mode.menu)
             simulation.add(state: Mode.playing)
+        }
+    }
+
+    @Test("A label made from a name describes itself by that name")
+    func labelDescription() {
+        let name: String = "Autosave"
+        #expect(ScheduleLabel(name).description == name)
+    }
+
+    @Test("The default fixed timestep is 1/64 second and the default maximum frame time 250 milliseconds")
+    func defaults() {
+        var world = World()
+        world.resources.insert(Steps())
+        var simulation = Simulation(world)
+        simulation.add(to: .fixedUpdate) { Step() }
+        let timestep: Duration = .seconds(1) / 64
+        let maximumDelta: Duration = .milliseconds(250)
+        #expect(simulation.world.resources[FixedTime.self].timestep == timestep)
+        #expect(simulation.maximumDelta == maximumDelta)
+        simulation.update(elapsed: .seconds(10))
+        let delta: Duration = .milliseconds(250)
+        #expect(simulation.world.resources[Time.self].delta == delta)
+        let steps: Steps = Steps(count: 16)
+        #expect(simulation.world.resources[Steps.self] == steps)
+    }
+
+    @Test("Creating a simulation replaces the world's Time and FixedTime")
+    func replacesTimeResources() {
+        var stale = Simulation(fixedTimestep: .milliseconds(3))
+        stale.update(elapsed: .milliseconds(40))
+        let simulation = Simulation(stale.world, fixedTimestep: .milliseconds(10))
+        let timestep: Duration = .milliseconds(10)
+        #expect(simulation.world.resources[Time.self].elapsed == .zero)
+        #expect(simulation.world.resources[Time.self].delta == .zero)
+        #expect(simulation.world.resources[FixedTime.self].timestep == timestep)
+        #expect(simulation.world.resources[FixedTime.self].overstep == .zero)
+    }
+
+    @Test("A long frame runs the fixed schedule only for the maximum frame time")
+    func maximumDeltaLimitsFixedRuns() {
+        var world = World()
+        world.resources.insert(Steps())
+        var simulation = Simulation(world, fixedTimestep: .milliseconds(10), maximumDelta: .milliseconds(100))
+        simulation.add(to: .fixedUpdate) { Step() }
+        simulation.update(elapsed: .seconds(5))
+        let steps: Steps = Steps(count: 10)
+        #expect(simulation.world.resources[Steps.self] == steps)
+        #expect(simulation.world.resources[FixedTime.self].overstep == .zero)
+    }
+
+    @Test("A frame runs startup, then advances time, then changes state, then the fixed schedule, then update")
+    func fullFrameOrder() {
+        var world = World()
+        world.resources.insert(Log())
+        var simulation = Simulation(world, fixedTimestep: .milliseconds(10))
+        simulation.add(state: Mode.menu)
+        simulation.add(to: .startup) { NoteTime(entry: "startup") }
+        simulation.add(to: .onEnter(Mode.menu)) { NoteTime(entry: "enter menu") }
+        simulation.add(to: .fixedUpdate) { NoteTime(entry: "fixed") }
+        simulation.add(to: .update) { NoteTime(entry: "update") }
+        simulation.update(elapsed: .milliseconds(10))
+        let expected: [String] = [
+            "startup 0.0 seconds 0.0 seconds",
+            "enter menu 0.01 seconds 0.01 seconds",
+            "fixed 0.01 seconds 0.01 seconds",
+            "update 0.01 seconds 0.01 seconds",
+        ]
+        #expect(simulation.world.resources[Log.self].entries == expected)
+    }
+
+    @Test("A state change applies before the same frame's fixed schedule")
+    func stateChangeBeforeFixed() {
+        var world = World()
+        world.resources.insert(Log())
+        var simulation = Simulation(world, fixedTimestep: .milliseconds(10))
+        simulation.add(state: Mode.menu)
+        simulation.add(to: .onEnter(Mode.playing)) { Note(entry: "enter playing") }
+        simulation.add(to: .fixedUpdate) {
+            Note(entry: "fixed in playing").runIf(inState(Mode.playing))
+        }
+        simulation.update(elapsed: .zero)
+        simulation.world.resources[NextState<Mode>.self].set(.playing)
+        simulation.update(elapsed: .milliseconds(10))
+        let expected: [String] = ["enter playing", "fixed in playing"]
+        #expect(simulation.world.resources[Log.self].entries == expected)
+    }
+
+    @Test("State types change in the order they were added")
+    func stateTypesInOrder() {
+        var world = World()
+        world.resources.insert(Log())
+        var simulation = Simulation(world)
+        simulation.add(state: Weather.sunny)
+        simulation.add(state: Mode.menu)
+        simulation.add(to: .onEnter(Mode.menu)) { Note(entry: "enter menu") }
+        simulation.add(to: .onEnter(Weather.sunny)) { Note(entry: "enter sunny") }
+        simulation.add(to: .onEnter(Mode.playing)) { Note(entry: "enter playing") }
+        simulation.add(to: .onEnter(Weather.rainy)) { Note(entry: "enter rainy") }
+        simulation.update(elapsed: .zero)
+        simulation.world.resources[NextState<Mode>.self].set(.playing)
+        simulation.world.resources[NextState<Weather>.self].set(.rainy)
+        simulation.update(elapsed: .zero)
+        let expected: [String] = ["enter sunny", "enter menu", "enter rainy", "enter playing"]
+        #expect(simulation.world.resources[Log.self].entries == expected)
+    }
+
+    @Test("Setting the next state replaces a change already pending")
+    func setReplacesPending() {
+        var world = World()
+        world.resources.insert(Log())
+        var simulation = Simulation(world)
+        simulation.add(state: Mode.menu)
+        simulation.add(to: .onEnter(Mode.playing)) { Note(entry: "enter playing") }
+        simulation.add(to: .onEnter(Mode.paused)) { Note(entry: "enter paused") }
+        simulation.update(elapsed: .zero)
+        simulation.world.resources[NextState<Mode>.self].set(.playing)
+        simulation.world.resources[NextState<Mode>.self].set(.paused)
+        let pending: Mode? = .paused
+        #expect(simulation.world.resources[NextState<Mode>.self].pending == pending)
+        simulation.update(elapsed: .zero)
+        let expected: [String] = ["enter paused"]
+        #expect(simulation.world.resources[Log.self].entries == expected)
+        #expect(simulation.world.resources[CurrentState<Mode>.self].state == .paused)
+    }
+
+    @Test("Setting the current state clears the pending change without running a schedule")
+    func sameStateClearsPending() {
+        var simulation = Simulation()
+        simulation.add(state: Mode.menu)
+        simulation.update(elapsed: .zero)
+        simulation.world.resources[NextState<Mode>.self].set(.menu)
+        simulation.update(elapsed: .zero)
+        #expect(simulation.world.resources[NextState<Mode>.self].pending == nil)
+        #expect(simulation.world.resources[CurrentState<Mode>.self].state == .menu)
+    }
+
+    @Test("Systems added later take part in the ordering of the systems already in the schedule")
+    func addedSystemsJoinOrdering() {
+        var world = World()
+        world.resources.insert(Log())
+        var simulation = Simulation(world)
+        simulation.add(to: .update) { Second() }
+        simulation.add(to: .update) { First().before(Second.self) }
+        simulation.update(elapsed: .zero)
+        let expected: [String] = ["first", "second"]
+        #expect(simulation.world.resources[Log.self].entries == expected)
+    }
+
+    @Test("Adding systems whose ordering forms a cycle with the schedule's traps")
+    func cycleTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var simulation = Simulation()
+            simulation.add(to: .update) { First().before(Second.self) }
+            simulation.add(to: .update) { Second().before(First.self) }
+        }
+    }
+
+    @Test("A maximum frame time that is not positive traps")
+    func zeroMaximumDeltaTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Simulation(maximumDelta: .zero)
         }
     }
 }

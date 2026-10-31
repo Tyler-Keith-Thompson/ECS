@@ -11,7 +11,7 @@ extension World {
     ) -> Reader<Row> {
         let s0_0 = snapshot(of: T0_0.self)
         let s0_1 = snapshot(of: T0_1.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -26,7 +26,7 @@ extension World {
         let s0_0 = snapshot(of: T0_0.self)
         let s0_1 = snapshot(of: T0_1.self)
         let s0_2 = snapshot(of: T0_2.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -43,7 +43,7 @@ extension World {
         let s0_1 = snapshot(of: T0_1.self)
         let s0_2 = snapshot(of: T0_2.self)
         let s0_3 = snapshot(of: T0_3.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -60,7 +60,7 @@ extension World {
         let s0 = snapshot(of: T0.self)
         let s1_0 = snapshot(of: T1_0.self)
         let s1_1 = snapshot(of: T1_1.self)
-        return Reader(types: [ObjectIdentifier(T0.self)], columns: [s0.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self)], columns: [s0.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -81,7 +81,7 @@ extension World {
         let s1_0 = snapshot(of: T1_0.self)
         let s1_1 = snapshot(of: T1_1.self)
         let s1_2 = snapshot(of: T1_2.self)
-        return Reader(types: [ObjectIdentifier(T0.self)], columns: [s0.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self)], columns: [s0.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -104,7 +104,7 @@ extension World {
         let s1_1 = snapshot(of: T1_1.self)
         let s1_2 = snapshot(of: T1_2.self)
         let s1_3 = snapshot(of: T1_3.self)
-        return Reader(types: [ObjectIdentifier(T0.self)], columns: [s0.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self)], columns: [s0.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -126,7 +126,7 @@ extension World {
         let s0_0 = snapshot(of: T0_0.self)
         let s0_1 = snapshot(of: T0_1.self)
         let s1 = snapshot(of: T1.self)
-        return Reader(types: [ObjectIdentifier(T1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T1.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -147,7 +147,7 @@ extension World {
         let s0_1 = snapshot(of: T0_1.self)
         let s1_0 = snapshot(of: T1_0.self)
         let s1_1 = snapshot(of: T1_1.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -167,7 +167,7 @@ extension World {
         let s1_0 = snapshot(of: T1_0.self)
         let s1_1 = snapshot(of: T1_1.self)
         let s1_2 = snapshot(of: T1_2.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -189,7 +189,7 @@ extension World {
         let s1_1 = snapshot(of: T1_1.self)
         let s1_2 = snapshot(of: T1_2.self)
         let s1_3 = snapshot(of: T1_3.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -210,7 +210,7 @@ extension World {
         let s0_1 = snapshot(of: T0_1.self)
         let s0_2 = snapshot(of: T0_2.self)
         let s1 = snapshot(of: T1.self)
-        return Reader(types: [ObjectIdentifier(T1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T1.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -233,7 +233,7 @@ extension World {
         let s0_2 = snapshot(of: T0_2.self)
         let s1_0 = snapshot(of: T1_0.self)
         let s1_1 = snapshot(of: T1_1.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -255,7 +255,7 @@ extension World {
         let s1_0 = snapshot(of: T1_0.self)
         let s1_1 = snapshot(of: T1_1.self)
         let s1_2 = snapshot(of: T1_2.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -279,7 +279,7 @@ extension World {
         let s1_1 = snapshot(of: T1_1.self)
         let s1_2 = snapshot(of: T1_2.self)
         let s1_3 = snapshot(of: T1_3.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -302,7 +302,7 @@ extension World {
         let s0_2 = snapshot(of: T0_2.self)
         let s0_3 = snapshot(of: T0_3.self)
         let s1 = snapshot(of: T1.self)
-        return Reader(types: [ObjectIdentifier(T1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T1.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -327,7 +327,7 @@ extension World {
         let s0_3 = snapshot(of: T0_3.self)
         let s1_0 = snapshot(of: T1_0.self)
         let s1_1 = snapshot(of: T1_1.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -351,7 +351,7 @@ extension World {
         let s1_0 = snapshot(of: T1_0.self)
         let s1_1 = snapshot(of: T1_1.self)
         let s1_2 = snapshot(of: T1_2.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -377,7 +377,7 @@ extension World {
         let s1_1 = snapshot(of: T1_1.self)
         let s1_2 = snapshot(of: T1_2.self)
         let s1_3 = snapshot(of: T1_3.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -400,7 +400,7 @@ extension World {
         let s1 = snapshot(of: T1.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [ObjectIdentifier(T0.self), ObjectIdentifier(T1.self)], columns: [s0.index.dense, s1.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self), ObjectIdentifier(T1.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: [s0.index.dense, s1.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -427,7 +427,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [ObjectIdentifier(T0.self), ObjectIdentifier(T1.self)], columns: [s0.index.dense, s1.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self), ObjectIdentifier(T1.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: [s0.index.dense, s1.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -456,7 +456,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [ObjectIdentifier(T0.self), ObjectIdentifier(T1.self)], columns: [s0.index.dense, s1.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self), ObjectIdentifier(T1.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: [s0.index.dense, s1.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -484,7 +484,7 @@ extension World {
         let s1_0 = snapshot(of: T1_0.self)
         let s1_1 = snapshot(of: T1_1.self)
         let s2 = snapshot(of: T2.self)
-        return Reader(types: [ObjectIdentifier(T0.self), ObjectIdentifier(T2.self)], columns: [s0.index.dense, s2.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self), ObjectIdentifier(T2.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2.self)], columns: [s0.index.dense, s2.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -511,7 +511,7 @@ extension World {
         let s1_1 = snapshot(of: T1_1.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [ObjectIdentifier(T0.self)], columns: [s0.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: [s0.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -537,7 +537,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [ObjectIdentifier(T0.self)], columns: [s0.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: [s0.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -565,7 +565,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [ObjectIdentifier(T0.self)], columns: [s0.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: [s0.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -592,7 +592,7 @@ extension World {
         let s1_1 = snapshot(of: T1_1.self)
         let s1_2 = snapshot(of: T1_2.self)
         let s2 = snapshot(of: T2.self)
-        return Reader(types: [ObjectIdentifier(T0.self), ObjectIdentifier(T2.self)], columns: [s0.index.dense, s2.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self), ObjectIdentifier(T2.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2.self)], columns: [s0.index.dense, s2.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -621,7 +621,7 @@ extension World {
         let s1_2 = snapshot(of: T1_2.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [ObjectIdentifier(T0.self)], columns: [s0.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: [s0.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -649,7 +649,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [ObjectIdentifier(T0.self)], columns: [s0.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: [s0.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -679,7 +679,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [ObjectIdentifier(T0.self)], columns: [s0.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: [s0.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -708,7 +708,7 @@ extension World {
         let s1_2 = snapshot(of: T1_2.self)
         let s1_3 = snapshot(of: T1_3.self)
         let s2 = snapshot(of: T2.self)
-        return Reader(types: [ObjectIdentifier(T0.self), ObjectIdentifier(T2.self)], columns: [s0.index.dense, s2.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self), ObjectIdentifier(T2.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2.self)], columns: [s0.index.dense, s2.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -739,7 +739,7 @@ extension World {
         let s1_3 = snapshot(of: T1_3.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [ObjectIdentifier(T0.self)], columns: [s0.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: [s0.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -769,7 +769,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [ObjectIdentifier(T0.self)], columns: [s0.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: [s0.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -801,7 +801,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [ObjectIdentifier(T0.self)], columns: [s0.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T0.self)], reads: [ObjectIdentifier(T0.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: [s0.index.dense]) { entity, cursor, driver in
             let p0: Int
             if driver == 0 || driver == alignedDriver { p0 = cursor } else {
                 guard let found = s0.index.position(of: entity) else { return nil }
@@ -829,7 +829,7 @@ extension World {
         let s0_1 = snapshot(of: T0_1.self)
         let s1 = snapshot(of: T1.self)
         let s2 = snapshot(of: T2.self)
-        return Reader(types: [ObjectIdentifier(T1.self), ObjectIdentifier(T2.self)], columns: [s1.index.dense, s2.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T1.self), ObjectIdentifier(T2.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1.self), ObjectIdentifier(T2.self)], columns: [s1.index.dense, s2.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -856,7 +856,7 @@ extension World {
         let s1 = snapshot(of: T1.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [ObjectIdentifier(T1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T1.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -882,7 +882,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [ObjectIdentifier(T1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T1.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: [s1.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -910,7 +910,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [ObjectIdentifier(T1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T1.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: [s1.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -937,7 +937,7 @@ extension World {
         let s1_0 = snapshot(of: T1_0.self)
         let s1_1 = snapshot(of: T1_1.self)
         let s2 = snapshot(of: T2.self)
-        return Reader(types: [ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T2.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -963,7 +963,7 @@ extension World {
         let s1_1 = snapshot(of: T1_1.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -988,7 +988,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -1015,7 +1015,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -1041,7 +1041,7 @@ extension World {
         let s1_1 = snapshot(of: T1_1.self)
         let s1_2 = snapshot(of: T1_2.self)
         let s2 = snapshot(of: T2.self)
-        return Reader(types: [ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T2.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -1069,7 +1069,7 @@ extension World {
         let s1_2 = snapshot(of: T1_2.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -1096,7 +1096,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -1125,7 +1125,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -1153,7 +1153,7 @@ extension World {
         let s1_2 = snapshot(of: T1_2.self)
         let s1_3 = snapshot(of: T1_3.self)
         let s2 = snapshot(of: T2.self)
-        return Reader(types: [ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T2.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -1183,7 +1183,7 @@ extension World {
         let s1_3 = snapshot(of: T1_3.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -1212,7 +1212,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -1243,7 +1243,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             guard p0_0 != nil || p0_1 != nil else { return nil }
@@ -1270,7 +1270,7 @@ extension World {
         let s0_2 = snapshot(of: T0_2.self)
         let s1 = snapshot(of: T1.self)
         let s2 = snapshot(of: T2.self)
-        return Reader(types: [ObjectIdentifier(T1.self), ObjectIdentifier(T2.self)], columns: [s1.index.dense, s2.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T1.self), ObjectIdentifier(T2.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1.self), ObjectIdentifier(T2.self)], columns: [s1.index.dense, s2.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1299,7 +1299,7 @@ extension World {
         let s1 = snapshot(of: T1.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [ObjectIdentifier(T1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T1.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1327,7 +1327,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [ObjectIdentifier(T1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T1.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: [s1.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1357,7 +1357,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [ObjectIdentifier(T1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T1.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: [s1.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1386,7 +1386,7 @@ extension World {
         let s1_0 = snapshot(of: T1_0.self)
         let s1_1 = snapshot(of: T1_1.self)
         let s2 = snapshot(of: T2.self)
-        return Reader(types: [ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T2.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1414,7 +1414,7 @@ extension World {
         let s1_1 = snapshot(of: T1_1.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1441,7 +1441,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1470,7 +1470,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1498,7 +1498,7 @@ extension World {
         let s1_1 = snapshot(of: T1_1.self)
         let s1_2 = snapshot(of: T1_2.self)
         let s2 = snapshot(of: T2.self)
-        return Reader(types: [ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T2.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1528,7 +1528,7 @@ extension World {
         let s1_2 = snapshot(of: T1_2.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1557,7 +1557,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1588,7 +1588,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1618,7 +1618,7 @@ extension World {
         let s1_2 = snapshot(of: T1_2.self)
         let s1_3 = snapshot(of: T1_3.self)
         let s2 = snapshot(of: T2.self)
-        return Reader(types: [ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T2.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1650,7 +1650,7 @@ extension World {
         let s1_3 = snapshot(of: T1_3.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1681,7 +1681,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1714,7 +1714,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1743,7 +1743,7 @@ extension World {
         let s0_3 = snapshot(of: T0_3.self)
         let s1 = snapshot(of: T1.self)
         let s2 = snapshot(of: T2.self)
-        return Reader(types: [ObjectIdentifier(T1.self), ObjectIdentifier(T2.self)], columns: [s1.index.dense, s2.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T1.self), ObjectIdentifier(T2.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1.self), ObjectIdentifier(T2.self)], columns: [s1.index.dense, s2.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1774,7 +1774,7 @@ extension World {
         let s1 = snapshot(of: T1.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [ObjectIdentifier(T1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T1.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1804,7 +1804,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [ObjectIdentifier(T1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T1.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: [s1.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1836,7 +1836,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [ObjectIdentifier(T1.self)], columns: [s1.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T1.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: [s1.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1867,7 +1867,7 @@ extension World {
         let s1_0 = snapshot(of: T1_0.self)
         let s1_1 = snapshot(of: T1_1.self)
         let s2 = snapshot(of: T2.self)
-        return Reader(types: [ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T2.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1897,7 +1897,7 @@ extension World {
         let s1_1 = snapshot(of: T1_1.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1926,7 +1926,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1957,7 +1957,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -1987,7 +1987,7 @@ extension World {
         let s1_1 = snapshot(of: T1_1.self)
         let s1_2 = snapshot(of: T1_2.self)
         let s2 = snapshot(of: T2.self)
-        return Reader(types: [ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T2.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -2019,7 +2019,7 @@ extension World {
         let s1_2 = snapshot(of: T1_2.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -2050,7 +2050,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -2083,7 +2083,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -2115,7 +2115,7 @@ extension World {
         let s1_2 = snapshot(of: T1_2.self)
         let s1_3 = snapshot(of: T1_3.self)
         let s2 = snapshot(of: T2.self)
-        return Reader(types: [ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(T2.self)], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2.self)], columns: [s2.index.dense]) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -2149,7 +2149,7 @@ extension World {
         let s1_3 = snapshot(of: T1_3.self)
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -2182,7 +2182,7 @@ extension World {
         let s2_0 = snapshot(of: T2_0.self)
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)
@@ -2217,7 +2217,7 @@ extension World {
         let s2_1 = snapshot(of: T2_1.self)
         let s2_2 = snapshot(of: T2_2.self)
         let s2_3 = snapshot(of: T2_3.self)
-        return Reader(types: [], columns: []) { entity, cursor, driver in
+        return Reader(types: [], reads: [ObjectIdentifier(T0_0.self), ObjectIdentifier(T0_1.self), ObjectIdentifier(T0_2.self), ObjectIdentifier(T0_3.self), ObjectIdentifier(T1_0.self), ObjectIdentifier(T1_1.self), ObjectIdentifier(T1_2.self), ObjectIdentifier(T1_3.self), ObjectIdentifier(T2_0.self), ObjectIdentifier(T2_1.self), ObjectIdentifier(T2_2.self), ObjectIdentifier(T2_3.self)], columns: []) { entity, cursor, driver in
             let p0_0 = s0_0.index.position(of: entity)
             let p0_1 = s0_1.index.position(of: entity)
             let p0_2 = s0_2.index.position(of: entity)

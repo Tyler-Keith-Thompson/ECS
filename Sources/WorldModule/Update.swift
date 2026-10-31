@@ -23,9 +23,10 @@ extension World {
     ///
     /// The update writes each component where it's stored, so no component is copied out and back.
     /// Every `W` visited is marked changed at the world's current ``changeTick``, even if `body`
-    /// leaves it as it was. Entities are visited in the storage order of whichever of the types the
-    /// fewest entities hold. Updates reading one, two or three types run through code specialized
-    /// for that number of types.
+    /// leaves it as it was. Entities are visited in the storage order of whichever of the types,
+    /// written, read or required by `filter`, the fewest entities hold, or of a shorter list where
+    /// one applies, such as a target's sources for a relation filter. Updates reading one, two or
+    /// three types run through code specialized for that number of types.
     ///
     /// To read ``AnyOf`` groups, pass a ``Query`` to `update(_:over:body:)` instead.
     ///

@@ -194,3 +194,30 @@ struct AmbiguityTests {
         }
     }
 }
+
+extension AmbiguityTests {
+    @Test("Systems marked ambiguous still run one after another, in the order written")
+    func markedStillOrdered() {
+        let schedule = Schedule {
+            DragWriter()
+            GravityWriter().ambiguous(with: DragWriter.self)
+        }
+        let names: [String] = ["DragWriter", "GravityWriter"]
+        let waves: [[Int]] = [[0], [1]]
+        #expect(schedule.names == names)
+        #expect(schedule.waves == waves)
+    }
+
+    @Test("A schedule marked ambiguous with a set marks each of its systems")
+    func scheduleMarked() {
+        let schedule = Schedule {
+            Schedule {
+                GravityWriter()
+                VelocityReader().after(GravityWriter.self)
+            }
+            .ambiguous(with: DragWriter.self)
+            DragWriter()
+        }
+        #expect(schedule.ambiguities().isEmpty)
+    }
+}

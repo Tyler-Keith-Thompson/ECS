@@ -1,8 +1,12 @@
 // Each test is self-contained: it builds its own world and states its own expectations.
 
 import ECSTestSupport
+import PropertyBased
 import Testing
 import WorldModule
+
+/// A relation for the tests of filter spellings.
+struct Guards: Relation, Hashable {}
 
 @Suite("World: queries")
 struct QueryTests {
@@ -153,5 +157,159 @@ struct QueryTests {
         #expect(view.count == Array(view).count)
         #expect(filtered.count == Array(filtered).count)
         #expect(filtered.count == 6)
+    }
+
+    @Test("A view lists the world as it was when the view was made", .tags(.copyOnWrite))
+    func viewAsOfCreation() {
+        var world = World()
+        let kept = world.spawn(Health(1))
+        let despawned = world.spawn(Health(2))
+        let view = world.query(Health.self)
+        let entities = world.query()
+        world.despawn(despawned)
+        world.spawn(Health(3))
+        world[Health.self, of: kept].current = 10
+        let rows: [String] = view.map { "\($0.entity) \($0.1.current)" }.sorted()
+        let expected: [String] = ["\(kept) 1", "\(despawned) 2"].sorted()
+        let expectedEntities: [Entity] = [kept, despawned].sorted()
+        #expect(rows == expected)
+        #expect(Array(entities).sorted() == expectedEntities)
+    }
+
+    @Test("Rows come in the storage order of the queried or required type the fewest entities hold")
+    func rowOrder() {
+        var world = World()
+        let a = world.spawn(Position(x: 0, y: 0))
+        _ = world.spawn(Position(x: 0, y: 0))
+        let c = world.spawn(Position(x: 0, y: 0))
+        world.insert(Velocity(dx: 0, dy: 0), into: c)
+        world.insert(Velocity(dx: 0, dy: 0), into: a)
+        let expected: [Entity] = [c, a]
+        #expect(world.query(Position.self, Velocity.self).map(\.entity) == expected)
+        #expect(world.query(Velocity.self, Position.self).map(\.entity) == expected)
+        #expect(world.query(Position.self).with(Velocity.self).map(\.entity) == expected)
+        #expect(world.query(Query(Position.self, AnyOf<Velocity, Frozen>.self, Velocity.self)).map { $0.entity } == expected)
+        #expect(Array(world.query().with(Velocity.self)) == expected)
+    }
+
+    @Test("A query of two types lists the smaller type's storage order, keeping the entities holding both", .tags(.randomized))
+    func rowOrderMatchesModel() async {
+        let operations = Gen.int(in: 0 ... 1_000_000).array(of: 0 ... 200)
+        await propertyCheck(count: 100, input: operations) { operations in
+            var world = World()
+            var live: [Entity] = []
+            for code in operations {
+                let argument = code / 6
+                guard !live.isEmpty, code % 6 != 0 else {
+                    live.append(world.spawn())
+                    continue
+                }
+                let entity = live[argument % live.count]
+                switch code % 6 {
+                case 1: world.insert(First(argument), into: entity)
+                case 2: world.insert(Second(argument), into: entity)
+                case 3: world.remove(First.self, from: entity)
+                case 4: world.remove(Second.self, from: entity)
+                default:
+                    world.despawn(entity)
+                    live.removeAll { $0 == entity }
+                }
+            }
+            let firsts: [Entity] = world.query(First.self).map { $0.entity }
+            let seconds: [Entity] = world.query(Second.self).map { $0.entity }
+            let expected: [Entity] = firsts.count <= seconds.count
+                ? firsts.filter { world.contains(Second.self, in: $0) }
+                : seconds.filter { world.contains(First.self, in: $0) }
+            let rows: [Entity] = world.query(First.self, Second.self).map { $0.entity }
+            #expect(rows == expected)
+        }
+    }
+
+    @Test("Each filter method of a query, a view and an entity view lists what the filter value's method of the same name does")
+    func filterSpellingsAgree() {
+        var world = World()
+        let keep = world.spawn(Health(1))
+        let gate = world.spawn(Health(2), Frozen())
+        let sleeper = world.spawn(Health(3), Disabled())
+        world.relate(keep, Guards(), to: gate)
+        let checkpoint = world.changeTick
+        world.advanceChangeTick()
+        world[Health.self, of: gate].current = 5
+        let fresh = world.spawn(Health(4))
+
+        let with: [Entity] = [gate]
+        #expect(world.query(Query(Health.self).with(Frozen.self)).map { $0.entity }.sorted() == with)
+        #expect(world.query(Health.self).with(Frozen.self).map(\.entity).sorted() == with)
+        #expect(Array(world.query().with(Health.self).with(Frozen.self)).sorted() == with)
+        #expect(world.query(Health.self).filtered(by: .with(Frozen.self)).map(\.entity).sorted() == with)
+
+        let without: [Entity] = [keep, fresh].sorted()
+        #expect(world.query(Query(Health.self).without(Frozen.self)).map { $0.entity }.sorted() == without)
+        #expect(world.query(Health.self).without(Frozen.self).map(\.entity).sorted() == without)
+        #expect(Array(world.query().with(Health.self).without(Frozen.self)).sorted() == without)
+        #expect(world.query(Health.self).filtered(by: .without(Frozen.self)).map(\.entity).sorted() == without)
+
+        let allowing: [Entity] = [keep, gate, sleeper, fresh].sorted()
+        #expect(world.query(Query(Health.self).allowing(Disabled.self)).map { $0.entity }.sorted() == allowing)
+        #expect(world.query(Health.self).allowing(Disabled.self).map(\.entity).sorted() == allowing)
+        #expect(Array(world.query().with(Health.self).allowing(Disabled.self)).sorted() == allowing)
+        #expect(world.query(Health.self).filtered(by: .allowing(Disabled.self)).map(\.entity).sorted() == allowing)
+
+        let related: [Entity] = [keep]
+        #expect(world.query(Query(Health.self).related(Guards.self, to: gate)).map { $0.entity }.sorted() == related)
+        #expect(world.query(Health.self).related(Guards.self, to: gate).map(\.entity).sorted() == related)
+        #expect(Array(world.query().with(Health.self).related(Guards.self, to: gate)).sorted() == related)
+        #expect(world.query(Health.self).filtered(by: .related(Guards.self, to: gate)).map(\.entity).sorted() == related)
+
+        let added: [Entity] = [fresh]
+        #expect(world.query(Query(Health.self).added(Health.self, since: checkpoint)).map { $0.entity }.sorted() == added)
+        #expect(world.query(Health.self).added(Health.self, since: checkpoint).map(\.entity).sorted() == added)
+        #expect(Array(world.query().added(Health.self, since: checkpoint)).sorted() == added)
+        #expect(world.query(Health.self).filtered(by: .added(Health.self, since: checkpoint)).map(\.entity).sorted() == added)
+
+        let changed: [Entity] = [gate, fresh].sorted()
+        #expect(world.query(Query(Health.self).changed(Health.self, since: checkpoint)).map { $0.entity }.sorted() == changed)
+        #expect(world.query(Health.self).changed(Health.self, since: checkpoint).map(\.entity).sorted() == changed)
+        #expect(Array(world.query().changed(Health.self, since: checkpoint)).sorted() == changed)
+        #expect(world.query(Health.self).filtered(by: .changed(Health.self, since: checkpoint)).map(\.entity).sorted() == changed)
+
+        let anyOf: [Entity] = [keep, gate].sorted()
+        let alternatives: QueryFilter = .anyOf(.with(Frozen.self), .related(Guards.self, to: gate))
+        #expect(world.query(Query(Health.self).anyOf(.with(Frozen.self), .related(Guards.self, to: gate))).map { $0.entity }.sorted() == anyOf)
+        #expect(world.query(Health.self).anyOf(.with(Frozen.self), .related(Guards.self, to: gate)).map(\.entity).sorted() == anyOf)
+        #expect(Array(world.query().anyOf(.with(Frozen.self), .related(Guards.self, to: gate))).sorted() == anyOf)
+        #expect(world.query(Health.self).filtered(by: alternatives).map(\.entity).sorted() == anyOf)
+        #expect(Array(world.query().filtered(by: alternatives)).sorted() == anyOf)
+
+        world.lastRun = checkpoint
+        #expect(world.query(Query(Health.self).added(Health.self)).map { $0.entity } == added)
+        #expect(world.query(Query(Health.self).changed(Health.self)).map { $0.entity }.sorted() == changed)
+        #expect(Array(world.query().changed(Health.self)).sorted() == changed)
+    }
+
+    @Test("Without alternatives, anyOf on a view and on a filter value passes nothing")
+    func emptyAnyOfSpellings() {
+        var world = World()
+        world.spawn(Health(1))
+        let none: Int = 0
+        #expect(world.query(Health.self).anyOf().count == none)
+        #expect(world.query(Health.self).filtered(by: .anyOf()).count == none)
+        #expect(world.query(Health.self).filtered(by: QueryFilter().anyOf()).count == none)
+    }
+
+    @Test("Iterating a query that no system bound to a world traps", .tags(.precondition))
+    func unboundQueryTraps() async {
+        await #expect(processExitsWith: .failure) {
+            let query = Query(Position.self)
+            for _ in query {}
+        }
+    }
+
+    @Test("Iterating a Where whose query no system bound to a world traps", .tags(.precondition))
+    func unboundWhereTraps() async {
+        await #expect(processExitsWith: .failure) {
+            let query = Query<Position>.Where<Without<Frozen>>(_bound: Query<Position>(filter: .without(Frozen.self)))
+            for _ in query {}
+        }
     }
 }

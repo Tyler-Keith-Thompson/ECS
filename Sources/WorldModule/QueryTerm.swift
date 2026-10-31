@@ -157,10 +157,12 @@ extension World {
     ) -> Reader<Row> {
         let readers = (repeat (each T)._termReader(in: self))
         var types: [ObjectIdentifier] = []
+        var reads: [ObjectIdentifier] = []
         var columns: [[Entity]] = []
         // The read column of each term, -1 for a term that requires none.
         var columnOfTerm: [Int] = []
         for reader in repeat each readers {
+            reads += reader.reads
             if let required = reader.required {
                 columnOfTerm.append(columns.count)
                 types.append(required)
@@ -171,7 +173,7 @@ extension World {
         }
         // Constant, so the row closure captures it unboxed.
         let termColumns = columnOfTerm
-        return Reader(types: types, columns: columns) { entity, cursor, driver in
+        return Reader(types: types, reads: reads, columns: columns) { entity, cursor, driver in
             var term = 0
             for reader in repeat each readers {
                 let column = termColumns[term]

@@ -193,7 +193,8 @@ public struct Commands: Sendable {
 
     /// Records relating one entity to another, as ``World/relate(_:_:to:)`` does.
     ///
-    /// When the command applies, nothing happens if either entity isn't live.
+    /// When the command applies, nothing happens if either entity isn't live, or if relating by
+    /// ``ChildOf`` would make the hierarchy cyclic.
     ///
     /// - Parameters:
     ///   - source: The entity the relation goes from, or a placeholder an earlier command in this
@@ -204,7 +205,10 @@ public struct Commands: Sendable {
     @inlinable
     public mutating func relate<R: Relation>(_ source: Entity, _ relation: R, to target: Entity) {
         operations.append { world, spawned in
-            try? world.relate(Self.resolve(source, in: spawned), relation, checkedTo: Self.resolve(target, in: spawned))
+            let source = Self.resolve(source, in: spawned)
+            let target = Self.resolve(target, in: spawned)
+            guard !world.closesHierarchyCycle(R.self, from: source, to: target) else { return }
+            try? world.relate(source, relation, checkedTo: target)
         }
     }
 

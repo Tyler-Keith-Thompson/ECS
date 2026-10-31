@@ -190,3 +190,40 @@ struct ConcurrencyTests {
         #expect(world[Health.self, of: enabled] == Health(2))
     }
 }
+
+extension ConcurrencyTests {
+    @Test("Command buffers that concurrent changes queue are queued in the order of the changes")
+    func queuedInChangeOrder() {
+        var world = World()
+        world.spawn(Health(1), Position(x: 0, y: 0))
+        func change(named name: String, access: Access) -> ConcurrentChange {
+            ConcurrentChange(access: access) { world in
+                var commands = Commands()
+                commands.spawn(Name(name))
+                world.queue(commands)
+            }
+        }
+        world.runConcurrently([
+            change(named: "zero", access: .writes(Health.self)),
+            change(named: "one", access: .writes(Position.self)),
+            change(named: "two", access: Access()),
+        ])
+        #expect(world.hasQueuedCommands)
+        let spawned = world.applyQueuedCommands()
+        let names: [String] = spawned.map { world[Name.self, of: $0].text }
+        let expected: [String] = ["zero", "one", "two"]
+        #expect(names == expected)
+    }
+
+    @Test("A concurrent change that despawns traps", .tags(.precondition))
+    func despawnTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            let entity = world.spawn(Health(1))
+            world.runConcurrently([
+                ConcurrentChange(access: .writes(Health.self)) { world in world.despawn(entity) },
+                ConcurrentChange(access: Access()) { _ in },
+            ])
+        }
+    }
+}

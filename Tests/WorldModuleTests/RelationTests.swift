@@ -150,6 +150,35 @@ struct RelationTests {
         #expect(world.count == none)
     }
 
+    @Test("A stale entity has no targets and no sources, even after its slot is reused")
+    func staleReads() {
+        var world = World()
+        let alice = world.spawn()
+        let bob = world.spawn()
+        world.relate(alice, Likes(), to: bob)
+        world.relate(bob, Likes(), to: alice)
+        world.despawn(alice)
+        let reused = world.spawn()
+        world.relate(bob, Likes(), to: reused)
+        world.relate(reused, Likes(), to: bob)
+        let none: [Entity] = []
+        let reusedOnly: [Entity] = [reused]
+        let bobOnly: [Entity] = [bob]
+        #expect(reused.index == alice.index)
+        #expect(world.targets(Likes.self, of: alice) == none)
+        #expect(world.sources(Likes.self, of: alice) == none)
+        #expect(world.targets(Likes.self, of: reused) == bobOnly)
+        #expect(world.sources(Likes.self, of: bob) == reusedOnly)
+    }
+
+    @Test("A relation by default relates a source to any number of targets and removes pairs when a target is despawned")
+    func relationDefaults() {
+        let isExclusive = Likes.isExclusive
+        let cleanup = Likes.onTargetDespawn
+        #expect(!isExclusive)
+        #expect(cleanup == .remove)
+    }
+
     @Test("Removing the Targets component directly unindexes its pairs")
     func removeTargetsComponent() {
         var world = World()

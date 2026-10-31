@@ -158,4 +158,99 @@ struct UpdateTests {
         #expect(world[First.self, of: frozen].value == 0)
         #expect(world[Second.self, of: free].value == 1)
     }
+
+    @Test("A throwing two-type update, or update over a query, stops at the error and keeps the changes made before it")
+    func updateThrowsOtherSpellings() {
+        struct Stop: Error, Equatable {}
+        var world = World()
+        let entities = (0 ..< 4).map { world.spawn(First($0), Second($0), Health($0)) }
+        #expect(throws: Stop()) {
+            try world.update(First.self, Second.self) { (first, second, _) throws(Stop) in
+                if first.value == 2 { throw Stop() }
+                first.value += 10
+                second.value += 10
+            }
+        }
+        #expect(throws: Stop()) {
+            try world.update(Health.self, over: Query(First.self)) { (health, row) throws(Stop) in
+                if health.current == 1 { throw Stop() }
+                health.current = row.components.value
+            }
+        }
+        let firsts: [Int] = entities.map { world[First.self, of: $0].value }
+        let seconds: [Int] = entities.map { world[Second.self, of: $0].value }
+        let healths: [Int] = entities.map { world[Health.self, of: $0].current }
+        let expectedFirsts: [Int] = [10, 11, 2, 3]
+        let expectedHealths: [Int] = [10, 1, 2, 3]
+        #expect(firsts == expectedFirsts)
+        #expect(seconds == expectedFirsts)
+        #expect(healths == expectedHealths)
+    }
+
+    @Test("An update marks every component it visits changed, even one its body leaves as it was")
+    func marksUnchangedBody() {
+        var world = World()
+        let moving = world.spawn(Position(x: 0, y: 0), Velocity(dx: 0, dy: 0))
+        let still = world.spawn(Position(x: 0, y: 0))
+        let checkpoint = world.changeTick
+        world.advanceChangeTick()
+        world.update(Position.self, reading: Velocity.self) { _, _ in }
+        world.update(Velocity.self, over: Query(AnyOf<Position, Health>.self)) { _, _ in }
+        let position: [Entity] = Array(world.query().changed(Position.self, since: checkpoint))
+        let velocity: [Entity] = Array(world.query().changed(Velocity.self, since: checkpoint))
+        let expected: [Entity] = [moving]
+        #expect(position == expected)
+        #expect(velocity == expected)
+        #expect(world.contains(still))
+    }
+
+    @Test("An update visits entities in the storage order of the type the fewest entities hold")
+    func visitOrder() {
+        var world = World()
+        let a = world.spawn(Position(x: 0, y: 0), Health(0))
+        _ = world.spawn(Position(x: 0, y: 0), Health(0))
+        let c = world.spawn(Position(x: 0, y: 0), Health(0))
+        world.insert(Velocity(dx: 0, dy: 0), into: c)
+        world.insert(Velocity(dx: 0, dy: 0), into: a)
+        var reading: [Entity] = []
+        world.update(Position.self, reading: Velocity.self) { _, row in reading.append(row.entity) }
+        var writing: [Entity] = []
+        world.update(Position.self, Velocity.self) { _, _, row in writing.append(row.entity) }
+        var filtered: [Entity] = []
+        world.update(Health.self, where: .with(Velocity.self)) { _, row in filtered.append(row.entity) }
+        var three: [Entity] = []
+        world.update(Position.self, Health.self, Velocity.self, over: Query()) { _, _, _, row in three.append(row.entity) }
+        let expected: [Entity] = [c, a]
+        #expect(reading == expected)
+        #expect(writing == expected)
+        #expect(filtered == expected)
+        #expect(three == expected)
+    }
+
+    @Test("A two-type update over a query that reads a written type traps", .tags(.precondition))
+    func twoOverReadsWritten() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            world.spawn(Position(x: 0, y: 0), Velocity(dx: 0, dy: 0))
+            world.update(Position.self, Velocity.self, over: Query(AnyOf<Health, Velocity>.self)) { _, _, _ in }
+        }
+    }
+
+    @Test("A two-type update over a query that writes one type twice traps", .tags(.precondition))
+    func twoOverWritesTwice() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            world.spawn(Position(x: 0, y: 0), Health(1))
+            world.update(Position.self, Position.self, over: Query(Health.self)) { _, _, _ in }
+        }
+    }
+
+    @Test("A three-type update over a query that reads a written type traps", .tags(.precondition))
+    func threeOverReadsWritten() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            world.spawn(Position(x: 0, y: 0), Velocity(dx: 0, dy: 0), Health(1))
+            world.update(Position.self, Velocity.self, Health.self, over: Query(Health.self)) { _, _, _, _ in }
+        }
+    }
 }

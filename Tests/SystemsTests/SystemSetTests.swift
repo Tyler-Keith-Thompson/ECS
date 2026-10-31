@@ -169,3 +169,15 @@ struct SystemSetTests {
         #expect(world.resources[Seen.self] == expected)
     }
 }
+
+extension SystemSetTests {
+    @Test("A system ordered after a set it is in runs after the set's other systems, not against itself")
+    func afterOwnSet() {
+        let schedule = Schedule {
+            SetRender().inSet(PhysicsSet.self).after(PhysicsSet.self)
+            SetGravity().inSet(PhysicsSet.self)
+        }
+        let expected: [String] = ["SetGravity", "SetRender"]
+        #expect(schedule.names == expected)
+    }
+}

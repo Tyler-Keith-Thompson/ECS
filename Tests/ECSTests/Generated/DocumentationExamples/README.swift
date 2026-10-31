@@ -104,7 +104,7 @@ struct READMEDocumentationExamples {
         #expect(printed(world[Position.self, of: rock].x) == #"0.0"#)
     }
 
-    @Test("README.md:287")
+    @Test("README.md:291")
     func example3() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 2))

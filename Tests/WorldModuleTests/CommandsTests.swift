@@ -117,3 +117,51 @@ struct ResourcesTests {
         #expect(copy.resources[Clock.self].ticks == 5)
     }
 }
+
+/// A relation for the command buffer's relation tests.
+struct CommandsTestRival: Relation, Hashable {}
+
+extension CommandsTests {
+    @Test("An unrelate command removes the relation, and does nothing when its source is gone by then")
+    func unrelateCommand() {
+        var world = World()
+        let alice = world.spawn()
+        let bob = world.spawn()
+        let carol = world.spawn()
+        world.relate(alice, CommandsTestRival(), to: bob)
+        world.relate(carol, CommandsTestRival(), to: bob)
+        var commands = Commands()
+        commands.unrelate(alice, CommandsTestRival.self, from: bob)
+        commands.despawn(carol)
+        commands.unrelate(carol, CommandsTestRival.self, from: bob)
+        world.apply(commands)
+        let none: [Entity] = []
+        #expect(world.targets(CommandsTestRival.self, of: alice) == none)
+        #expect(world.sources(CommandsTestRival.self, of: bob) == none)
+        #expect(world.contains(bob))
+    }
+
+    @Test("Queued buffers apply in the order queued, buffers they queue apply too, and the spawned entities return in order")
+    func queuedCommands() {
+        var world = World()
+        var first = Commands()
+        first.spawn(Name("first"))
+        first.record { world in
+            var nested = Commands()
+            nested.spawn(Name("nested"))
+            world.queue(nested)
+        }
+        var second = Commands()
+        second.spawn(Name("second"))
+        world.queue(first)
+        world.queue(second)
+        #expect(world.hasQueuedCommands)
+        let spawned = world.applyQueuedCommands()
+        #expect(!world.hasQueuedCommands)
+        let names: [String] = spawned.map { world[Name.self, of: $0].text }
+        let expected: [String] = ["first", "second", "nested"]
+        #expect(names == expected)
+        let none: [Entity] = []
+        #expect(world.applyQueuedCommands() == none)
+    }
+}

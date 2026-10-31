@@ -306,6 +306,86 @@ struct QueryValueTests {
         #expect(general(three, in: world) == specializedThree)
     }
 
+    @Test("A query is equal to the same query bound to a world, and hashes the same")
+    func boundEquality() {
+        var world = World()
+        world.spawn(Position(x: 0, y: 0))
+        let query = Query(Position.self).without(Frozen.self)
+        let bound = query._bound(to: world.query(query))
+        #expect(bound == query)
+        #expect(bound.hashValue == query.hashValue)
+    }
+
+    @Test("filtered(by:) on a query keeps its own conditions and adds the filter's")
+    func queryFilteredBy() {
+        var world = World()
+        let kept = world.spawn(First(1), Second(2))
+        _ = world.spawn(First(1), Second(2), Frozen())
+        _ = world.spawn(First(1))
+        let query = Query(First.self).without(Frozen.self).filtered(by: .with(Second.self))
+        let rows = world.query(query).map { $0.entity }
+        let expected = [kept]
+        #expect(rows == expected)
+    }
+
+    @Test("A query reading a disabling component through AnyOf visits the entities holding it, as an update over it does")
+    func anyOfReadsDisabling() {
+        var world = World()
+        let disabled = world.spawn(Position(x: 0, y: 0), Disabled())
+        let frozen = world.spawn(Position(x: 0, y: 0), Frozen())
+        _ = world.spawn(Position(x: 0, y: 0))
+        let query = Query(Position.self, AnyOf<Disabled, Frozen>.self)
+        let rows: [Entity] = world.query(query).map { $0.entity }.sorted()
+        let general: [Entity] = world.query(Query(Position.self, AnyOf<Disabled, Frozen>.self, AnyOf<First, Position>.self)).map { $0.entity }.sorted()
+        var updated: [Entity] = []
+        world.update(Position.self, over: Query(AnyOf<Disabled, Frozen>.self)) { _, row in updated.append(row.entity) }
+        let expected: [Entity] = [disabled, frozen].sorted()
+        #expect(rows == expected)
+        #expect(general == expected)
+        #expect(updated.sorted() == expected)
+    }
+
+    @Test("The general path of an update over a query agrees with every specialized shape", .tags(.randomized), arguments: [1, 2, 3, 42, 1_000] as [UInt])
+    func generalUpdateAgreesWithSpecialized(seed: UInt) {
+        func general<each T: QueryTerm>(_ query: Query<repeat each T>, in world: inout World) -> [Entity] {
+            var visited: [Entity] = []
+            world.update(Health.self, over: query) { health, row in
+                health.current += 1
+                visited.append(row.entity)
+            }
+            return visited.sorted()
+        }
+        var generator = SeededRandomNumberGenerator(seed: seed)
+        var world = World()
+        for value in 0 ..< 300 {
+            let entity = world.spawn()
+            if Bool.random(using: &generator) { world.insert(First(value), into: entity) }
+            if Bool.random(using: &generator) { world.insert(Second(value), into: entity) }
+            if Bool.random(using: &generator) { world.insert(Third(value), into: entity) }
+            if Bool.random(using: &generator) { world.insert(Health(0), into: entity) }
+        }
+        var specialized = world
+        var visitedOne: [Entity] = []
+        var visitedTwo: [Entity] = []
+        var visitedThree: [Entity] = []
+        specialized.update(Health.self, over: Query(AnyOf<First, Second>.self)) { health, row in
+            health.current += 1
+            visitedOne.append(row.entity)
+        }
+        specialized.update(Health.self, over: Query(First.self, AnyOf<Second, Third>.self)) { health, row in
+            health.current += 1
+            visitedTwo.append(row.entity)
+        }
+        specialized.update(Health.self, over: Query(AnyOf<First, Second>.self, Third.self, AnyOf<First, Second, Third>.self).without(Frozen.self)) { health, row in
+            health.current += 1
+            visitedThree.append(row.entity)
+        }
+        #expect(general(Query(AnyOf<First, Second>.self), in: &world) == visitedOne.sorted())
+        #expect(general(Query(First.self, AnyOf<Second, Third>.self), in: &world) == visitedTwo.sorted())
+        #expect(general(Query(AnyOf<First, Second>.self, Third.self, AnyOf<First, Second, Third>.self).without(Frozen.self), in: &world) == visitedThree.sorted())
+        #expect(world.snapshot(Health.self) == specialized.snapshot(Health.self))
+    }
+
     @Test("A query with AnyOf and filters agrees with a dictionary model", .tags(.randomized))
     func agreesWithModel() async {
         let worlds = Gen.int(in: 0 ... 31).array(of: 0 ... 200)

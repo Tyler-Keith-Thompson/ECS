@@ -136,3 +136,31 @@ struct CheckedAccessTests {
         }
     }
 }
+
+/// Declares reading Position and writing Clock only, then reads the Disabled and Prefab markers
+/// of two entities, counting the markers found on the Clock.
+struct PeekAtMarkers: System {
+    let disabled: Entity
+    let prefab: Entity
+    var access: Access? { .reads(Position.self).writes(resources: Clock.self) }
+
+    func run(in world: inout World) {
+        var found = 0
+        if world.contains(Disabled.self, in: disabled) { found += 1 }
+        if world.contains(Prefab.self, in: prefab) { found += 1 }
+        world.resources[Clock.self].ticks = found
+    }
+}
+
+extension CheckedAccessTests {
+    @Test("A system can read Disabled and Prefab without listing them in its access")
+    func markersAlwaysReadable() {
+        var world = World()
+        world.resources.insert(Clock(ticks: 0))
+        let disabled = world.spawn(Position(x: 1, y: 0), Disabled())
+        let prefab = world.spawn(Position(x: 2, y: 0), Prefab())
+        Schedule { PeekAtMarkers(disabled: disabled, prefab: prefab) }.run(on: &world)
+        let expected: Int = 2
+        #expect(world.resources[Clock.self].ticks == expected)
+    }
+}

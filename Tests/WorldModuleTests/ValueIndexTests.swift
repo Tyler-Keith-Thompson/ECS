@@ -65,6 +65,22 @@ struct ValueIndexTests {
         #expect(world.lookup(Name("d")) == onlyB)
     }
 
+    @Test("A change in place through a mutable span is found at once, before the index is rebuilt")
+    func mutableSpanChange() {
+        var world = World()
+        world.index(Name.self)
+        let a = world.spawn(Name("a"))
+        world.withMutableSpan(of: Name.self) { _, values in
+            for position in values.indices { values[position].text = "b" }
+        }
+        let onlyA: [Entity] = [a]
+        let none: [Entity] = []
+        #expect(world.lookup(Name("b")) == onlyA)
+        #expect(world.lookup(Name("a")) == none)
+        world.advanceChangeTick()
+        #expect(world.lookup(Name("b")) == onlyA)
+    }
+
     @Test("A copy of a world keeps its own index")
     func copies() {
         var world = World()

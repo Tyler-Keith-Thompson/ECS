@@ -5,6 +5,9 @@ import PropertyBased
 import Testing
 import WorldModule
 
+/// A relation for the cached-query tests.
+struct Escorts: Relation, Hashable {}
+
 @Suite("World: cached queries")
 struct QueryCacheTests {
     @Test("A cached query lists the rows an uncached one does")
@@ -114,6 +117,19 @@ struct QueryCacheTests {
         #expect(world.query(Position.self).map { $0.entity } == expected)
     }
 
+    @Test("A cached query that reads a disabling component through AnyOf lists the entities holding it")
+    func anyOfReadsDisabling() {
+        var world = World()
+        let query = Query(Position.self, AnyOf<Disabled, Frozen>.self)
+        world.cache(query)
+        let disabled = world.spawn(Position(x: 0, y: 0), Disabled())
+        let frozen = world.spawn(Position(x: 0, y: 0), Frozen())
+        world.spawn(Position(x: 0, y: 0))
+        let found: [Entity] = world.query(query).map { $0.entity }.sorted()
+        let expected: [Entity] = [disabled, frozen].sorted()
+        #expect(found == expected)
+    }
+
     @Test("Change filters on a cached query are checked for each cached entity")
     func changeFilters() {
         var world = World()
@@ -126,6 +142,27 @@ struct QueryCacheTests {
         let found: [Entity] = world.query(query).map { $0.entity }
         let expected: [Entity] = [a]
         #expect(found == expected)
+    }
+
+    @Test("A relation filter on a cached query is checked for each cached entity, as relations change")
+    func relationFilters() {
+        var world = World()
+        let target = world.spawn(Position(x: 0, y: 0))
+        let early = world.spawn(Position(x: 0, y: 0))
+        let late = world.spawn(Position(x: 0, y: 0))
+        let elsewhere = world.spawn(Position(x: 0, y: 0))
+        world.relate(early, Escorts(), to: target)
+        let query = Query(Position.self).related(Escorts.self, to: target)
+        world.cache(query)
+        world.relate(late, Escorts(), to: target)
+        world.relate(elsewhere, Escorts(), to: early)
+        let found: Set<Entity> = Set(world.query(query).map { $0.entity })
+        let expected: Set<Entity> = [early, late]
+        #expect(found == expected)
+        _ = world.unrelate(early, Escorts.self, from: target)
+        let afterUnrelating: [Entity] = world.query(query).map { $0.entity }
+        let onlyLate: [Entity] = [late]
+        #expect(afterUnrelating == onlyLate)
     }
 
     @Test("A copy of a world keeps its own cache")

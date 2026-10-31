@@ -88,7 +88,7 @@ func reader(_ shape: Shape) -> String {
     }
     let types = componentTerms.map { "ObjectIdentifier(T\($0).self)" }.joined(separator: ", ")
     let columns = componentTerms.map { "s\($0).index.dense" }.joined(separator: ", ")
-    lines.append("        return Reader(types: [\(types)], columns: [\(columns)]) { entity, cursor, driver in")
+    lines.append("        return Reader(types: [\(types)], reads: \(shape.reads), columns: [\(columns)]) { entity, cursor, driver in")
     var arguments: [String] = []
     for index in shape.terms.indices {
         switch shape.terms[index] {

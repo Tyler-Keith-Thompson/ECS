@@ -140,3 +140,47 @@ struct StreamTests {
         #expect(world.resources[ChimeFrame.self].number == expected)
     }
 }
+
+extension StreamTests {
+    @Test("Copies of one forwarder share its place in the events, so each event is yielded once")
+    func copiesSharePlace() async {
+        let (chimes, continuation) = AsyncStream.makeStream(of: Chime.self)
+        let forwarder = ForwardEvents(to: continuation)
+        let frame = Schedule {
+            UpdateEvents()
+            Chimer()
+            forwarder.after(Chimer.self)
+            forwarder.after(Chimer.self)
+        }
+        var world = World()
+        world.resources.insert(ChimeFrame())
+        for _ in 0 ..< 2 { frame.run(on: &world) }
+        continuation.finish()
+        var received: [Int] = []
+        for await chime in chimes { received.append(chime.number) }
+        let expected: [Int] = [1, 2]
+        #expect(received == expected)
+    }
+
+    @Test("A forwarder's stream does not end when the schedule holding it is gone")
+    func streamOutlivesSchedule() async {
+        let (chimes, continuation) = AsyncStream.makeStream(of: Chime.self)
+        do {
+            let frame = Schedule {
+                UpdateEvents()
+                Chimer()
+                ForwardEvents(to: continuation).after(Chimer.self)
+            }
+            var world = World()
+            world.resources.insert(ChimeFrame())
+            frame.run(on: &world)
+        }
+        let late = Chime(number: 9)
+        continuation.yield(late)
+        continuation.finish()
+        var received: [Int] = []
+        for await chime in chimes { received.append(chime.number) }
+        let expected: [Int] = [1, 9]
+        #expect(received == expected)
+    }
+}

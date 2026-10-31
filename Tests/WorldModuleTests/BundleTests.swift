@@ -151,3 +151,105 @@ struct BundleTests {
         #expect(!world.contains(Position.self, in: spawned[1]))
     }
 }
+
+/// The ranks a `Recruit` bundle chooses its components by.
+enum RecruitRank {
+    case corporal, sergeant, captain
+}
+
+/// A bundle with a `switch` and an `if let`.
+struct Recruit: Bundle {
+    var rank: RecruitRank
+    var nickname: String?
+
+    var body: some Bundle {
+        switch rank {
+        case .corporal: First(1)
+        case .sergeant: Second(2)
+        case .captain: Third(3)
+        }
+        if let nickname {
+            Name(nickname)
+        }
+    }
+}
+
+/// A bundle whose body is a single `if`-`else`.
+struct Branching: Bundle {
+    var flag: Bool
+
+    var body: some Bundle {
+        if flag {
+            First(1)
+        } else {
+            Second(2)
+        }
+    }
+}
+
+extension BundleTests {
+    @Test("A switch inserts the case taken, and an if let inserts its component only when the optional has a value")
+    func switchAndOptional() {
+        var world = World()
+        let corporal = world.spawn(Recruit(rank: .corporal, nickname: nil))
+        let sergeant = world.spawn(Recruit(rank: .sergeant, nickname: "Sarge"))
+        let captain = world.spawn(Recruit(rank: .captain, nickname: nil))
+        #expect(world.contains(First.self, in: corporal))
+        #expect(!world.contains(Second.self, in: corporal))
+        #expect(!world.contains(Name.self, in: corporal))
+        #expect(world.contains(Second.self, in: sergeant))
+        #expect(!world.contains(First.self, in: sergeant))
+        let nickname = Name("Sarge")
+        #expect(world[Name.self, of: sergeant] == nickname)
+        #expect(world.contains(Third.self, in: captain))
+        #expect(!world.contains(Name.self, in: captain))
+    }
+
+    @Test("Removing a bundle type removes the types of every case of a switch and of an if let")
+    func removeSwitchAndOptional() {
+        var world = World()
+        let entity = world.spawn(First(1), Second(2), Third(3), Name("n"), Health(5))
+        world.remove(Recruit.self, from: entity)
+        #expect(!world.contains(First.self, in: entity))
+        #expect(!world.contains(Second.self, in: entity))
+        #expect(!world.contains(Third.self, in: entity))
+        #expect(!world.contains(Name.self, in: entity))
+        #expect(world.contains(Health.self, in: entity))
+    }
+
+    @Test("A command removing a bundle from an entity gone by then does nothing")
+    func staleRemoveCommand() {
+        var world = World()
+        let gone = world.spawn(Mover(position: Position(x: 0, y: 0)))
+        let kept = world.spawn(Mover(position: Position(x: 1, y: 1)))
+        var commands = Commands()
+        commands.despawn(gone)
+        commands.remove(Mover.self, from: gone)
+        world.apply(commands)
+        let count: Int = 1
+        #expect(world.count == count)
+        #expect(world.contains(Position.self, in: kept))
+        #expect(world.contains(Velocity.self, in: kept))
+    }
+
+    @Test("Reading the body of a component traps", .tags(.precondition))
+    func componentBodyTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Health(1).body
+        }
+    }
+
+    @Test("Reading the body of a tuple bundle traps", .tags(.precondition))
+    func tupleBodyTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Repeated().body.body
+        }
+    }
+
+    @Test("Reading the body of an either bundle traps", .tags(.precondition))
+    func eitherBodyTraps() async {
+        await #expect(processExitsWith: .failure) {
+            _ = Branching(flag: true).body.body
+        }
+    }
+}

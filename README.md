@@ -200,7 +200,8 @@ go through a parameter pack. To go faster still:
   `query(…).changed(Position.self)` inside a system lists what changed since that system last ran,
   and `.added(…)` lists what is new. Outside a schedule, pass a tick: `since: checkpoint`.
 - **Removal detection**: `world.removed(Health.self, by: Healthbars.self)` lists the entities that
-  lost a `Health` since that reader last asked, by removal or despawn; a system takes
+  lost a `Health` since that reader last asked, by removal or despawn. Recording starts at the
+  first look (or `trackRemovals(of:)`), and removals are kept as long as events are. A system takes
   `RemovedComponents<Health>`.
 - **Hooks**: `world.onAdd(Name.self) { world, entity in … }`, `onInsert` and `onRemove` run after
   the operation that fired them, for keeping indexes without polling. Given a `Query`, `onAdd` and
@@ -256,17 +257,20 @@ go through a parameter pack. To go faster still:
   - The filter types `With`, `Without`, `Added`, `Changed`, `Allows` and `AnyOf` mirror the filter
     values.
 
-  Parameters that conflict are a compile-time error. A `run(in world: inout World)` makes a system
-  that may change anything. A `@MainActor` type or `run` makes a `MainActorSystem`, which a
-  schedule run on the main actor runs there, after the other systems of its wave.
+  Parameters that name the same component, one of them writing it, are a compile-time error;
+  conflicts the macro cannot see by name, such as through a type alias, trap when a schedule takes
+  the system. A `run(in world: inout World)` makes a system that may change anything. A
+  `@MainActor` type or `run` makes a `MainActorSystem`, which a schedule run on the main actor
+  runs there, after the other systems of its wave.
 - **`Schedule`** runs systems in the order written, adjusted by `after` and `before` constraints,
   and skips a system when its `runIf { world in … }` condition does not hold. `run(on:)` runs
-  systems that neither conflict nor are ordered at the same time, in waves, with the result running
-  them in order gives; `runSerially(on:)` runs the same waves one system at a time.
+  systems that neither conflict nor are ordered at the same time, in waves, applying the commands
+  of a wave when it finishes; `runSerially(on:)` runs the same waves one system at a time, with the
+  same result.
 - **Access**: a system's access comes from its parameters, or from `access` declared by hand; a
   system without one runs alone. In debug builds, a system that reaches a type its access does not
-  list traps. `ambiguities()` lists conflicting systems no constraint orders, whose order rests on
-  how they were written.
+  list traps. `ambiguities()` lists the pairs of conflicting systems with an access that no
+  constraint orders, whose order rests on how they were written.
 - **System sets**: a `SystemSet` (`enum Physics: SystemSet {}`) names a group. Systems join it with
   `inSet`, a nested `Schedule { … }` takes `inSet`, `after`, `before` and `runIf` for all its
   systems, and `after(Physics.self)` orders after every system in it.

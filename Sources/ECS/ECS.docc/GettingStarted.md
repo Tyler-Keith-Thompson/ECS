@@ -105,7 +105,8 @@ A system is a rule your program applies over and over, such as moving everything
 velocity. Declare one with the ``/Systems/System()`` macro on a type with a `run` method. The
 types of the method's parameters say what the system reads and writes:
 ``/Systems/Update`` writes components, ``/WorldModule/Query`` reads them, and an `inout`
-``/WorldModule/Commands`` records spawns and despawns to apply after the system runs.
+``/WorldModule/Commands`` records spawns and despawns to apply once the system, and the systems
+running alongside it, finish.
 
 The following systems move each entity by its velocity, and despawn each entity whose health has
 run out:
@@ -132,8 +133,8 @@ struct Reaper {
 ```
 
 Because a system states what it touches, a schedule knows which systems can run at the same
-time. Two parameters whose types conflict, such as two updates of the same component, are a
-compile-time error.
+time. Two parameters that name the same component, one of them writing it, such as two updates
+of `Position`, are a compile-time error.
 
 ### Run a Schedule
 
@@ -157,8 +158,9 @@ print(world.contains(ghost))
 // Prints "false"
 ```
 
-Systems that don't conflict, like these two, run at the same time; the result is always the
-same as running them one after another in the order written. To order systems differently, add
+Systems that don't conflict, like these two, run at the same time. Neither reads what the other
+writes, so the result doesn't depend on which runs first, and the commands they record apply once
+both finish. To order systems differently, add
 a constraint such as `Reaper().after(Movement.self)`, and to skip a system unless a condition
 holds, add `runIf(_:)`.
 

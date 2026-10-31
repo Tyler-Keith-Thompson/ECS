@@ -181,3 +181,48 @@ struct CloningTests {
         }
     }
 }
+
+extension CloningTests {
+    @Test("A clone's components are marked changed now and fire insert hooks")
+    func cloneIsChangedAndInserted() {
+        var world = World()
+        world.resources.insert(Clock(ticks: 0))
+        let original = world.spawn(Health(1))
+        let checkpoint = world.changeTick
+        world.advanceChangeTick()
+        world.onInsert(Health.self) { world, _ in world.resources[Clock.self].ticks += 1 }
+        let copy = world.clone(original)
+        let changed: [Entity] = world.query(Health.self).changed(Health.self, since: checkpoint).map(\.entity)
+        let expected: [Entity] = [copy]
+        #expect(changed == expected)
+        let hooks = Clock(ticks: 1)
+        #expect(world.resources[Clock.self] == hooks)
+    }
+
+    @Test("A command spawning from a prefab gone by then spawns an empty entity")
+    func spawnFromStaleCommand() {
+        var world = World()
+        let goblin = world.spawn(Prefab(), Health(10))
+        var commands = Commands()
+        commands.despawn(goblin)
+        commands.spawn(from: goblin)
+        let spawned = world.apply(commands)
+        let count: Int = 1
+        #expect(spawned.count == count)
+        #expect(world.contains(spawned[0]))
+        #expect(!world.contains(Health.self, in: spawned[0]))
+        #expect(!world.contains(Prefab.self, in: spawned[0]))
+    }
+
+    @Test("Updates skip prefabs, so the template keeps its components while its copies change")
+    func updatesSkipPrefabs() {
+        var world = World()
+        let goblin = world.spawn(Prefab(), Health(10))
+        let copy = world.spawn(from: goblin)
+        world.update(Health.self) { health, _ in health.current -= 1 }
+        let template = Health(10)
+        let changed = Health(9)
+        #expect(world[Health.self, of: goblin] == template)
+        #expect(world[Health.self, of: copy] == changed)
+    }
+}

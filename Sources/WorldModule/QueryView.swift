@@ -62,9 +62,10 @@ extension QueryRow: Sendable where repeat each C: Sendable {}
 /// Narrow a view with the same methods a ``Query`` offers, such as ``with(_:)`` and
 /// ``without(_:)``. Each returns a new view.
 ///
-/// Rows come in the storage order of the type that the fewest matching candidates hold, among the
-/// queried and required types. That order depends only on the history of insertions and removals,
-/// so it's the same every time you run the same steps.
+/// Rows come in the order of the list the view walks: the storage of the queried or required type
+/// that the fewest entities hold, or a shorter list where one applies, such as a target's sources
+/// for ``related(_:to:)`` or a cached query's entities. That order depends only on the steps that
+/// built the world, so it's the same every time you run the same steps.
 @frozen
 public struct QueryView<each C>: Sequence, Sendable {
     @usableFromInline let world: World
@@ -191,7 +192,7 @@ public struct QueryView<each C>: Sequence, Sendable {
 
         @inlinable
         init(world: World, filter: QueryFilter, reader: Reader<(entity: Entity, repeat each C)>) {
-            let resolved = ResolvedFilter(filter, in: world, touching: reader.types, terms: reader.types)
+            let resolved = ResolvedFilter(filter, in: world, touching: reader.reads, terms: reader.types)
             var driver: [Entity] = []
             var driverColumn = -1
             var hasDriver = false

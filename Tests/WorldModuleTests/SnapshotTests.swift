@@ -89,6 +89,62 @@ struct SnapshotTests {
         #expect(world.parent(of: Entity(index: 1, generation: 0)) == Entity(index: 0, generation: 0))
     }
 
+    @Test("A snapshot holds no resources, hooks, observers or change ticks, and the restored world's components are added at its first tick")
+    func leavesOutResourcesHooksAndTicks() throws {
+        struct Counter: Resource { var value = 0 }
+        struct Ping: EntityEvent {}
+        var world = World()
+        world.resources.insert(Counter())
+        world.onAdd(Health.self) { world, _ in world.resources[Counter.self].value += 1 }
+        world.observe(Ping.self) { world, _ in world.resources[Counter.self].value += 10 }
+        world.advanceChangeTick()
+        world.advanceChangeTick()
+        let early = world.spawn(Health(1))
+        world.advanceChangeTick()
+        let late = world.spawn(Health(2))
+        let gone = world.spawn()
+        world.despawn(gone)
+        var restored = World(restoring: world.snapshot(Health.self))
+        let firstTick = ChangeTick(1)
+        let expectedCount = 2
+        #expect(restored.changeTick == firstTick)
+        #expect(Set(restored.query().added(Health.self, since: .zero)) == [early, late])
+        #expect(restored.query().added(Health.self, since: firstTick).count == 0)
+        #expect(!restored.resources.contains(Counter.self))
+        #expect(world.snapshot(Health.self).count == expectedCount)
+        restored.resources.insert(Counter())
+        restored.spawn(Health(3))
+        restored.trigger(Ping(), on: early)
+        let noHookCalls = 0
+        #expect(restored.resources[Counter.self].value == noHookCalls)
+    }
+
+    @Test("Snapshots are equal only when their vacated slots are in the same order and their children too")
+    func equalityNeedsSameOrder() throws {
+        var first = World()
+        let a = first.spawn()
+        let b = first.spawn()
+        first.spawn()
+        var second = first
+        first.despawn(a)
+        first.despawn(b)
+        second.despawn(b)
+        second.despawn(a)
+        #expect(first.snapshot() != second.snapshot())
+
+        var forward = World()
+        let parent = forward.spawn()
+        let x = forward.spawn()
+        let y = forward.spawn()
+        var backward = forward
+        try forward.addChild(x, to: parent)
+        try forward.addChild(y, to: parent)
+        try backward.addChild(y, to: parent)
+        try backward.addChild(x, to: parent)
+        #expect(forward.snapshot() != backward.snapshot())
+        #expect(forward.snapshot() == forward.snapshot())
+    }
+
     @Test("Any world built from random operations round-trips through JSON", .tags(.randomized))
     func randomRoundTrip() async {
         let operations = Gen.int(in: 0 ... 1_000_000).array(of: 0 ... 200)

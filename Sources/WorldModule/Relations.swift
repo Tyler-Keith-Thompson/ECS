@@ -311,13 +311,15 @@ extension World {
     ///   - relation: The relation's value for the pair.
     ///   - target: The entity the link points to.
     /// - Precondition: Both entities are live. The checked spelling,
-    ///   ``relate(_:_:checkedTo:)``, throws instead.
+    ///   ``relate(_:_:checkedTo:)``, throws instead. Relating by ``ChildOf`` must not make the
+    ///   hierarchy cyclic; ``addChild(_:to:)`` throws ``CyclicHierarchy`` instead.
     /// - Complexity: O(*k*), where *k* is the number of targets of `source` plus the number of
     ///   sources of each target it gains or loses.
     @inlinable
     public mutating func relate<R: Relation>(_ source: Entity, _ relation: R, to target: Entity) {
         precondition(contains(source), "Relating stale entity \(source)")
         precondition(contains(target), "Relating to stale entity \(target)")
+        precondition(!closesHierarchyCycle(R.self, from: source, to: target), "Relating \(source) by ChildOf to \(target) would make the hierarchy cyclic; addChild(_:checkedTo:) throws instead")
         storeRelation(relation, from: source, to: target)
         endOperation()
     }
@@ -333,11 +335,14 @@ extension World {
     ///   - relation: The relation's value for the pair.
     ///   - target: The entity the link points to.
     /// - Throws: ``StaleEntity`` if either entity isn't live. The world is unchanged.
+    /// - Precondition: Relating by ``ChildOf`` doesn't make the hierarchy cyclic;
+    ///   ``addChild(_:checkedTo:)`` throws instead.
     /// - Complexity: O(*k*), where *k* is the number of targets of `source` plus the number of
     ///   sources of each target it gains or loses.
     @inlinable
     public mutating func relate<R: Relation>(_ source: Entity, _ relation: R, checkedTo target: Entity) throws(StaleEntity) {
         guard contains(source), contains(target) else { throw StaleEntity() }
+        precondition(!closesHierarchyCycle(R.self, from: source, to: target), "Relating \(source) by ChildOf to \(target) would make the hierarchy cyclic; addChild(_:checkedTo:) throws instead")
         storeRelation(relation, from: source, to: target)
         endOperation()
     }

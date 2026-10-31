@@ -314,6 +314,73 @@ struct HierarchyTests {
         #expect(world.parent(of: other) == nil)
     }
 
+    @Test("A child moved to a new parent takes its own descendants with it")
+    func reparentKeepsDescendants() throws {
+        var world = World()
+        let old = world.spawn()
+        let new = world.spawn()
+        let child = world.spawn()
+        let grandchild = world.spawn()
+        try world.addChild(child, to: old)
+        try world.addChild(grandchild, to: child)
+        try world.addChild(child, to: new)
+        let expectedDescendants = [child, grandchild]
+        let none: [Entity] = []
+        #expect(Array(world.descendants(of: new)) == expectedDescendants)
+        #expect(Array(world.descendants(of: old)) == none)
+        #expect(world.parent(of: grandchild) == child)
+        world.despawn(new)
+        #expect(!world.contains(grandchild))
+        #expect(world.contains(old))
+    }
+
+    @Test("The checked spelling leaves the hierarchy unchanged when it throws")
+    func checkedAddChildUnchanged() throws {
+        var world = World()
+        let ship = world.spawn()
+        let turret = world.spawn()
+        try world.addChild(turret, to: ship)
+        let stale = world.spawn()
+        world.despawn(stale)
+        #expect(throws: HierarchyError.cyclicHierarchy) { try world.addChild(ship, checkedTo: turret) }
+        #expect(throws: HierarchyError.staleEntity) { try world.addChild(turret, checkedTo: stale) }
+        let expectedChildren = [turret]
+        #expect(world.parent(of: ship) == nil)
+        #expect(world.parent(of: turret) == ship)
+        #expect(world.children(of: ship) == expectedChildren)
+    }
+
+    @Test("The descendants view walks the hierarchy as it was when it was made, whatever changes during the walk")
+    func descendantsReadTheWorldAsItWas() throws {
+        var world = World()
+        let root = world.spawn()
+        let first = world.spawn()
+        let second = world.spawn()
+        let grandchild = world.spawn()
+        try world.addChild(first, to: root)
+        try world.addChild(second, to: root)
+        try world.addChild(grandchild, to: first)
+        var visited: [Entity] = []
+        for entity in world.descendants(of: root) {
+            visited.append(entity)
+            if entity == first {
+                world.despawn(second)
+                _ = world.removeParent(of: grandchild)
+                try world.addChild(world.spawn(), to: first)
+            }
+        }
+        let expected = [first, grandchild, second]
+        #expect(visited == expected)
+    }
+
+    @Test("ChildOf is an exclusive relation whose sources are despawned with their target")
+    func childOfCustomization() {
+        let isExclusive = ChildOf.isExclusive
+        let cleanup = ChildOf.onTargetDespawn
+        #expect(isExclusive)
+        #expect(cleanup == .despawn)
+    }
+
     @Test("Any sequence of hierarchy changes agrees with a parent-map model", .tags(.randomized))
     func agreesWithModel() async {
         let operations = Gen.int(in: 0 ... 1_000_000).array(of: 0 ... 300)
@@ -395,5 +462,49 @@ struct HierarchyTests {
                 #expect(world.children(of: entity) == modelChildren(of: entity))
             }
         }
+    }
+
+    @Test("Relating by ChildOf without a cycle links like addChild")
+    func relateChildOfLinks() {
+        var world = World()
+        let ship = world.spawn()
+        let turret = world.spawn()
+        world.relate(turret, ChildOf(), to: ship)
+        let expected: [Entity] = [turret]
+        #expect(world.parent(of: turret) == ship)
+        #expect(world.children(of: ship) == expected)
+    }
+
+    @Test("Relating by ChildOf traps when it would make the hierarchy cyclic")
+    func relateChildOfCycleTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            let ship = world.spawn()
+            let turret = world.spawn()
+            try world.addChild(turret, to: ship)
+            world.relate(ship, ChildOf(), to: turret)
+        }
+    }
+
+    @Test("The checked relate traps too when relating by ChildOf would make the hierarchy cyclic")
+    func checkedRelateChildOfCycleTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            let ship = world.spawn()
+            try world.relate(ship, ChildOf(), checkedTo: ship)
+        }
+    }
+
+    @Test("A relate command by ChildOf that would make the hierarchy cyclic does nothing")
+    func relateCommandSkipsCycle() throws {
+        var world = World()
+        let ship = world.spawn()
+        let turret = world.spawn()
+        try world.addChild(turret, to: ship)
+        var commands = Commands()
+        commands.relate(ship, ChildOf(), to: turret)
+        world.apply(commands)
+        #expect(world.parent(of: ship) == nil)
+        #expect(world.parent(of: turret) == ship)
     }
 }

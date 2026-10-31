@@ -1,7 +1,9 @@
 // Each test is self-contained: it builds its own worlds and states its own expectations.
 
 import ECSTestSupport
+import Foundation
 import PropertyBased
+import Synchronization
 import Testing
 import WorldModule
 
@@ -101,5 +103,25 @@ struct ParallelUpdateTests {
             }
             #expect(parallel.snapshot(Health.self) == serial.snapshot(Health.self))
         }
+    }
+}
+
+extension ParallelUpdateTests {
+    @Test("An update over fewer entities than the minimum chunk runs on the calling thread")
+    func smallUpdateRunsInline() {
+        var world = World()
+        for value in 0 ..< 50 { world.spawn(Health(value)) }
+        let callingThread = ObjectIdentifier(Thread.current)
+        let visitingThreads = Mutex<Set<ObjectIdentifier>>([])
+        world.parallelUpdate(Health.self, minimumChunk: 1_000) { health, _ in
+            health.current += 1
+            let thread = ObjectIdentifier(Thread.current)
+            visitingThreads.withLock { _ = $0.insert(thread) }
+        }
+        let expected: Set<ObjectIdentifier> = [callingThread]
+        let visited = visitingThreads.withLock { $0 }
+        #expect(visited == expected)
+        let total: Int = (1 ... 50).reduce(0, +)
+        #expect(world.query(Health.self).map(\.1.current).reduce(0, +) == total)
     }
 }

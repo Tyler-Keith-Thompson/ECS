@@ -1,6 +1,7 @@
 // Each test is self-contained: the systems it runs are declared inside it or below.
 
 import ECSTestSupport
+import Synchronization
 import Systems
 import Testing
 import WorldModule
@@ -135,5 +136,120 @@ struct MainActorSystemTests {
                 frame.run(on: &world)
             }.value
         }
+    }
+}
+
+/// The names of the systems that ran, gathered from whichever thread runs them.
+final class WaveLog: Sendable {
+    let names = Mutex<[String]>([])
+}
+
+/// Writes Position and logs its run.
+struct LoggedDrift: System {
+    let log: WaveLog
+    var access: Access? { .writes(Position.self) }
+    func run(in world: inout World) { log.names.withLock { $0.append("LoggedDrift") } }
+}
+
+/// Writes Velocity and logs its run.
+struct LoggedAccelerate: System {
+    let log: WaveLog
+    var access: Access? { .writes(Velocity.self) }
+    func run(in world: inout World) { log.names.withLock { $0.append("LoggedAccelerate") } }
+}
+
+/// Reads Health on the main actor and logs its run.
+struct LoggedShow: MainActorSystem {
+    let log: WaveLog
+    var access: Access? { .reads(Health.self) }
+    @MainActor func run(in world: inout World) { log.names.withLock { $0.append("LoggedShow") } }
+}
+
+extension MainActorSystemTests {
+    @Test("A main-actor system written first runs after the other systems of its wave")
+    @MainActor
+    func runsAfterItsWave() {
+        let log = WaveLog()
+        let frame = Schedule {
+            LoggedShow(log: log)
+            LoggedDrift(log: log)
+            LoggedAccelerate(log: log)
+        }
+        var world = World()
+        frame.run(on: &world)
+        let names = log.names.withLock { $0 }
+        let waves: Int = 1
+        #expect(frame.waves.count == waves)
+        #expect(names.last == "LoggedShow")
+        #expect(Set(names.prefix(2)) == ["LoggedDrift", "LoggedAccelerate"])
+    }
+
+    @Test("A main-actor system written first runs after the other systems of its wave when run serially")
+    @MainActor
+    func runsAfterItsWaveSerially() {
+        let log = WaveLog()
+        let frame = Schedule {
+            LoggedShow(log: log)
+            LoggedDrift(log: log)
+            LoggedAccelerate(log: log)
+        }
+        var world = World()
+        frame.runSerially(on: &world)
+        let names = log.names.withLock { $0 }
+        let expected: [String] = ["LoggedDrift", "LoggedAccelerate", "LoggedShow"]
+        #expect(names == expected)
+    }
+
+    @Test("A main-actor system written first runs after the one other system of its wave")
+    @MainActor
+    func runsAfterLoneSystem() {
+        let log = WaveLog()
+        let frame = Schedule {
+            LoggedShow(log: log)
+            LoggedDrift(log: log)
+        }
+        var world = World()
+        frame.run(on: &world)
+        let names = log.names.withLock { $0 }
+        let waves: Int = 1
+        let expected: [String] = ["LoggedDrift", "LoggedShow"]
+        #expect(frame.waves.count == waves)
+        #expect(names == expected)
+    }
+
+    @Test("A schedule whose main-actor system its condition skips runs off the main actor")
+    func skippedOffMainActor() async {
+        let log = WaveLog()
+        let frame = Schedule {
+            LoggedDrift(log: log)
+            LoggedShow(log: log).runIf { _ in false }
+        }
+        await Task.detached {
+            var world = World()
+            frame.run(on: &world)
+        }.value
+        let names = log.names.withLock { $0 }
+        let expected: [String] = ["LoggedDrift"]
+        #expect(names == expected)
+    }
+
+    @Test("Running a scheduled main-actor system off the main actor traps")
+    func scheduledSystemOffMainActorTraps() async {
+        await #expect(processExitsWith: .failure) {
+            let system = ScheduledSystem(LoggedShow(log: WaveLog()))
+            await Task.detached {
+                var world = World()
+                system.run(in: &world)
+            }.value
+        }
+    }
+
+    @Test("A scheduled system says whether it runs on the main actor")
+    func runsOnMainActorFlag() {
+        let log = WaveLog()
+        let plain = ScheduledSystem(LoggedDrift(log: log))
+        let main = ScheduledSystem(LoggedShow(log: log))
+        #expect(!plain.runsOnMainActor)
+        #expect(main.runsOnMainActor)
     }
 }

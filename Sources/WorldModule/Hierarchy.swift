@@ -310,6 +310,13 @@ extension World {
         return relationIndexes.first { $0.key == key } ?? Targets<ChildOf>.makeIndex()
     }
 
+    /// Whether relating `source` to `target` by `R` would make the hierarchy cyclic: `R` is
+    /// ``ChildOf`` and `source` is `target` or one of its ancestors.
+    @inlinable
+    func closesHierarchyCycle<R: Relation>(_ relation: R.Type, from source: Entity, to target: Entity) -> Bool {
+        R.self == ChildOf.self && isAncestor(source, ofOrIs: target)
+    }
+
     /// Whether `ancestor` is `entity` or one of its ancestors.
     @inlinable
     func isAncestor(_ ancestor: Entity, ofOrIs entity: Entity) -> Bool {

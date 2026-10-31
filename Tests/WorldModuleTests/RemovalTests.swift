@@ -65,6 +65,18 @@ struct RemovalTests {
         #expect(world.removed(Health.self, by: FirstMourner.self).isEmpty)
     }
 
+    @Test("An entity appears once per removal: removed, inserted and removed again, it appears twice")
+    func oncePerRemoval() {
+        var world = World()
+        world.trackRemovals(of: Health.self)
+        let entity = world.spawn(Health(1))
+        world.remove(Health.self, from: entity)
+        world.insert(Health(2), into: entity)
+        world.remove(Health.self, from: entity)
+        let expected: [Entity] = [entity, entity]
+        #expect(world.removed(Health.self, by: FirstMourner.self) == expected)
+    }
+
     @Test("Tracking twice records each removal once")
     func idempotent() {
         var world = World()

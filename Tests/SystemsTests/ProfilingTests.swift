@@ -140,3 +140,20 @@ struct ProfilingTests {
         #expect(dot == expected)
     }
 }
+
+extension ProfilingTests {
+    @Test("Inserting a new profile starts the timings over, and a timing's average is its total over its runs")
+    func startOver() throws {
+        let frame = Schedule { Glide() }
+        var world = World()
+        world.resources.insert(SystemProfile())
+        for _ in 0 ..< 3 { frame.run(on: &world) }
+        let timing = try #require(world.resources[SystemProfile.self].timings.first)
+        #expect(timing.average == timing.total / timing.runs)
+        world.resources.insert(SystemProfile())
+        frame.run(on: &world)
+        let runs = world.resources[SystemProfile.self].timings.map(\.runs)
+        let expected: [Int] = [1]
+        #expect(runs == expected)
+    }
+}

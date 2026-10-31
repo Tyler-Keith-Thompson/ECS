@@ -16,7 +16,7 @@ fileprivate struct Velocity: Component { var dx: Double, dy: Double }
 
 fileprivate struct Health: Component { var current: Int }
 
-// Sources/ECS/ECS.docc/GettingStarted.md:113
+// Sources/ECS/ECS.docc/GettingStarted.md:114
 @System
 fileprivate struct Movement {
     func run(_ movers: Update<Position>.Over<Velocity>) {
@@ -94,12 +94,12 @@ struct ECSDocumentationExamples {
         #expect(printed(world[Position.self, of: rock]) == #"Position(x: 5.0, y: 5.0)"#)
     }
 
-    @Test("Sources/ECS/ECS.docc/GettingStarted.md:113")
+    @Test("Sources/ECS/ECS.docc/GettingStarted.md:114")
     func example6() async throws {
 
     }
 
-    @Test("Sources/ECS/ECS.docc/GettingStarted.md:143")
+    @Test("Sources/ECS/ECS.docc/GettingStarted.md:144")
     func example7() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 2), Health(current: 3))
@@ -115,7 +115,7 @@ struct ECSDocumentationExamples {
         #expect(printed(world.contains(ghost)) == #"false"#)
     }
 
-    @Test("Sources/ECS/ECS.docc/GettingStarted.md:173")
+    @Test("Sources/ECS/ECS.docc/GettingStarted.md:175")
     func example8() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 2), Health(current: 3))

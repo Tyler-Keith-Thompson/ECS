@@ -2,6 +2,7 @@
 // what they did in a resource.
 
 import ECSTestSupport
+import Synchronization
 import Systems
 import Testing
 import WorldModule
@@ -141,5 +142,27 @@ struct RunConditionTests {
         let names = world.resources[ConditionLog.self].names
         let expected = ["Walk"]
         #expect(names == expected)
+    }
+}
+
+/// The conditions called, by number, gathered from whichever thread calls them.
+final class ConditionCalls: Sendable {
+    let numbers = Mutex<[Int]>([])
+}
+
+extension RunConditionTests {
+    @Test("Several conditions are checked in the order they were added, stopping at the first that does not hold")
+    func conditionsShortCircuit() {
+        let calls = ConditionCalls()
+        let system = Walk()
+            .runIf { _ in calls.numbers.withLock { $0.append(1) }; return true }
+            .runIf { _ in calls.numbers.withLock { $0.append(2) }; return false }
+            .runIf { _ in calls.numbers.withLock { $0.append(3) }; return true }
+        let world = World()
+        let runs = system.shouldRun(in: world)
+        let called = calls.numbers.withLock { $0 }
+        let expected: [Int] = [1, 2]
+        #expect(!runs)
+        #expect(called == expected)
     }
 }
