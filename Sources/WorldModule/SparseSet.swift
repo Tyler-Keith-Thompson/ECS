@@ -97,6 +97,8 @@ class AnyColumn: @unchecked Sendable {
     @usableFromInline final let swapRemove: @Sendable (AnyColumn, Int) -> Void
     /// Swaps the entities and components at two positions; a closure for the same reason.
     @usableFromInline final let swapAt: @Sendable (AnyColumn, Int, Int) -> Void
+    /// The component at a position; a closure for the same reason.
+    @usableFromInline final let read: @Sendable (AnyColumn, Int) -> any Component
     /// The position in its world's groups of the group that owns the column, or -1 for none.
     @usableFromInline final var group = -1
 
@@ -104,11 +106,13 @@ class AnyColumn: @unchecked Sendable {
     init(
         index: SparseIndex,
         swapRemove: @escaping @Sendable (AnyColumn, Int) -> Void,
-        swapAt: @escaping @Sendable (AnyColumn, Int, Int) -> Void
+        swapAt: @escaping @Sendable (AnyColumn, Int, Int) -> Void,
+        read: @escaping @Sendable (AnyColumn, Int) -> any Component
     ) {
         self.index = index
         self.swapRemove = swapRemove
         self.swapAt = swapAt
+        self.read = read
     }
 
     /// A column holding the same entities and components.
@@ -131,14 +135,15 @@ final class Column<C: Component>: AnyColumn, @unchecked Sendable {
         super.init(
             index: SparseIndex(),
             swapRemove: { column, position in unsafeDowncast(column, to: Column<C>.self).swapRemove(at: position) },
-            swapAt: { column, first, second in unsafeDowncast(column, to: Column<C>.self).swapAt(first, second) }
+            swapAt: { column, first, second in unsafeDowncast(column, to: Column<C>.self).swapAt(first, second) },
+            read: { column, position in unsafeDowncast(column, to: Column<C>.self).values[position] }
         )
     }
 
     @inlinable
     init(copying column: Column<C>) {
         values = column.values
-        super.init(index: column.index, swapRemove: column.swapRemove, swapAt: column.swapAt)
+        super.init(index: column.index, swapRemove: column.swapRemove, swapAt: column.swapAt, read: column.read)
         group = column.group
     }
 

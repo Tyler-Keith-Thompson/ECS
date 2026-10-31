@@ -135,6 +135,9 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   components but hides it from queries and updates, unless they read `Disabled`, name it in a
   filter or say `.allowing(Disabled.self)`. `registerDisablingComponent` adds types that hide
   entities the same way.
+- **Cloning and prefabs**: `world.clone(entity)` spawns a copy of every component;
+  `world.spawn(from: goblin)` copies an entity marked `Prefab`, a template queries skip, without
+  the mark. `Commands` records both.
 - **Removal detection**: `world.removed(Health.self, by: Healthbars.self)` lists the entities
   that lost a `Health` since that reader last asked, by removal or despawn; a system takes
   `RemovedComponents<Health>`.

@@ -58,6 +58,37 @@ public struct Commands: Sendable {
         return pending
     }
 
+    /// Records spawning a copy of `entity` (``World/clone(_:)``), and returns a handle to it that
+    /// the commands recorded after this one in this buffer can name. If `entity` is not live
+    /// when the command applies, the spawned entity holds nothing.
+    @inlinable
+    @discardableResult
+    public mutating func clone(_ entity: Entity) -> Entity {
+        let pending = Entity(index: UInt32(spawnCount), generation: Entity.pendingGeneration)
+        spawnCount += 1
+        operations.append { world, spawned in
+            let source = Self.resolve(entity, in: spawned)
+            spawned.append((try? world.clone(checked: source)) ?? world.spawn())
+        }
+        return pending
+    }
+
+    /// Records spawning a copy of `prefab` without its ``Prefab`` mark
+    /// (``World/spawn(from:)``), and returns a handle to it that the commands recorded after
+    /// this one in this buffer can name. If `prefab` is not live when the command applies, the
+    /// spawned entity holds nothing.
+    @inlinable
+    @discardableResult
+    public mutating func spawn(from prefab: Entity) -> Entity {
+        let pending = Entity(index: UInt32(spawnCount), generation: Entity.pendingGeneration)
+        spawnCount += 1
+        operations.append { world, spawned in
+            let source = Self.resolve(prefab, in: spawned)
+            spawned.append((try? world.spawn(checkedFrom: source)) ?? world.spawn())
+        }
+        return pending
+    }
+
     /// `entity`, or the entity a spawn command of this buffer created if `entity` is the handle
     /// that command returned.
     @inlinable

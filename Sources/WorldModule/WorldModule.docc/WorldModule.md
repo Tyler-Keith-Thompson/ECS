@@ -66,9 +66,10 @@ type the fewest entities hold and looks the others up.
 
 Registered with `onAdd`, `onInsert` and `onRemove` on ``World``.
 
-### Disabled entities
+### Disabled entities and prefabs
 
 - ``Disabled``
+- ``Prefab``
 
 ### Removal detection
 

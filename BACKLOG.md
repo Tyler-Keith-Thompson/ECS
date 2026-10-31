@@ -5,30 +5,28 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Entity cloning and prefabs.** `world.clone(entity)` copies every component; a prefab entity
-   is a template that queries skip and `spawn(from:)` copies.
-2. **Column spans.** `Span` / `MutableSpan` access to a whole column for SIMD loops and C
+1. **Column spans.** `Span` / `MutableSpan` access to a whole column for SIMD loops and C
    interop, marking every component changed once.
-3. **Cached queries.** A query state that remembers a `Query`'s matching entities and keeps them
+2. **Cached queries.** A query state that remembers a `Query`'s matching entities and keeps them
    current from structural changes, so a narrow query stops walking a large column.
-4. **Relationships as pairs.** `(Relation, target)` components with queries over a relation's
+3. **Relationships as pairs.** `(Relation, target)` components with queries over a relation's
    target or any target (`Pair<Targets, Wildcard>`), exclusive relations, and cleanup when a
    target despawns; the hierarchy becomes one relation.
-5. **Observers on custom triggers.** `world.trigger(Explode(), on: entity)` with handlers that can
+4. **Observers on custom triggers.** `world.trigger(Explode(), on: entity)` with handlers that can
    propagate up the hierarchy, and observers for an entity starting or stopping to match a
    query.
-6. **Indexes by value.** `world.index(Name.self)` keeps a map from a `Hashable` component's value
+5. **Indexes by value.** `world.index(Name.self)` keeps a map from a `Hashable` component's value
    to its entities, current through hooks.
-7. **Scenes and a type registry.** Register component types once; save and load whole worlds
+6. **Scenes and a type registry.** Register component types once; save and load whole worlds
    without listing types per snapshot.
-8. **Swift concurrency bridges.** Events and changes as an `AsyncSequence` (Afluent), and
+7. **Swift concurrency bridges.** Events and changes as an `AsyncSequence` (Afluent), and
    `@MainActor` systems run on the main actor by a schedule.
-9. **Profiling.** Time per system per run, and the schedule's dependency graph as DOT.
-10. **Checked accesses.** A debug-build record of the columns and resources a system with a
-    hand-written `access` touches while it runs concurrently, trapping on undeclared reads as
-    undeclared writes already trap. Systems declared by their parameters cannot reach anything
-    else, so this covers hand-written conformances only; it needs a lookup check that costs
-    nothing in release builds.
+8. **Profiling.** Time per system per run, and the schedule's dependency graph as DOT.
+9. **Checked accesses.** A debug-build record of the columns and resources a system with a
+   hand-written `access` touches while it runs concurrently, trapping on undeclared reads as
+   undeclared writes already trap. Systems declared by their parameters cannot reach anything
+   else, so this covers hand-written conformances only; it needs a lookup check that costs
+   nothing in release builds.
 
 ## Done
 
@@ -78,3 +76,5 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 - Disabled entities and default filters: `Disabled` and `registerDisablingComponent` hide
   entities from queries and updates unless they read, name or allow the type (`allowing`,
   `Allows`).
+- Entity cloning and prefabs: `clone(_:)`, `Prefab` (a disabling component) and
+  `spawn(from:)`, in the world and in commands.
