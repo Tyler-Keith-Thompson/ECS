@@ -96,6 +96,33 @@ public struct Schedule: Sendable {
         Schedule(ordered: systems.map { $0.runIf(condition) })
     }
 
+    /// This schedule, each of its systems also ordered after every system of each of `sets`.
+    ///
+    /// - Precondition: The constraints form no cycle.
+    public func after<each S: SystemSet>(_ sets: repeat (each S).Type) -> Schedule {
+        Schedule { for system in systems { system.after(repeat each sets) } }
+    }
+
+    /// This schedule, each of its systems also ordered before every system of each of `sets`.
+    ///
+    /// - Precondition: The constraints form no cycle.
+    public func before<each S: SystemSet>(_ sets: repeat (each S).Type) -> Schedule {
+        Schedule { for system in systems { system.before(repeat each sets) } }
+    }
+
+    /// This schedule, each of its systems also in each of `sets`.
+    ///
+    /// - Precondition: The constraints form no cycle.
+    public func inSet<each S: SystemSet>(_ sets: repeat (each S).Type) -> Schedule {
+        Schedule { for system in systems { system.inSet(repeat each sets) } }
+    }
+
+    /// This schedule, each of its systems also free to run in either order with every system of
+    /// each of `sets`.
+    public func ambiguous<each S: SystemSet>(with sets: repeat (each S).Type) -> Schedule {
+        Schedule(ordered: systems.map { $0.ambiguous(with: repeat each sets) })
+    }
+
     /// `systems`, already in an order that satisfies their constraints.
     init(ordered systems: [ScheduledSystem]) {
         self.systems = systems
@@ -207,7 +234,10 @@ public struct Schedule: Sendable {
 
     /// Whether an `after` or `before` constraint orders `later` after `earlier`.
     static func isConstrained(_ later: ScheduledSystem, after earlier: ScheduledSystem) -> Bool {
-        later.predecessors.contains(earlier.type) || earlier.successors.contains(later.type)
+        let earlierLabels = earlier.labels
+        let laterLabels = later.labels
+        return later.predecessors.contains(where: earlierLabels.contains)
+            || earlier.successors.contains(where: laterLabels.contains)
     }
 
     /// Whether `later` must run after `earlier`, which comes before it in the schedule: a
@@ -227,7 +257,9 @@ public struct Schedule: Sendable {
     static func ordered(_ systems: [ScheduledSystem]) -> [ScheduledSystem]? {
         var positionsByType: [ObjectIdentifier: [Int]] = [:]
         for (position, system) in systems.enumerated() {
-            positionsByType[system.type, default: []].append(position)
+            for label in system.labels {
+                positionsByType[label, default: []].append(position)
+            }
         }
         var predecessors = [[Int]](repeating: [], count: systems.count)
         for (position, system) in systems.enumerated() {
@@ -300,8 +332,8 @@ extension Schedule {
             }
             for second in systems.indices where second > first && !ordered.contains(second) {
                 guard let secondAccess = systems[second].access, firstAccess.conflicts(with: secondAccess),
-                      !systems[first].ambiguousTypes.contains(systems[second].type),
-                      !systems[second].ambiguousTypes.contains(systems[first].type)
+                      !systems[first].ambiguousTypes.contains(where: systems[second].labels.contains),
+                      !systems[second].ambiguousTypes.contains(where: systems[first].labels.contains)
                 else { continue }
                 ambiguities.append(Ambiguity(first: first, second: second))
             }

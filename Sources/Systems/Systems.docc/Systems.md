@@ -35,6 +35,7 @@ struct Movement {
 
 - ``System``
 - ``ScheduledSystem``
+- ``SystemSet``
 - ``UpdateEvents``
 - ``System()``
 

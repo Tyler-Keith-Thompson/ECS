@@ -15,7 +15,7 @@ import WorldModule
 ///     }
 /// }
 /// ```
-public protocol System: Sendable {
+public protocol System: SystemSet, Sendable {
     /// What the system reads and writes, so ``Schedule/run(on:)`` can run it alongside
     /// systems it does not conflict with; nil, the default, when it may change anything and must
     /// run alone.
@@ -49,23 +49,30 @@ extension System {
 }
 
 extension System {
-    /// This system, ordered to run after every system of each of `types` in its schedule.
+    /// This system, ordered to run after every system of each of `sets` in its schedule: every
+    /// system of a system type, or in a ``SystemSet``.
     @inlinable
-    public func after<each S: System>(_ types: repeat (each S).Type) -> ScheduledSystem {
-        ScheduledSystem(self).after(repeat each types)
+    public func after<each S: SystemSet>(_ sets: repeat (each S).Type) -> ScheduledSystem {
+        ScheduledSystem(self).after(repeat each sets)
     }
 
-    /// This system, ordered to run before every system of each of `types` in its schedule.
+    /// This system, ordered to run before every system of each of `sets` in its schedule.
     @inlinable
-    public func before<each S: System>(_ types: repeat (each S).Type) -> ScheduledSystem {
-        ScheduledSystem(self).before(repeat each types)
+    public func before<each S: SystemSet>(_ sets: repeat (each S).Type) -> ScheduledSystem {
+        ScheduledSystem(self).before(repeat each sets)
     }
 
-    /// This system, free to run in either order with every system of each of `types`; see
+    /// This system, in each of `sets`; see ``ScheduledSystem/inSet(_:)``.
+    @inlinable
+    public func inSet<each S: SystemSet>(_ sets: repeat (each S).Type) -> ScheduledSystem {
+        ScheduledSystem(self).inSet(repeat each sets)
+    }
+
+    /// This system, free to run in either order with every system of each of `sets`; see
     /// ``ScheduledSystem/ambiguous(with:)``.
     @inlinable
-    public func ambiguous<each S: System>(with types: repeat (each S).Type) -> ScheduledSystem {
-        ScheduledSystem(self).ambiguous(with: repeat each types)
+    public func ambiguous<each S: SystemSet>(with sets: repeat (each S).Type) -> ScheduledSystem {
+        ScheduledSystem(self).ambiguous(with: repeat each sets)
     }
 
     /// This system, run only when `condition` holds for the world at the start of its wave.
@@ -79,7 +86,8 @@ extension System {
     }
 }
 
-/// A system as a ``Schedule`` holds it: its name and the systems it must run after or before.
+/// A system as a ``Schedule`` holds it: its name, its sets and the sets it must run after or
+/// before.
 @frozen
 public struct ScheduledSystem: Sendable {
     /// The name of the system's type.
@@ -88,11 +96,13 @@ public struct ScheduledSystem: Sendable {
     /// last run in the world.
     @usableFromInline let id: UInt64
     @usableFromInline let type: ObjectIdentifier
-    /// Types whose systems must run before this one.
+    /// The sets the system is in besides its type's.
+    @usableFromInline var sets: [ObjectIdentifier] = []
+    /// Sets whose systems must run before this one.
     @usableFromInline var predecessors: [ObjectIdentifier] = []
-    /// Types whose systems must run after this one.
+    /// Sets whose systems must run after this one.
     @usableFromInline var successors: [ObjectIdentifier] = []
-    /// Types whose systems this one may run in either order with, though their accesses
+    /// Sets whose systems this one may run in either order with, though their accesses
     /// conflict: ``Schedule/ambiguities()`` leaves those pairs out.
     @usableFromInline var ambiguousTypes: [ObjectIdentifier] = []
     /// What must hold for the world, every one, for the system to run.
@@ -113,35 +123,51 @@ public struct ScheduledSystem: Sendable {
         initializer = { world in system.initialize(in: &world) }
     }
 
-    /// This system, also ordered after every system of each of `types`.
+    /// The sets the system is in: its type's, then those it joined.
     @inlinable
-    public func after<each S: System>(_ types: repeat (each S).Type) -> ScheduledSystem {
+    var labels: [ObjectIdentifier] { [type] + sets }
+
+    /// This system, also ordered after every system of each of `sets`: every system of a system
+    /// type, or in a ``SystemSet``.
+    @inlinable
+    public func after<each S: SystemSet>(_ sets: repeat (each S).Type) -> ScheduledSystem {
         var system = self
-        for type in repeat each types {
-            system.predecessors.append(ObjectIdentifier(type))
+        for set in repeat each sets {
+            system.predecessors.append(ObjectIdentifier(set))
         }
         return system
     }
 
-    /// This system, also ordered before every system of each of `types`.
+    /// This system, also ordered before every system of each of `sets`.
     @inlinable
-    public func before<each S: System>(_ types: repeat (each S).Type) -> ScheduledSystem {
+    public func before<each S: SystemSet>(_ sets: repeat (each S).Type) -> ScheduledSystem {
         var system = self
-        for type in repeat each types {
-            system.successors.append(ObjectIdentifier(type))
+        for set in repeat each sets {
+            system.successors.append(ObjectIdentifier(set))
         }
         return system
     }
 
-    /// This system, also free to run in either order with every system of each of `types`:
+    /// This system, also in each of `sets`, so constraints naming a set order it and
+    /// ``ambiguous(with:)`` naming a set covers it.
+    @inlinable
+    public func inSet<each S: SystemSet>(_ sets: repeat (each S).Type) -> ScheduledSystem {
+        var system = self
+        for set in repeat each sets {
+            system.sets.append(ObjectIdentifier(set))
+        }
+        return system
+    }
+
+    /// This system, also free to run in either order with every system of each of `sets`:
     /// ``Schedule/ambiguities()`` does not report it with them.
     ///
     /// For systems whose conflicting writes commute, such as two that add to one score.
     @inlinable
-    public func ambiguous<each S: System>(with types: repeat (each S).Type) -> ScheduledSystem {
+    public func ambiguous<each S: SystemSet>(with sets: repeat (each S).Type) -> ScheduledSystem {
         var system = self
-        for type in repeat each types {
-            system.ambiguousTypes.append(ObjectIdentifier(type))
+        for set in repeat each sets {
+            system.ambiguousTypes.append(ObjectIdentifier(set))
         }
         return system
     }

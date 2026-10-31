@@ -5,30 +5,28 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **System sets.** A named group of systems ordered and conditioned together with one `after`,
-   `before` or `runIf`.
-2. **Disabled entities and default filters.** A `Disabled` marker every query and update skips
+1. **Disabled entities and default filters.** A `Disabled` marker every query and update skips
    unless it asks for it (`.including(Disabled.self)`).
-3. **Entity cloning and prefabs.** `world.clone(entity)` copies every component; a prefab entity
+2. **Entity cloning and prefabs.** `world.clone(entity)` copies every component; a prefab entity
    is a template that queries skip and `spawn(from:)` copies.
-4. **Column spans.** `Span` / `MutableSpan` access to a whole column for SIMD loops and C
+3. **Column spans.** `Span` / `MutableSpan` access to a whole column for SIMD loops and C
    interop, marking every component changed once.
-5. **Cached queries.** A query state that remembers a `Query`'s matching entities and keeps them
+4. **Cached queries.** A query state that remembers a `Query`'s matching entities and keeps them
    current from structural changes, so a narrow query stops walking a large column.
-6. **Relationships as pairs.** `(Relation, target)` components with queries over a relation's
+5. **Relationships as pairs.** `(Relation, target)` components with queries over a relation's
    target or any target (`Pair<Targets, Wildcard>`), exclusive relations, and cleanup when a
    target despawns; the hierarchy becomes one relation.
-7. **Observers on custom triggers.** `world.trigger(Explode(), on: entity)` with handlers that can
+6. **Observers on custom triggers.** `world.trigger(Explode(), on: entity)` with handlers that can
    propagate up the hierarchy, and observers for an entity starting or stopping to match a
    query.
-8. **Indexes by value.** `world.index(Name.self)` keeps a map from a `Hashable` component's value
+7. **Indexes by value.** `world.index(Name.self)` keeps a map from a `Hashable` component's value
    to its entities, current through hooks.
-9. **Scenes and a type registry.** Register component types once; save and load whole worlds
+8. **Scenes and a type registry.** Register component types once; save and load whole worlds
    without listing types per snapshot.
-10. **Swift concurrency bridges.** Events and changes as an `AsyncSequence` (Afluent), and
-    `@MainActor` systems run on the main actor by a schedule.
-11. **Profiling.** Time per system per run, and the schedule's dependency graph as DOT.
-12. **Checked accesses.** A debug-build record of the columns and resources a system with a
+9. **Swift concurrency bridges.** Events and changes as an `AsyncSequence` (Afluent), and
+   `@MainActor` systems run on the main actor by a schedule.
+10. **Profiling.** Time per system per run, and the schedule's dependency graph as DOT.
+11. **Checked accesses.** A debug-build record of the columns and resources a system with a
     hand-written `access` touches while it runs concurrently, trapping on undeclared reads as
     undeclared writes already trap. Systems declared by their parameters cannot reach anything
     else, so this covers hand-written conformances only; it needs a lookup check that costs
@@ -76,3 +74,6 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
   `update`, custom), a fixed timestep with an accumulator and a maximum frame time, `Time` and
   `FixedTime` resources, and `States` with `CurrentState`, `NextState`, `onEnter` / `onExit` /
   `onTransition` schedules and `inState`.
+- System sets: `SystemSet` marker types joined with `inSet`; every system type is a set, so
+  `after`, `before` and `ambiguous(with:)` name either; a nested schedule takes them for all its
+  systems.

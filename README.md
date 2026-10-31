@@ -160,7 +160,9 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   in order gives; `runSerially(on:)` runs the same waves one system at a time. A system's access
   comes from its parameters, or from `access` declared by hand; a system without one runs alone.
   `ambiguities()` lists conflicting systems no constraint orders, whose order rests on how they
-  were written.
+  were written. A `SystemSet` (`enum Physics: SystemSet {}`) names a group: systems join it with
+  `inSet`, a nested `Schedule { … }` takes `inSet`, `after`, `before` and `runIf` for all its
+  systems, and `after(Physics.self)` orders after every system in it.
 - **`Simulation`**: a world and schedules by label, stepped with `update(elapsed:)`:
   `.startup` before the first frame, then each frame `.fixedUpdate` once per fixed timestep
   elapsed and `.update`. A `States` type (`enum GameState: States { … }`) runs `.onEnter`,
