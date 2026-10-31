@@ -51,6 +51,12 @@ Groups are made with `group(_:)` and cached queries with `cache(_:)` on ``World`
 
 - ``ChangeTick``
 
+### Relations
+
+- ``Relation``
+- ``Targets``
+- ``CleanupAction``
+
 ### Hierarchy
 
 - ``AncestorsView``

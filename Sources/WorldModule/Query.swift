@@ -91,6 +91,12 @@ public struct Query<each T: QueryTerm>: Hashable, Sendable {
         Query(filter: filter.allowing(repeat each types), view: nil)
     }
 
+    /// This query, keeping only entities related to `target` by `R`.
+    @inlinable
+    public func related<R: Relation>(_ type: R.Type, to target: Entity) -> Query {
+        Query(filter: filter.related(R.self, to: target), view: nil)
+    }
+
     /// This query, keeping only entities whose `F` was added after `since` (nil for the world's
     /// ``World/lastRun``).
     @inlinable

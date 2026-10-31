@@ -121,6 +121,24 @@ public struct Commands: Sendable {
         operations.append { world, spawned in _ = try? world.removeParent(checkedOf: Self.resolve(child, in: spawned)) }
     }
 
+    /// Records relating `source` to `target` by `relation`. When it applies, nothing happens if
+    /// either entity is not live.
+    @inlinable
+    public mutating func relate<R: Relation>(_ source: Entity, _ relation: R, to target: Entity) {
+        operations.append { world, spawned in
+            try? world.relate(Self.resolve(source, in: spawned), relation, checkedTo: Self.resolve(target, in: spawned))
+        }
+    }
+
+    /// Records removing the pair of `source` and `target` by `R`. When it applies, nothing
+    /// happens if `source` is not live.
+    @inlinable
+    public mutating func unrelate<R: Relation>(_ source: Entity, _ type: R.Type, from target: Entity) {
+        operations.append { world, spawned in
+            _ = try? world.unrelate(Self.resolve(source, in: spawned), R.self, checkedFrom: Self.resolve(target, in: spawned))
+        }
+    }
+
     /// Records giving `entity` the components of `bundles`, replacing any it holds of the same
     /// types.
     @inlinable

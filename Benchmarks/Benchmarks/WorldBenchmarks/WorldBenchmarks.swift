@@ -10,6 +10,7 @@ struct Velocity: Component { var dx: Double, dy: Double }
 struct Health: Component { var current: Int }
 struct Mass: Component { var kilograms: Double }
 struct Sleeping: Component {}
+struct Likes: Relation {}
 
 /// Three components spawned as one bundle.
 struct Body: Bundle {
@@ -179,6 +180,18 @@ let benchmarks: @Sendable () -> Void = {
         benchmark.startMeasurement()
         world.update(Position.self, reading: Velocity.self, where: .without(Sleeping.self)) { position, row in
             position.x += row.components.dx
+        }
+        benchmark.stopMeasurement()
+        blackHole(world)
+    }
+
+    Benchmark("relate every entity to one of a thousand targets") { benchmark in
+        var world = populatedWorld()
+        let entities = world.query(Position.self).map { $0.entity }
+        let targets = Array(entities.prefix(1_000))
+        benchmark.startMeasurement()
+        for (index, entity) in entities.enumerated() {
+            world.relate(entity, Likes(), to: targets[index % targets.count])
         }
         benchmark.stopMeasurement()
         blackHole(world)

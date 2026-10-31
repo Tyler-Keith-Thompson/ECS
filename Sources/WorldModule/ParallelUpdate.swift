@@ -115,8 +115,8 @@ extension World {
             driver = entities
             driverColumn = column
         }
-        for required in resolved.candidates where required.dense.count < driver.count {
-            driver = required.dense
+        for candidate in resolved.candidates where candidate.count < driver.count {
+            driver = candidate
             driverColumn = -1
         }
         var visitedCount = driver.count

@@ -236,6 +236,7 @@ extension World {
             for slot in writtenSlots[index] {
                 columns[slot] = copy.columns[slot]
             }
+            takeRelationIndexes(of: changes[index].access.componentWrites.keys, from: copy)
             for key in changes[index].access.resourceWrites {
                 resources.storage[key] = copy.resources.storage[key]
             }
@@ -288,6 +289,7 @@ extension World {
             let slot = columnPositions.position(of: type)!
             columns[slot] = part.columns[slot]
         }
+        takeRelationIndexes(of: access.componentWrites.keys, from: part)
         for key in access.resourceWrites {
             resources.storage[key] = part.resources.storage[key]
         }

@@ -20,6 +20,22 @@ public struct QueryFilter: Hashable, Sendable {
     @usableFromInline var alternatives: [[QueryFilter]] = []
     /// Disabling component types whose entities the filter does not skip.
     @usableFromInline var allowed: [ObjectIdentifier] = []
+    /// Pairs an entity must be the source of: a relation's ``Targets`` type and a target.
+    @usableFromInline var related: [RelatedTarget] = []
+
+    /// A relation, by its ``Targets`` type, and a target an entity must relate to by it.
+    @frozen
+    @usableFromInline
+    struct RelatedTarget: Hashable, Sendable {
+        @usableFromInline let type: ObjectIdentifier
+        @usableFromInline let target: Entity
+
+        @inlinable
+        init(type: ObjectIdentifier, target: Entity) {
+            self.type = type
+            self.target = target
+        }
+    }
 
     /// A type whose component must carry a tick after `since`, or after the world's
     /// ``World/lastRun`` when `since` is nil.
@@ -50,6 +66,16 @@ public struct QueryFilter: Hashable, Sendable {
     @inlinable
     public static func without<each C: Component>(_ types: repeat (each C).Type) -> QueryFilter {
         QueryFilter().without(repeat each types)
+    }
+
+    /// A filter that passes entities related to `target` by `R`; visits with it walk only the
+    /// target's sources.
+    ///
+    /// To pass entities related by `R` to any target, require the relation's ``Targets``:
+    /// `.with(Targets<R>.self)`.
+    @inlinable
+    public static func related<R: Relation>(_ type: R.Type, to target: Entity) -> QueryFilter {
+        QueryFilter().related(R.self, to: target)
     }
 
     /// A filter that passes entities whose `C` was added after `since`.
@@ -111,6 +137,14 @@ public struct QueryFilter: Hashable, Sendable {
         return filter
     }
 
+    /// This filter, also requiring that entities relate to `target` by `R`.
+    @inlinable
+    public func related<R: Relation>(_ type: R.Type, to target: Entity) -> QueryFilter {
+        var filter = self
+        filter.related.append(RelatedTarget(type: ObjectIdentifier(Targets<R>.self), target: target))
+        return filter
+    }
+
     /// This filter, also requiring that the `C` was added after `since` (nil for the world's
     /// ``World/lastRun``).
     @inlinable
@@ -163,6 +197,7 @@ public struct QueryFilter: Hashable, Sendable {
         filter.changedSince += other.changedSince
         filter.alternatives += other.alternatives
         filter.allowed += other.allowed
+        filter.related += other.related
         return filter
     }
 
@@ -193,6 +228,9 @@ struct ResolvedFilter: Sendable {
     @usableFromInline let isUnsatisfiable: Bool
     /// The entities of a cached query listing every entity the filter passes, or nil.
     @usableFromInline var cached: SparseIndex?
+    /// The sources of each pair the filter requires, as lists to walk and sets to check.
+    @usableFromInline let relatedSources: [[Entity]]
+    @usableFromInline let relatedMembers: [Set<Entity>]
 
     /// A tick-checked column and the tick its components must be newer than.
     @frozen
@@ -246,18 +284,22 @@ struct ResolvedFilter: Sendable {
             index(condition.type).map { ResolvedTickCondition(index: $0, since: condition.since ?? world.lastRun) }
         }
         excluded = filter.excluded.compactMap { type in world.columnPositions.position(of: type).map { world.columns[$0].index } }
+        relatedSources = filter.related.map { pair in
+            world.relationIndexes.first { $0.key == pair.type }?.sources(of: pair.target) ?? []
+        }
+        relatedMembers = relatedSources.map(Set.init)
         alternatives = filter.alternatives.map { group in
             group.map { ResolvedFilter($0, in: world) }.filter { !$0.isUnsatisfiable }
         }
         self.isUnsatisfiable = isUnsatisfiable || alternatives.contains(where: \.isEmpty)
     }
 
-    /// The columns an entity must be in to pass: candidates for the column a visit walks.
+    /// The entity lists an entity must be in to pass: candidates for the list a visit walks.
     @inlinable
-    var candidates: [SparseIndex] {
-        var candidates = required + addedSince.map(\.index) + changedSince.map(\.index)
+    var candidates: [[Entity]] {
+        var candidates = (required + addedSince.map(\.index) + changedSince.map(\.index)).map(\.dense) + relatedSources
         if let cached {
-            candidates.append(cached)
+            candidates.append(cached.dense)
         }
         return candidates
     }
@@ -275,6 +317,7 @@ struct ResolvedFilter: Sendable {
             guard let position = condition.index.position(of: entity),
                   condition.index.ticks[position].changed > condition.since else { return false }
         }
+        for members in relatedMembers where !members.contains(entity) { return false }
         for group in alternatives where !group.contains(where: { $0.passes(entity) }) { return false }
         return true
     }
@@ -283,5 +326,6 @@ struct ResolvedFilter: Sendable {
     @inlinable
     var isEmpty: Bool {
         required.isEmpty && excluded.isEmpty && addedSince.isEmpty && changedSince.isEmpty && alternatives.isEmpty
+            && relatedMembers.isEmpty
     }
 }

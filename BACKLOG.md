@@ -5,9 +5,9 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Relationships as pairs.** `(Relation, target)` components with queries over a relation's
-   target or any target (`Pair<Targets, Wildcard>`), exclusive relations, and cleanup when a
-   target despawns; the hierarchy becomes one relation.
+1. **Hierarchy as a relation.** Rebase `addChild`, `parent(of:)` and recursive despawn on a
+   `ChildOf` relation (exclusive, despawning its sources), so the hierarchy is queryable with
+   `.related(ChildOf.self, to:)` and `Targets<ChildOf>`.
 2. **Observers on custom triggers.** `world.trigger(Explode(), on: entity)` with handlers that can
    propagate up the hierarchy, and observers for an entity starting or stopping to match a
    query.
@@ -78,3 +78,6 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
   storage as `Span` / `MutableSpan`, the mutable one marking every component changed.
 - Cached queries: `cache(_:)` keeps the entities meeting a query's structural conditions
   current, and visits whose conditions imply them walk only those.
+- Relations: `Relation` types (exclusive, carrying values, cleaning up by removing or despawning
+  sources), `relate`/`unrelate`, `targets`/`sources`, `Targets<R>` components, and
+  `.related(_:to:)` filters that walk only a target's sources.

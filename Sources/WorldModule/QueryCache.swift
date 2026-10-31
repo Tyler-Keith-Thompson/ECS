@@ -56,7 +56,7 @@ extension QueryFilter {
     /// passes depends only on which types an entity holds.
     @inlinable
     var isStructural: Bool {
-        addedSince.isEmpty && changedSince.isEmpty && alternatives.allSatisfy { $0.allSatisfy(\.isStructural) }
+        addedSince.isEmpty && changedSince.isEmpty && related.isEmpty && alternatives.allSatisfy { $0.allSatisfy(\.isStructural) }
     }
 
     /// Adds every type the filter requires or excludes, in itself or any alternative.
@@ -92,7 +92,7 @@ extension World {
     /// world.update(Position.self, reading: Velocity.self, where: .without(Sleeping.self)) { … }
     /// ```
     ///
-    /// ``AnyOf`` terms and change-tick filters do not narrow the cache; the visit still checks
+    /// ``AnyOf`` terms, change-tick filters and relation filters do not narrow the cache; the visit still checks
     /// them for each cached entity. Caching the same conditions twice keeps one cache. A copy of
     /// the world keeps its caches; a snapshot does not.
     ///

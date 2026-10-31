@@ -223,11 +223,11 @@ extension World {
     /// Despawns `entity` and its descendants, detaching it from its parent.
     @usableFromInline
     @inline(never)
-    mutating func destroySubtree(_ entity: Entity) {
+    mutating func destroySubtree(_ entity: Entity, cascade: inout [Entity]) {
         hierarchy.unlink(entity)
         for member in hierarchy.subtree(of: entity) {
             hierarchy.forget(member)
-            destroy(member)
+            destroy(member, cascade: &cascade)
         }
     }
 }

@@ -101,18 +101,22 @@ class AnyColumn: @unchecked Sendable {
     @usableFromInline final let read: @Sendable (AnyColumn, Int) -> any Component
     /// The position in its world's groups of the group that owns the column, or -1 for none.
     @usableFromInline final var group = -1
+    /// Whether the column holds a relation's ``Targets``, which the world indexes by target.
+    @usableFromInline final let isRelation: Bool
 
     @inlinable
     init(
         index: SparseIndex,
         swapRemove: @escaping @Sendable (AnyColumn, Int) -> Void,
         swapAt: @escaping @Sendable (AnyColumn, Int, Int) -> Void,
-        read: @escaping @Sendable (AnyColumn, Int) -> any Component
+        read: @escaping @Sendable (AnyColumn, Int) -> any Component,
+        isRelation: Bool
     ) {
         self.index = index
         self.swapRemove = swapRemove
         self.swapAt = swapAt
         self.read = read
+        self.isRelation = isRelation
     }
 
     /// A column holding the same entities and components.
@@ -136,14 +140,15 @@ final class Column<C: Component>: AnyColumn, @unchecked Sendable {
             index: SparseIndex(),
             swapRemove: { column, position in unsafeDowncast(column, to: Column<C>.self).swapRemove(at: position) },
             swapAt: { column, first, second in unsafeDowncast(column, to: Column<C>.self).swapAt(first, second) },
-            read: { column, position in unsafeDowncast(column, to: Column<C>.self).values[position] }
+            read: { column, position in unsafeDowncast(column, to: Column<C>.self).values[position] },
+            isRelation: C.self is any AnyTargets.Type
         )
     }
 
     @inlinable
     init(copying column: Column<C>) {
         values = column.values
-        super.init(index: column.index, swapRemove: column.swapRemove, swapAt: column.swapAt, read: column.read)
+        super.init(index: column.index, swapRemove: column.swapRemove, swapAt: column.swapAt, read: column.read, isRelation: column.isRelation)
         group = column.group
     }
 

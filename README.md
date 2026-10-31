@@ -146,6 +146,10 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
 - **Removal detection**: `world.removed(Health.self, by: Healthbars.self)` lists the entities
   that lost a `Health` since that reader last asked, by removal or despawn; a system takes
   `RemovedComponents<Health>`.
+- **Relations**: `world.relate(alice, Likes(), to: bob)` adds a pair; `targets(Likes.self, of:)`
+  and `sources(Likes.self, of:)` read it both ways, and `.related(Likes.self, to: bob)` visits
+  only bob's sources. Relations can be exclusive, carry values, and despawn their sources with
+  their target.
 - **Hierarchy**: `try world.addChild(turret, to: ship)`; `parent(of:)`, `children(of:)`,
   `ancestors(of:)` and `descendants(of:)` walk it, and despawning an entity despawns its
   descendants.

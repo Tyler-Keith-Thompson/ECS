@@ -69,6 +69,12 @@ public struct QueryView<each C>: Sequence, Sendable {
         QueryView(world: world, filter: filter.allowing(repeat each types), makeReader: makeReader)
     }
 
+    /// This view, keeping only entities related to `target` by `R`.
+    @inlinable
+    public func related<R: Relation>(_ type: R.Type, to target: Entity) -> QueryView {
+        QueryView(world: world, filter: filter.related(R.self, to: target), makeReader: makeReader)
+    }
+
     /// This view, keeping only entities whose `F` was added after `since` (nil for the world's
     /// ``World/lastRun``).
     @inlinable
@@ -131,8 +137,8 @@ public struct QueryView<each C>: Sequence, Sendable {
                 driverColumn = column
                 hasDriver = true
             }
-            for index in resolved.candidates where !hasDriver || index.dense.count < driver.count {
-                driver = index.dense
+            for candidate in resolved.candidates where !hasDriver || candidate.count < driver.count {
+                driver = candidate
                 driverColumn = -1
                 hasDriver = true
             }
@@ -268,6 +274,12 @@ public struct EntityQueryView: Sequence, Sendable {
         EntityQueryView(world: world, filter: filter.allowing(repeat each types))
     }
 
+    /// This view, keeping only entities related to `target` by `R`.
+    @inlinable
+    public func related<R: Relation>(_ type: R.Type, to target: Entity) -> EntityQueryView {
+        EntityQueryView(world: world, filter: filter.related(R.self, to: target))
+    }
+
     /// This view, keeping only entities whose `F` was added after `since` (nil for the world's
     /// ``World/lastRun``).
     @inlinable
@@ -317,8 +329,8 @@ public struct EntityQueryView: Sequence, Sendable {
         init(world: World, filter: QueryFilter) {
             let resolved = ResolvedFilter(filter, in: world, touching: [], terms: [])
             var driver: [Entity]? = nil
-            for index in resolved.candidates where driver == nil || index.dense.count < driver!.count {
-                driver = index.dense
+            for candidate in resolved.candidates where driver == nil || candidate.count < driver!.count {
+                driver = candidate
             }
             self.filter = resolved
             self.driver = resolved.isUnsatisfiable ? [] : driver ?? Array(world.entities)

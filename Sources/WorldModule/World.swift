@@ -37,6 +37,8 @@ public struct World: Sendable {
     @usableFromInline var hooks = Hooks()
     /// The owning groups, each column knowing its group by position here.
     @usableFromInline var groups: [OwningGroup] = []
+    /// Each relation's sources by target, in the order the relations were first stored.
+    @usableFromInline var relationIndexes: [RelationIndex] = []
     /// The cached queries' entities (``cache(_:)``).
     @usableFromInline var caches: [QueryCache] = []
     /// Whether adding and removing components updates the caches, or drops the ones they touch:
@@ -201,11 +203,7 @@ public struct World: Sendable {
     @inlinable
     public mutating func despawn(_ entity: Entity) {
         precondition(contains(entity), "Despawning stale entity \(entity)")
-        if hierarchy.links == 0 {
-            destroy(entity)
-        } else {
-            destroySubtree(entity)
-        }
+        destroyCascading(entity)
         endOperation()
     }
 
@@ -218,11 +216,7 @@ public struct World: Sendable {
     @inlinable
     public mutating func despawn(checked entity: Entity) throws(StaleEntity) {
         guard contains(entity) else { throw StaleEntity() }
-        if hierarchy.links == 0 {
-            destroy(entity)
-        } else {
-            destroySubtree(entity)
-        }
+        destroyCascading(entity)
         endOperation()
     }
 
@@ -482,7 +476,9 @@ public struct World: Sendable {
     @inlinable
     mutating func store<C: Component>(_ component: C, for entity: Entity) {
         let tick = changeTick
+        var isRelation = false
         let group = uniqueUnretainedColumn(at: columnSlot(of: C.self), of: C.self)._withUnsafeGuaranteedRef { column in
+            isRelation = column.isRelation
             if let position = column.index.position(of: entity) {
                 column.values[position] = component
                 column.index.ticks[position].changed = tick
@@ -499,6 +495,9 @@ public struct World: Sendable {
         }
         if added, !caches.isEmpty {
             refreshCaches(ObjectIdentifier(C.self), entity)
+        }
+        if isRelation {
+            reindexTargets(C.self, of: entity)
         }
         if !hooks.isEmpty {
             fireInsertHooks(C.self, for: entity, added: added)
@@ -523,13 +522,18 @@ public struct World: Sendable {
         guard let position = unretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef({ $0.index.position(of: entity) }) else {
             return nil
         }
+        var isRelation = false
         let component = uniqueUnretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef { column in
+            isRelation = column.isRelation
             let component = column.values[position]
             column.swapRemove(at: position)
             return component
         }
         if !caches.isEmpty {
             refreshCaches(ObjectIdentifier(C.self), entity)
+        }
+        if isRelation {
+            reindexTargets(C.self, of: entity)
         }
         if !hooks.isEmpty {
             fireRemoveHooks(component, of: entity)
@@ -550,9 +554,27 @@ public struct World: Sendable {
         return Entity(index: UInt32(generations.count - 1), generation: 0)
     }
 
+    /// Destroys `entity`, its descendants and the sources whose relations despawn with it, one at
+    /// a time rather than recursively.
     @usableFromInline
-    mutating func destroy(_ entity: Entity) {
+    mutating func destroyCascading(_ entity: Entity) {
+        var pending = [entity]
+        while let next = pending.popLast() {
+            guard contains(next) else { continue }
+            if hierarchy.links == 0 {
+                destroy(next, cascade: &pending)
+            } else {
+                destroySubtree(next, cascade: &pending)
+            }
+        }
+    }
+
+    @usableFromInline
+    mutating func destroy(_ entity: Entity, cascade: inout [Entity]) {
         structureVersion &+= 1
+        if !relationIndexes.isEmpty {
+            releaseRelations(of: entity, cascade: &cascade)
+        }
         if !groups.isEmpty {
             leaveGroups(entity)
         }
