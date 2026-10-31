@@ -30,3 +30,11 @@ upstream. Each names the workaround in place; recheck them when the toolchain ch
 - **A named function taking `inout MutableSpan` cannot be passed as a closure** (Swift 6.3 on
   Linux): "argument type 'MutableSpan<…>' does not conform to expected type 'Escapable'". Swift
   6.4 accepts it. Workaround: the span tests pass closure literals to `withMutableSpan(of:_:)`.
+
+## DocC
+
+- **A type-signature disambiguation for a parameter-pack overload doesn't resolve.** For an
+  ambiguous link to `update(_:_:_:reading:where:body:)`, docc suggests
+  `-(_,_,_,(R).Type,_,_)` for the overload taking `repeat (each R).Type`, then reports that
+  link as not found (and `(each R).Type`, `(repeat each R).Type` fail too). Workaround: link the
+  pack overloads by hash (`-1eb26`), read from the page path in the built archive.

@@ -1277,8 +1277,21 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(world[Health.self, of: hero].current, world[Stamina.self, of: hero].current) == #"6 5"#)
     }
 
-    @Test("Sources/WorldModule/ValueIndex.swift:73")
+    @Test("Sources/WorldModule/Update.swift:196")
     func example92() async throws {
+        var world = World()
+        let cart = world.spawn(Position(x: 0, y: 0), Velocity(dx: 4, dy: 0), Health(current: 10))
+
+        world.update(Position.self, Velocity.self, Health.self) { position, velocity, health, _ in
+            position.x += velocity.dx
+            velocity.dx /= 2
+            health.current -= 1
+        }
+        #expect(printed(world[Position.self, of: cart].x, world[Velocity.self, of: cart].dx, world[Health.self, of: cart].current) == #"4.0 2.0 9"#)
+    }
+
+    @Test("Sources/WorldModule/ValueIndex.swift:73")
+    func example93() async throws {
         var world = World()
         let bob = world.spawn(Name(value: "bob"), Health(current: 3))
         world.spawn(Name(value: "ada"), Health(current: 4))
@@ -1288,7 +1301,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/ValueIndex.swift:109")
-    func example93() async throws {
+    func example94() async throws {
         var world = World()
         world.spawn(Name(value: "guard"))
         world.spawn(Name(value: "guard"))
@@ -1298,7 +1311,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:12")
-    func example94() async throws {
+    func example95() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 2))
 
@@ -1307,7 +1320,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:31")
-    func example95() async throws {
+    func example96() async throws {
         var world = World()
         world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
         world.spawn(Position(x: 10, y: 0), Velocity(dx: 0, dy: 2))
@@ -1326,7 +1339,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:61")
-    func example96() async throws {
+    func example97() async throws {
         var world = World()
         let hero = world.spawn(Health(current: 10))
 
@@ -1337,7 +1350,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:82")
-    func example97() async throws {
+    func example98() async throws {
         var world = World()
         let spark = world.spawn(Position(x: 0, y: 0))
         world.despawn(spark)
@@ -1350,7 +1363,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:140")
-    func example98() async throws {
+    func example99() async throws {
         var world = World()
         world.resources.insert(Score(points: 0))
         world.resources[Score.self].points += 10
@@ -1359,7 +1372,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:178")
-    func example99() async throws {
+    func example100() async throws {
         var world = World()
         world.spawn(Health(current: 10))
         let hero = world.spawn(Health(current: 10))
@@ -1373,7 +1386,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:229")
-    func example100() async throws {
+    func example101() async throws {
         var world = World()
         let first = world.spawn(Position(x: 0, y: 0))
         let second = world.spawn()
@@ -1382,7 +1395,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:244")
-    func example101() async throws {
+    func example102() async throws {
         var world = World()
         let spark = world.spawn(Position(x: 0, y: 0))
         #expect(printed(world.contains(spark)) == #"true"#)
@@ -1392,7 +1405,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:270")
-    func example102() async throws {
+    func example103() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
 
@@ -1400,7 +1413,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:391")
-    func example103() async throws {
+    func example104() async throws {
         var world = World()
         let ship = world.spawn(Position(x: 0, y: 0))
         let turret = world.spawn(Position(x: 1, y: 0))
@@ -1411,7 +1424,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:420")
-    func example104() async throws {
+    func example105() async throws {
         var world = World()
         let spark = world.spawn(Position(x: 0, y: 0))
         try world.despawn(checked: spark)
@@ -1421,7 +1434,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:445")
-    func example105() async throws {
+    func example106() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: 0))
 
@@ -1430,7 +1443,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:471")
-    func example106() async throws {
+    func example107() async throws {
         var world = World()
         let hero = world.spawn(Health(current: 100))
 
@@ -1439,7 +1452,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:528")
-    func example107() async throws {
+    func example108() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: 0))
 
@@ -1448,7 +1461,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:559")
-    func example108() async throws {
+    func example109() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: 0))
 
@@ -1457,7 +1470,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:677")
-    func example109() async throws {
+    func example110() async throws {
         var world = World()
         let spark = world.spawn(Position(x: 0, y: 0))
         world.despawn(spark)
@@ -1467,7 +1480,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:708")
-    func example110() async throws {
+    func example111() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
 
@@ -1478,7 +1491,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:760")
-    func example111() async throws {
+    func example112() async throws {
         var world = World()
         world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
         world.spawn(Position(x: 5, y: 5))
@@ -1488,7 +1501,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/World.swift:1004")
-    func example112() async throws {
+    func example113() async throws {
         var world = World()
         world.spawn(Position(x: 0, y: 0))
         world.spawn(Health(current: 10))
@@ -1498,7 +1511,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/QueryingAWorld.md:19")
-    func example113() async throws {
+    func example114() async throws {
         var world = World()
         world.spawn(Name(value: "comet"), Position(x: 1, y: 2), Velocity(dx: 3, dy: 4))
         world.spawn(Name(value: "rock"), Position(x: 0, y: 0))
@@ -1509,7 +1522,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/QueryingAWorld.md:43")
-    func example114() async throws {
+    func example115() async throws {
         var world = World()
         world.spawn(Name(value: "comet"), Velocity(dx: 1, dy: 0))
         world.spawn(Name(value: "statue"), Velocity(dx: 1, dy: 0), Frozen())
@@ -1526,7 +1539,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/QueryingAWorld.md:67")
-    func example115() async throws {
+    func example116() async throws {
         var world = World()
         world.spawn(Position(x: 0, y: 0), Frozen())
         world.spawn(Position(x: 1, y: 1))
@@ -1538,7 +1551,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/QueryingAWorld.md:84")
-    func example116() async throws {
+    func example117() async throws {
         let movers = Query(Position.self, Velocity.self).without(Frozen.self)
 
         var level = World()
@@ -1552,7 +1565,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/QueryingAWorld.md:105")
-    func example117() async throws {
+    func example118() async throws {
         var world = World()
         world.spawn(Name(value: "kite"), Wind(force: 3))
         world.spawn(Name(value: "rocket"), Thrust(force: 5), Wind(force: 1))
@@ -1566,7 +1579,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/QueryingAWorld.md:128")
-    func example118() async throws {
+    func example119() async throws {
         var world = World()
         let comet = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 2))
         let statue = world.spawn(Position(x: 5, y: 5), Velocity(dx: 1, dy: 1), Frozen())
@@ -1580,7 +1593,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/QueryingAWorld.md:146")
-    func example119() async throws {
+    func example120() async throws {
         var world = World()
         let kite = world.spawn(Position(x: 0, y: 0), Wind(force: 2))
         let rocket = world.spawn(Position(x: 0, y: 0), Thrust(force: 5))
@@ -1593,7 +1606,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/QueryingAWorld.md:170")
-    func example120() async throws {
+    func example121() async throws {
         var world = World()
         let hero = world.spawn(Name(value: "hero"), Health(current: 10))
         world.spawn(Name(value: "guard"), Health(current: 8))
@@ -1608,7 +1621,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/QueryingAWorld.md:208")
-    func example121() async throws {
+    func example122() async throws {
         var world = World()
         let comet = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
         world.group(Position.self, Velocity.self)
@@ -1620,7 +1633,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/QueryingAWorld.md:224")
-    func example122() async throws {
+    func example123() async throws {
         var world = World()
         for index in 0 ..< 10 {
             world.spawn(Position(x: Double(index), y: 0), Velocity(dx: 1, dy: 0), Asleep())
@@ -1633,7 +1646,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/QueryingAWorld.md:241")
-    func example123() async throws {
+    func example124() async throws {
         var world = World()
         let ada = world.spawn(Name(value: "ada"), Health(current: 3))
         world.spawn(Name(value: "bob"), Health(current: 4))
@@ -1643,12 +1656,12 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/SavingAndLoadingWorlds.md:25")
-    func example124() async throws {
+    func example125() async throws {
 
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/SavingAndLoadingWorlds.md:38")
-    func example125() async throws {
+    func example126() async throws {
         var world = World()
         let knight = world.spawn(Name(value: "Knight"), Health(current: 10))
         let data = try JSONEncoder().encode(world.snapshot(Name.self, Health.self))
@@ -1659,7 +1672,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/SavingAndLoadingWorlds.md:57")
-    func example126() async throws {
+    func example127() async throws {
         var recorded = World()
         let runner = recorded.spawn(Position(x: 0, y: 0))
         recorded[Position.self, of: runner].x += 1
@@ -1672,7 +1685,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/SavingAndLoadingWorlds.md:76")
-    func example127() async throws {
+    func example128() async throws {
         var registry = TypeRegistry()
         try registry.register(Name.self, named: "Name")
         try registry.register(Health.self, named: "Health")
@@ -1693,7 +1706,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/SavingAndLoadingWorlds.md:109")
-    func example128() async throws {
+    func example129() async throws {
         var registry = TypeRegistry()
         try registry.register(Targets<Likes>.self, named: "Likes")
 
@@ -1710,7 +1723,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/SavingAndLoadingWorlds.md:137")
-    func example129() async throws {
+    func example130() async throws {
         var registry = TypeRegistry()
         try registry.register(Name.self, named: "Name")
         try registry.register(Health.self, named: "Health")
@@ -1727,12 +1740,12 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/WorldModule.md:21")
-    func example130() async throws {
+    func example131() async throws {
 
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/WorldModule.md:34")
-    func example131() async throws {
+    func example132() async throws {
         var world = World()
         let hero = world.spawn(Name(value: "Ada"), Position(x: 0, y: 0), Health(current: 100))
 
@@ -1744,7 +1757,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/WorldModule.md:53")
-    func example132() async throws {
+    func example133() async throws {
         var world = World()
         world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
         world.spawn(Position(x: 5, y: 5), Velocity(dx: 0, dy: -1), Frozen())
@@ -1762,7 +1775,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/WorldModule.md:80")
-    func example133() async throws {
+    func example134() async throws {
         var world = World()
         world.spawn(Health(current: 0))
         world.spawn(Health(current: 40))
@@ -1777,7 +1790,7 @@ struct WorldModuleDocumentationExamples {
     }
 
     @Test("Sources/WorldModule/WorldModule.docc/WorldModule.md:99")
-    func example134() async throws {
+    func example135() async throws {
         var world = World()
         world.resources.insert(Elapsed(seconds: 0))
         world.resources[Elapsed.self].seconds += 0.5

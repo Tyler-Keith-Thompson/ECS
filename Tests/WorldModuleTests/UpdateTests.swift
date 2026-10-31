@@ -1,6 +1,7 @@
 // Each test is self-contained: it builds its own world and states its own expectations.
 
 import ECSTestSupport
+import PropertyBased
 import Testing
 import WorldModule
 
@@ -251,6 +252,132 @@ struct UpdateTests {
             var world = World()
             world.spawn(Position(x: 0, y: 0), Velocity(dx: 0, dy: 0), Health(1))
             world.update(Position.self, Velocity.self, Health.self, over: Query(Health.self)) { _, _, _, _ in }
+        }
+    }
+
+    @Test("A three-type update changes all three components of every entity holding them")
+    func updateThree() {
+        var world = World()
+        let cart = world.spawn(Position(x: 0, y: 0), Velocity(dx: 4, dy: 0), Health(10))
+        let rock = world.spawn(Position(x: 9, y: 9), Health(3))
+        world.update(Position.self, Velocity.self, Health.self) { position, velocity, health, _ in
+            position.x += velocity.dx
+            velocity.dx /= 2
+            health.current -= 1
+        }
+        let movedCart = Position(x: 4, y: 0)
+        let slowedCart = Velocity(dx: 2, dy: 0)
+        let wornCart = Health(9)
+        let untouchedRock = Position(x: 9, y: 9)
+        let rockHealth = Health(3)
+        #expect(world[Position.self, of: cart] == movedCart)
+        #expect(world[Velocity.self, of: cart] == slowedCart)
+        #expect(world[Health.self, of: cart] == wornCart)
+        #expect(world[Position.self, of: rock] == untouchedRock)
+        #expect(world[Health.self, of: rock] == rockHealth)
+    }
+
+    @Test("A three-type update reads the listed types and honors its filter")
+    func updateThreeReadingWhere() {
+        var world = World()
+        let named = world.spawn(First(1), Second(2), Third(3), Name("a"))
+        let frozen = world.spawn(First(1), Second(2), Third(3), Name("b"), Frozen())
+        let unnamed = world.spawn(First(1), Second(2), Third(3))
+        world.update(First.self, Second.self, Third.self, reading: Name.self, where: .without(Frozen.self)) { first, second, third, row in
+            first.value += row.components.text.count
+            second.value += 10
+            third.value += 100
+        }
+        let changed = [2, 12, 103]
+        let unchanged = [1, 2, 3]
+        func values(_ entity: Entity) -> [Int] {
+            [world[First.self, of: entity].value, world[Second.self, of: entity].value, world[Third.self, of: entity].value]
+        }
+        #expect(values(named) == changed)
+        #expect(values(frozen) == unchanged)
+        #expect(values(unnamed) == unchanged)
+    }
+
+    @Test("A three-type update reading two or three types passes them in order")
+    func updateThreeReadingSeveral() {
+        var world = World()
+        let entity = world.spawn(First(0), Second(0), Third(0), Position(x: 1, y: 2), Velocity(dx: 3, dy: 4), Health(5))
+        world.update(First.self, Second.self, Third.self, reading: Position.self, Velocity.self) { first, second, third, row in
+            let (position, velocity) = row.components
+            first.value = Int(position.x)
+            second.value = Int(velocity.dx)
+            third.value = Int(position.y + velocity.dy)
+        }
+        let afterTwo = [1, 3, 6]
+        #expect([world[First.self, of: entity].value, world[Second.self, of: entity].value, world[Third.self, of: entity].value] == afterTwo)
+        world.update(First.self, Second.self, Third.self, reading: Position.self, Velocity.self, Health.self) { first, second, third, row in
+            let (_, _, health) = row.components
+            first.value = health.current
+            second.value = health.current * 2
+            third.value = health.current * 3
+        }
+        let afterThree = [5, 10, 15]
+        #expect([world[First.self, of: entity].value, world[Second.self, of: entity].value, world[Third.self, of: entity].value] == afterThree)
+    }
+
+    @Test("A three-type update marks all three components changed")
+    func updateThreeMarksChanged() {
+        var world = World()
+        let entity = world.spawn(First(0), Second(0), Third(0))
+        let checkpoint = world.changeTick
+        world.advanceChangeTick()
+        world.update(First.self, Second.self, Third.self) { _, _, _, _ in }
+        let expected: [Entity] = [entity]
+        #expect(world.query(First.self).changed(First.self, since: checkpoint).map(\.entity) == expected)
+        #expect(world.query(Second.self).changed(Second.self, since: checkpoint).map(\.entity) == expected)
+        #expect(world.query(Third.self).changed(Third.self, since: checkpoint).map(\.entity) == expected)
+    }
+
+    @Test("A three-type update traps when it writes one type twice")
+    func updateThreeWritesTwiceTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            world.spawn(First(0), Second(0))
+            world.update(First.self, Second.self, First.self) { _, _, _, _ in }
+        }
+    }
+
+    @Test("A three-type update traps when it reads a type it writes")
+    func updateThreeReadsWrittenTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            world.spawn(First(0), Second(0), Third(0))
+            world.update(First.self, Second.self, Third.self, reading: Second.self) { _, _, _, _ in }
+        }
+    }
+
+    @Test("A three-type update agrees with a dictionary model", .tags(.randomized))
+    func updateThreeAgreesWithModel() async {
+        let worlds = Gen.int(in: 0 ... 15).array(of: 0 ... 200)
+        await propertyCheck(count: 200, input: worlds) { masks in
+            var world = World()
+            var expected: [Entity: [Int]] = [:]
+            var entities: [Entity] = []
+            for (value, mask) in masks.enumerated() {
+                let entity = world.spawn()
+                entities.append(entity)
+                if mask & 1 != 0 { world.insert(First(value), into: entity) }
+                if mask & 2 != 0 { world.insert(Second(value), into: entity) }
+                if mask & 4 != 0 { world.insert(Third(value), into: entity) }
+                if mask & 8 != 0 { world.insert(Health(value), into: entity) }
+                if mask == 15 {
+                    expected[entity] = [value + value, value * 2, value - 1]
+                }
+            }
+            world.update(First.self, Second.self, Third.self, reading: Health.self) { first, second, third, row in
+                first.value += row.components.current
+                second.value *= 2
+                third.value -= 1
+            }
+            for entity in entities {
+                guard let values = expected[entity] else { continue }
+                #expect([world[First.self, of: entity].value, world[Second.self, of: entity].value, world[Third.self, of: entity].value] == values)
+            }
         }
     }
 }

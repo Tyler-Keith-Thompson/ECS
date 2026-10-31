@@ -148,8 +148,8 @@ once its wave of systems finishes.
 - **`Query`** is a query as a value, kept and run against any world. `AnyOf<Wind, Current>`
   matches entities holding at least one of its types and yields a tuple of optionals, and
   `.anyOf(…)` filters pass entities meeting at least one condition.
-- **`update`** changes one or two component types in place across every matching entity, reading
-  others, or one to three types over a `Query`. It is the fast path for systems, and
+- **`update`** changes one to three component types in place across every matching entity,
+  reading others, or over a `Query`. It is the fast path for systems, and
   `parallelUpdate` spreads the same work across cores with the same result.
 
 The following example moves everything that has wind or a current, except what is anchored:

@@ -185,6 +185,105 @@ extension World {
         try update(A.self, B.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self), ObjectIdentifier(R3.self)], reader: { world in world.reader(R1.self, R2.self, R3.self) { QueryRow(entity: $0, components: ($1, $2, $3)) } }, filter: filter, body: body)
     }
 
+    /// Changes three components of every entity that holds all three and the given read types,
+    /// in place.
+    ///
+    /// The method visits every entity that holds an `A`, a `B`, a `C` and every type in
+    /// `reading`, and that passes `filter`. Every `A`, `B` and `C` visited is marked changed at
+    /// the world's current ``changeTick``. The following example moves each entity, slows it
+    /// down and wears down its health, in one pass:
+    ///
+    /// ```swift
+    /// var world = World()
+    /// let cart = world.spawn(Position(x: 0, y: 0), Velocity(dx: 4, dy: 0), Health(current: 10))
+    ///
+    /// world.update(Position.self, Velocity.self, Health.self) { position, velocity, health, _ in
+    ///     position.x += velocity.dx
+    ///     velocity.dx /= 2
+    ///     health.current -= 1
+    /// }
+    /// print(world[Position.self, of: cart].x, world[Velocity.self, of: cart].dx, world[Health.self, of: cart].current)
+    /// // Prints "4.0 2.0 9"
+    /// ```
+    ///
+    /// To change three components over a ``Query``, use `update(_:_:_:over:body:)`.
+    ///
+    /// - Parameters:
+    ///   - first: The first component type to change.
+    ///   - second: The second component type to change.
+    ///   - third: The third component type to change.
+    ///   - reading: The component types an entity must also hold, which `body` receives in this
+    ///     order.
+    ///   - filter: Further conditions an entity must meet. The default passes every entity.
+    ///   - body: A closure that changes one entity's components. If it throws, the visit stops and
+    ///     the method rethrows the error; changes already made are kept.
+    /// - Complexity: O(*n*) for *n* entities in the smallest of the types, plus a copy of the
+    ///   storage of `A`, `B` or `C` when another world shares it.
+    /// - Precondition: `A`, `B` and `C` are different types, and `reading` lists none of them.
+    @inlinable
+    public mutating func update<A: Component, B: Component, C: Component, each R: Component, Failure: Error>(
+        _ first: A.Type,
+        _ second: B.Type,
+        _ third: C.Type,
+        reading: repeat (each R).Type,
+        where filter: QueryFilter = QueryFilter(),
+        body: (inout A, inout B, inout C, QueryRow<repeat each R>) throws(Failure) -> Void
+    ) throws(Failure) {
+        var reads: [ObjectIdentifier] = []
+        for read in repeat (each R).self {
+            reads.append(ObjectIdentifier(read))
+        }
+        try update(A.self, B.self, C.self, reads: reads, reader: { world in world.packReader(repeat (each R).self) { entity, components in QueryRow(entity: entity, components: (repeat each components)) } }, filter: filter, body: body)
+    }
+
+    /// Changes three components of every entity that holds all three and the given read types,
+    /// in place.
+    ///
+    /// See `update(_:_:_:reading:where:body:)` for how a visit proceeds.
+    @inlinable
+    public mutating func update<A: Component, B: Component, C: Component, R1: Component, Failure: Error>(
+        _ first: A.Type,
+        _ second: B.Type,
+        _ third: C.Type,
+        reading r1: R1.Type,
+        where filter: QueryFilter = QueryFilter(),
+        body: (inout A, inout B, inout C, QueryRow<R1>) throws(Failure) -> Void
+    ) throws(Failure) {
+        try update(A.self, B.self, C.self, reads: [ObjectIdentifier(R1.self)], reader: { world in world.reader(R1.self) { QueryRow(entity: $0, components: $1) } }, filter: filter, body: body)
+    }
+
+    /// Changes three components of every entity that holds all three and the given read types,
+    /// in place.
+    ///
+    /// See `update(_:_:_:reading:where:body:)` for how a visit proceeds.
+    @inlinable
+    public mutating func update<A: Component, B: Component, C: Component, R1: Component, R2: Component, Failure: Error>(
+        _ first: A.Type,
+        _ second: B.Type,
+        _ third: C.Type,
+        reading r1: R1.Type, _ r2: R2.Type,
+        where filter: QueryFilter = QueryFilter(),
+        body: (inout A, inout B, inout C, QueryRow<R1, R2>) throws(Failure) -> Void
+    ) throws(Failure) {
+        try update(A.self, B.self, C.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self)], reader: { world in world.reader(R1.self, R2.self) { QueryRow(entity: $0, components: ($1, $2)) } }, filter: filter, body: body)
+    }
+
+    /// Changes three components of every entity that holds all three and the given read types,
+    /// in place.
+    ///
+    /// See `update(_:_:_:reading:where:body:)` for how a visit proceeds.
+    @inlinable
+    public mutating func update<A: Component, B: Component, C: Component, R1: Component, R2: Component, R3: Component, Failure: Error>(
+        _ first: A.Type,
+        _ second: B.Type,
+        _ third: C.Type,
+        reading r1: R1.Type, _ r2: R2.Type, _ r3: R3.Type,
+        where filter: QueryFilter = QueryFilter(),
+        body: (inout A, inout B, inout C, QueryRow<R1, R2, R3>) throws(Failure) -> Void
+    ) throws(Failure) {
+        try update(A.self, B.self, C.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self), ObjectIdentifier(R3.self)], reader: { world in world.reader(R1.self, R2.self, R3.self) { QueryRow(entity: $0, components: ($1, $2, $3)) } }, filter: filter, body: body)
+    }
+
     // MARK: The visits
 
     /// Visits every entity holding a `W`, the read types and passing `filter`, changing its `W`.
