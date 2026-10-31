@@ -5,22 +5,20 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Cached queries.** A query state that remembers a `Query`'s matching entities and keeps them
-   current from structural changes, so a narrow query stops walking a large column.
-2. **Relationships as pairs.** `(Relation, target)` components with queries over a relation's
+1. **Relationships as pairs.** `(Relation, target)` components with queries over a relation's
    target or any target (`Pair<Targets, Wildcard>`), exclusive relations, and cleanup when a
    target despawns; the hierarchy becomes one relation.
-3. **Observers on custom triggers.** `world.trigger(Explode(), on: entity)` with handlers that can
+2. **Observers on custom triggers.** `world.trigger(Explode(), on: entity)` with handlers that can
    propagate up the hierarchy, and observers for an entity starting or stopping to match a
    query.
-4. **Indexes by value.** `world.index(Name.self)` keeps a map from a `Hashable` component's value
+3. **Indexes by value.** `world.index(Name.self)` keeps a map from a `Hashable` component's value
    to its entities, current through hooks.
-5. **Scenes and a type registry.** Register component types once; save and load whole worlds
+4. **Scenes and a type registry.** Register component types once; save and load whole worlds
    without listing types per snapshot.
-6. **Swift concurrency bridges.** Events and changes as an `AsyncSequence` (Afluent), and
+5. **Swift concurrency bridges.** Events and changes as an `AsyncSequence` (Afluent), and
    `@MainActor` systems run on the main actor by a schedule.
-7. **Profiling.** Time per system per run, and the schedule's dependency graph as DOT.
-8. **Checked accesses.** A debug-build record of the columns and resources a system with a
+6. **Profiling.** Time per system per run, and the schedule's dependency graph as DOT.
+7. **Checked accesses.** A debug-build record of the columns and resources a system with a
    hand-written `access` touches while it runs concurrently, trapping on undeclared reads as
    undeclared writes already trap. Systems declared by their parameters cannot reach anything
    else, so this covers hand-written conformances only; it needs a lookup check that costs
@@ -78,3 +76,5 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
   `spawn(from:)`, in the world and in commands.
 - Column spans: `withSpan(of:_:)` and `withMutableSpan(of:_:)` lend a component type's
   storage as `Span` / `MutableSpan`, the mutable one marking every component changed.
+- Cached queries: `cache(_:)` keeps the entities meeting a query's structural conditions
+  current, and visits whose conditions imply them walk only those.

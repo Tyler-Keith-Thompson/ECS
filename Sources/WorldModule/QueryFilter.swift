@@ -191,6 +191,8 @@ struct ResolvedFilter: Sendable {
     /// Whether some required or tick-checked type has no column, or some group of alternatives
     /// has no filter that can pass, so nothing passes.
     @usableFromInline let isUnsatisfiable: Bool
+    /// The entities of a cached query listing every entity the filter passes, or nil.
+    @usableFromInline var cached: SparseIndex?
 
     /// A tick-checked column and the tick its components must be newer than.
     @frozen
@@ -207,16 +209,23 @@ struct ResolvedFilter: Sendable {
     }
 
     /// `filter` resolved against `world`, also skipping the entities holding a disabling component
-    /// the filter does not mention and the visit does not read or write (`touching`).
+    /// the filter does not mention and the visit does not read or write (`touching`), for a visit
+    /// whose matched entities all hold `terms`.
     @inlinable
-    init(_ filter: QueryFilter, in world: World, touching: [ObjectIdentifier]) {
+    init(_ filter: QueryFilter, in world: World, touching: [ObjectIdentifier], terms: [ObjectIdentifier]) {
         var defaults = filter
+        var skipped: [ObjectIdentifier] = []
         for type in world.disablingComponents where !touching.contains(type) && !filter.mentions(type) {
+            skipped.append(type)
             if let slot = world.columnPositions.position(of: type), !world.columns[slot].index.dense.isEmpty {
                 defaults.excluded.append(type)
             }
         }
         self.init(defaults, in: world)
+        if !world.caches.isEmpty {
+            cached = world.cachedEntities(
+                required: terms + filter.required, excluded: filter.excluded + skipped, alternatives: filter.alternatives)
+        }
     }
 
     @inlinable
@@ -246,7 +255,11 @@ struct ResolvedFilter: Sendable {
     /// The columns an entity must be in to pass: candidates for the column a visit walks.
     @inlinable
     var candidates: [SparseIndex] {
-        required + addedSince.map(\.index) + changedSince.map(\.index)
+        var candidates = required + addedSince.map(\.index) + changedSince.map(\.index)
+        if let cached {
+            candidates.append(cached)
+        }
+        return candidates
     }
 
     /// Whether `entity` holds every required type, no excluded one, and components new enough.

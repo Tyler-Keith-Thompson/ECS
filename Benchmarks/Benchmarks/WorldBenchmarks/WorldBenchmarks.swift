@@ -9,6 +9,7 @@ struct Position: Component { var x: Double, y: Double }
 struct Velocity: Component { var dx: Double, dy: Double }
 struct Health: Component { var current: Int }
 struct Mass: Component { var kilograms: Double }
+struct Sleeping: Component {}
 
 /// Three components spawned as one bundle.
 struct Body: Bundle {
@@ -49,6 +50,15 @@ func populatedWorld() -> World {
         let entity = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 1))
         if value.isMultiple(of: 3) { world.insert(Health(current: 1), into: entity) }
         if value.isMultiple(of: 5) { world.insert(Mass(kilograms: 1), into: entity) }
+    }
+    return world
+}
+
+/// `populatedWorld()` with every entity but each hundredth asleep.
+func mostlySleepingWorld() -> World {
+    var world = populatedWorld()
+    for (index, entity) in world.query(Position.self).map({ $0.entity }).enumerated() where !index.isMultiple(of: 100) {
+        world.insert(Sleeping(), into: entity)
     }
     return world
 }
@@ -148,6 +158,27 @@ let benchmarks: @Sendable () -> Void = {
         benchmark.startMeasurement()
         world.update(Position.self, reading: Velocity.self, Mass.self) { position, row in
             position.x += row.components.0.dx / row.components.1.kilograms
+        }
+        benchmark.stopMeasurement()
+        blackHole(world)
+    }
+
+    Benchmark("update one type reading one, a hundredth awake") { benchmark in
+        var world = mostlySleepingWorld()
+        benchmark.startMeasurement()
+        world.update(Position.self, reading: Velocity.self, where: .without(Sleeping.self)) { position, row in
+            position.x += row.components.dx
+        }
+        benchmark.stopMeasurement()
+        blackHole(world)
+    }
+
+    Benchmark("update one type reading one, a hundredth awake, cached") { benchmark in
+        var world = mostlySleepingWorld()
+        world.cache(Query(Position.self, Velocity.self).without(Sleeping.self))
+        benchmark.startMeasurement()
+        world.update(Position.self, reading: Velocity.self, where: .without(Sleeping.self)) { position, row in
+            position.x += row.components.dx
         }
         benchmark.stopMeasurement()
         blackHole(world)

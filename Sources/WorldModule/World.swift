@@ -37,6 +37,13 @@ public struct World: Sendable {
     @usableFromInline var hooks = Hooks()
     /// The owning groups, each column knowing its group by position here.
     @usableFromInline var groups: [OwningGroup] = []
+    /// The cached queries' entities (``cache(_:)``).
+    @usableFromInline var caches: [QueryCache] = []
+    /// Whether adding and removing components updates the caches, or drops the ones they touch:
+    /// false in a part split off for a concurrent change.
+    @usableFromInline var refreshesCaches = true
+    /// The parts split off with ``split(writing:)`` and not yet merged back.
+    @usableFromInline var splitParts = 0
     /// Counts changes to which entities are live and to the hierarchy.
     @usableFromInline var structureVersion: UInt64 = 0
     /// The component types whose entities queries skip unless they mention them.
@@ -490,6 +497,9 @@ public struct World: Sendable {
         if group >= 0 {
             joinGroup(group, entity)
         }
+        if added, !caches.isEmpty {
+            refreshCaches(ObjectIdentifier(C.self), entity)
+        }
         if !hooks.isEmpty {
             fireInsertHooks(C.self, for: entity, added: added)
         }
@@ -518,6 +528,9 @@ public struct World: Sendable {
             column.swapRemove(at: position)
             return component
         }
+        if !caches.isEmpty {
+            refreshCaches(ObjectIdentifier(C.self), entity)
+        }
         if !hooks.isEmpty {
             fireRemoveHooks(component, of: entity)
         }
@@ -542,6 +555,9 @@ public struct World: Sendable {
         structureVersion &+= 1
         if !groups.isEmpty {
             leaveGroups(entity)
+        }
+        if !caches.isEmpty {
+            leaveCaches(entity)
         }
         if !hooks.isEmpty {
             fireDespawnHooks(for: entity)

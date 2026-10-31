@@ -122,7 +122,7 @@ public struct QueryView<each C>: Sequence, Sendable {
 
         @inlinable
         init(world: World, filter: QueryFilter, reader: Reader<(entity: Entity, repeat each C)>) {
-            let resolved = ResolvedFilter(filter, in: world, touching: reader.types)
+            let resolved = ResolvedFilter(filter, in: world, touching: reader.types, terms: reader.types)
             var driver: [Entity] = []
             var driverColumn = -1
             var hasDriver = false
@@ -315,7 +315,7 @@ public struct EntityQueryView: Sequence, Sendable {
 
         @inlinable
         init(world: World, filter: QueryFilter) {
-            let resolved = ResolvedFilter(filter, in: world, touching: [])
+            let resolved = ResolvedFilter(filter, in: world, touching: [], terms: [])
             var driver: [Entity]? = nil
             for index in resolved.candidates where driver == nil || index.dense.count < driver!.count {
                 driver = index.dense

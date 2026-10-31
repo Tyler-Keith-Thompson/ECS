@@ -121,6 +121,8 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   reading any others, or one to three types over a `Query`. This is the fast path for systems. `parallelUpdate` spreads one across cores, with
   the same result. `world.group(Position.self, Velocity.self)` keeps two or more types
   packed in the same order, so queries and updates over exactly those types make no lookups.
+  `world.cache(Query(Position.self).without(Sleeping.self))` keeps the entities a query matches
+  current, so a visit implying it walks only those rather than a whole column.
 - **Change detection**: every component remembers when it was added and last changed.
   `query(…).changed(Position.self)` inside a system lists what changed since that system last
   ran; `.added(…)` lists what is new. Outside a schedule, pass a tick: `since: checkpoint`.

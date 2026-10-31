@@ -163,9 +163,9 @@ extension World {
     ) throws(Failure) {
         precondition(!reads.contains(ObjectIdentifier(W.self)), "update reads the \(W.self) it writes")
         guard let slot = columnPositions.position(of: ObjectIdentifier(W.self)) else { return }
-        let resolved = ResolvedFilter(filter, in: self, touching: reads + [ObjectIdentifier(W.self)])
-        guard !resolved.isUnsatisfiable else { return }
         let reader = makeReader(self)
+        let resolved = ResolvedFilter(filter, in: self, touching: reads + [ObjectIdentifier(W.self)], terms: reader.types + [ObjectIdentifier(W.self)])
+        guard !resolved.isUnsatisfiable else { return }
         let column = uniqueColumn(at: slot, of: W.self)
         // Moved out for the visit so writes reach the storage directly and are not copied; the
         // ticks before the index is copied, which would otherwise share them.
@@ -235,9 +235,10 @@ extension World {
             "update reads a type it writes")
         guard let firstSlot = columnPositions.position(of: ObjectIdentifier(A.self)),
               let secondSlot = columnPositions.position(of: ObjectIdentifier(B.self)) else { return }
-        let resolved = ResolvedFilter(filter, in: self, touching: reads + [ObjectIdentifier(A.self), ObjectIdentifier(B.self)])
-        guard !resolved.isUnsatisfiable else { return }
         let reader = makeReader(self)
+        let written = [ObjectIdentifier(A.self), ObjectIdentifier(B.self)]
+        let resolved = ResolvedFilter(filter, in: self, touching: reads + written, terms: reader.types + written)
+        guard !resolved.isUnsatisfiable else { return }
         let firstColumn = uniqueColumn(at: firstSlot, of: A.self)
         let secondColumn = uniqueColumn(at: secondSlot, of: B.self)
         var firstValues: [A] = []
@@ -328,9 +329,9 @@ extension World {
         guard let firstSlot = columnPositions.position(of: ObjectIdentifier(A.self)),
               let secondSlot = columnPositions.position(of: ObjectIdentifier(B.self)),
               let thirdSlot = columnPositions.position(of: ObjectIdentifier(C.self)) else { return }
-        let resolved = ResolvedFilter(filter, in: self, touching: reads + written)
-        guard !resolved.isUnsatisfiable else { return }
         let reader = makeReader(self)
+        let resolved = ResolvedFilter(filter, in: self, touching: reads + written, terms: reader.types + written)
+        guard !resolved.isUnsatisfiable else { return }
         let firstColumn = uniqueColumn(at: firstSlot, of: A.self)
         let secondColumn = uniqueColumn(at: secondSlot, of: B.self)
         let thirdColumn = uniqueColumn(at: thirdSlot, of: C.self)

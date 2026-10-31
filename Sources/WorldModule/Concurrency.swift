@@ -200,7 +200,8 @@ extension World {
             }
             movedResources.append(resourcesMoved)
         }
-        let base = self
+        var base = self
+        base.refreshesCaches = false
         var copies: [World] = []
         for index in changes.indices {
             var copy = base
@@ -239,7 +240,9 @@ extension World {
                 resources.storage[key] = copy.resources.storage[key]
             }
             queuedCommands += copy.queuedCommands[base.queuedCommands.count...]
+            markCachesStale(droppedBy: copy)
         }
+        rebuildStaleCaches()
     }
 }
 
@@ -272,6 +275,8 @@ extension World {
         // `part` shares the columns array; dropping the written columns from this world's copy
         // of it left `part` the only holder.
         part.queuedCommands = []
+        part.refreshesCaches = false
+        splitParts += 1
         return part
     }
 
@@ -287,5 +292,8 @@ extension World {
             resources.storage[key] = part.resources.storage[key]
         }
         queuedCommands += part.queuedCommands
+        splitParts = max(splitParts - 1, 0)
+        markCachesStale(droppedBy: part)
+        rebuildStaleCaches()
     }
 }
