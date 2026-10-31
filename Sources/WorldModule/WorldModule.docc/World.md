@@ -113,9 +113,13 @@
 - ``removeParent(of:)``
 - ``removeParent(checkedOf:)``
 - ``parent(of:)``
+- ``parent(checkedOf:)``
 - ``children(of:)``
+- ``children(checkedOf:)``
 - ``ancestors(of:)``
+- ``ancestors(checkedOf:)``
 - ``descendants(of:)``
+- ``descendants(checkedOf:)``
 
 ### Relating Entities
 
@@ -124,7 +128,9 @@
 - ``unrelate(_:_:from:)``
 - ``unrelate(_:_:checkedFrom:)``
 - ``targets(_:of:)``
+- ``targets(_:checkedOf:)``
 - ``sources(_:of:)``
+- ``sources(_:checkedOf:)``
 
 ### Working with Resources
 

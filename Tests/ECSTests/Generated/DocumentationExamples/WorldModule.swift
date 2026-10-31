@@ -569,7 +569,7 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(world.contains(lifeboat)) == #"true"#)
     }
 
-    @Test("Sources/WorldModule/Hierarchy.swift:321")
+    @Test("Sources/WorldModule/Hierarchy.swift:352")
     func example34() async throws {
         var world = World()
         let ship = world.spawn(Name(value: "Ship"))
@@ -582,7 +582,7 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(chain) == #"["Turret", "Ship"]"#)
     }
 
-    @Test("Sources/WorldModule/Hierarchy.swift:349")
+    @Test("Sources/WorldModule/Hierarchy.swift:395")
     func example35() async throws {
         var world = World()
         let ship = world.spawn(Position(x: 0, y: 0))

@@ -413,11 +413,28 @@ extension World {
     /// - Parameters:
     ///   - type: The relation type.
     ///   - source: The entity the links start from.
-    /// - Returns: The targets of `source`, or an empty array if it has none or isn't live.
+    /// - Returns: The targets of `source`, or an empty array if it has none.
+    /// - Precondition: `source` is live. The checked spelling, ``targets(_:checkedOf:)``,
+    ///   throws instead.
     /// - Complexity: O(1).
     @inlinable
     public func targets<R: Relation>(_ type: R.Type, of source: Entity) -> [Entity] {
-        (try? self[checked: Targets<R>.self, of: source])?.entities ?? []
+        precondition(contains(source), "Reading the targets of stale entity \(source)")
+        return liveTargets(R.self, of: source)
+    }
+
+    /// Returns the entities a source relates to by a relation, throwing if the source is stale.
+    ///
+    /// - Parameters:
+    ///   - type: The relation type.
+    ///   - source: The entity the links start from.
+    /// - Returns: The targets of `source`, or an empty array if it has none.
+    /// - Throws: ``StaleEntity`` if `source` isn't live.
+    /// - Complexity: O(1).
+    @inlinable
+    public func targets<R: Relation>(_ type: R.Type, checkedOf source: Entity) throws(StaleEntity) -> [Entity] {
+        guard contains(source) else { throw StaleEntity() }
+        return liveTargets(R.self, of: source)
     }
 
     /// Returns the entities that relate to a target by a relation, in the order they were
@@ -426,12 +443,40 @@ extension World {
     /// - Parameters:
     ///   - type: The relation type.
     ///   - target: The entity the links point to.
-    /// - Returns: The sources related to `target`, or an empty array if it has none or isn't
-    ///   live.
+    /// - Returns: The sources related to `target`, or an empty array if it has none.
+    /// - Precondition: `target` is live. The checked spelling, ``sources(_:checkedOf:)``,
+    ///   throws instead.
     /// - Complexity: O(*r*), where *r* is the number of relation types the world has stored.
     @inlinable
     public func sources<R: Relation>(_ type: R.Type, of target: Entity) -> [Entity] {
-        guard contains(target) else { return [] }
+        precondition(contains(target), "Reading the sources of stale entity \(target)")
+        return liveSources(R.self, of: target)
+    }
+
+    /// Returns the entities that relate to a target by a relation, throwing if the target is
+    /// stale.
+    ///
+    /// - Parameters:
+    ///   - type: The relation type.
+    ///   - target: The entity the links point to.
+    /// - Returns: The sources related to `target`, or an empty array if it has none.
+    /// - Throws: ``StaleEntity`` if `target` isn't live.
+    /// - Complexity: O(*r*), where *r* is the number of relation types the world has stored.
+    @inlinable
+    public func sources<R: Relation>(_ type: R.Type, checkedOf target: Entity) throws(StaleEntity) -> [Entity] {
+        guard contains(target) else { throw StaleEntity() }
+        return liveSources(R.self, of: target)
+    }
+
+    /// The targets of the live `source` by `R`.
+    @inlinable
+    func liveTargets<R: Relation>(_ type: R.Type, of source: Entity) -> [Entity] {
+        (try? self[checked: Targets<R>.self, of: source])?.entities ?? []
+    }
+
+    /// The sources related to the live `target` by `R`.
+    @inlinable
+    func liveSources<R: Relation>(_ type: R.Type, of target: Entity) -> [Entity] {
         let key = ObjectIdentifier(Targets<R>.self)
         return relationIndexes.first { $0.key == key }?.sources(of: target) ?? []
     }

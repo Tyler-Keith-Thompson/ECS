@@ -150,8 +150,8 @@ struct RelationTests {
         #expect(world.count == none)
     }
 
-    @Test("A stale entity has no targets and no sources, even after its slot is reused")
-    func staleReads() {
+    @Test("The checked readers throw StaleEntity for a stale entity, even after its slot is reused")
+    func staleReads() throws {
         var world = World()
         let alice = world.spawn()
         let bob = world.spawn()
@@ -165,10 +165,35 @@ struct RelationTests {
         let reusedOnly: [Entity] = [reused]
         let bobOnly: [Entity] = [bob]
         #expect(reused.index == alice.index)
-        #expect(world.targets(Likes.self, of: alice) == none)
-        #expect(world.sources(Likes.self, of: alice) == none)
+        #expect(throws: StaleEntity()) { try world.targets(Likes.self, checkedOf: alice) }
+        #expect(throws: StaleEntity()) { try world.sources(Likes.self, checkedOf: alice) }
+        #expect(try world.targets(Likes.self, checkedOf: reused) == bobOnly)
+        #expect(try world.sources(Likes.self, checkedOf: bob) == reusedOnly)
+        #expect(try world.targets(Likes.self, checkedOf: bob) == reusedOnly)
         #expect(world.targets(Likes.self, of: reused) == bobOnly)
-        #expect(world.sources(Likes.self, of: bob) == reusedOnly)
+        #expect(world.sources(Likes.self, of: reused) == bobOnly)
+        let loner = world.spawn()
+        #expect(try world.sources(Likes.self, checkedOf: loner) == none)
+    }
+
+    @Test("Reading the targets of a stale entity traps")
+    func targetsOfStaleTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            let gone = world.spawn()
+            world.despawn(gone)
+            _ = world.targets(Likes.self, of: gone)
+        }
+    }
+
+    @Test("Reading the sources of a stale entity traps")
+    func sourcesOfStaleTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            let gone = world.spawn()
+            world.despawn(gone)
+            _ = world.sources(Likes.self, of: gone)
+        }
     }
 
     @Test("A relation by default relates a source to any number of targets and removes pairs when a target is despawned")

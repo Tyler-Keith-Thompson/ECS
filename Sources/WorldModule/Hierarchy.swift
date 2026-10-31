@@ -296,21 +296,52 @@ extension World {
     /// Returns the parent of an entity.
     ///
     /// - Parameter entity: The entity whose parent to find.
-    /// - Returns: The parent of `entity`, or `nil` if it has none or isn't live.
+    /// - Returns: The parent of `entity`, or `nil` if it has none.
+    /// - Precondition: `entity` is live. The checked spelling, ``parent(checkedOf:)``, throws
+    ///   instead.
     /// - Complexity: O(1).
     @inlinable
     public func parent(of entity: Entity) -> Entity? {
-        (try? self[checked: Targets<ChildOf>.self, of: entity])?.entities.first
+        precondition(contains(entity), "Reading the parent of stale entity \(entity)")
+        return liveTargets(ChildOf.self, of: entity).first
+    }
+
+    /// Returns the parent of an entity, throwing if the entity is stale.
+    ///
+    /// - Parameter entity: The entity whose parent to find.
+    /// - Returns: The parent of `entity`, or `nil` if it has none.
+    /// - Throws: ``StaleEntity`` if `entity` isn't live.
+    /// - Complexity: O(1).
+    @inlinable
+    public func parent(checkedOf entity: Entity) throws(StaleEntity) -> Entity? {
+        guard contains(entity) else { throw StaleEntity() }
+        return liveTargets(ChildOf.self, of: entity).first
     }
 
     /// Returns the children of an entity, in the order they were added.
     ///
     /// - Parameter entity: The entity whose children to list.
-    /// - Returns: The children of `entity`, or an empty array if it has none or isn't live.
+    /// - Returns: The children of `entity`, or an empty array if it has none.
+    /// - Precondition: `entity` is live. The checked spelling, ``children(checkedOf:)``, throws
+    ///   instead.
     /// - Complexity: O(*r*), where *r* is the number of relation types the world has stored.
     @inlinable
     public func children(of entity: Entity) -> [Entity] {
-        sources(ChildOf.self, of: entity)
+        precondition(contains(entity), "Reading the children of stale entity \(entity)")
+        return liveSources(ChildOf.self, of: entity)
+    }
+
+    /// Returns the children of an entity, in the order they were added, throwing if the entity
+    /// is stale.
+    ///
+    /// - Parameter entity: The entity whose children to list.
+    /// - Returns: The children of `entity`, or an empty array if it has none.
+    /// - Throws: ``StaleEntity`` if `entity` isn't live.
+    /// - Complexity: O(*r*), where *r* is the number of relation types the world has stored.
+    @inlinable
+    public func children(checkedOf entity: Entity) throws(StaleEntity) -> [Entity] {
+        guard contains(entity) else { throw StaleEntity() }
+        return liveSources(ChildOf.self, of: entity)
     }
 
     /// Returns the ancestors of an entity, from its parent up to the root of its tree.
@@ -333,11 +364,26 @@ extension World {
     ///
     /// - Parameter entity: The entity whose ancestors to walk.
     /// - Returns: A view of the ancestors of `entity`, its parent first and its root last; empty
-    ///   if it has no parent or isn't live.
+    ///   if it has no parent.
+    /// - Precondition: `entity` is live. The checked spelling, ``ancestors(checkedOf:)``, throws
+    ///   instead.
     /// - Complexity: O(1). Each step of the walk is O(1).
     @inlinable
     public func ancestors(of entity: Entity) -> AncestorsView {
         AncestorsView(index: childOfIndex, first: parent(of: entity))
+    }
+
+    /// Returns the ancestors of an entity, from its parent up to the root of its tree, throwing
+    /// if the entity is stale.
+    ///
+    /// - Parameter entity: The entity whose ancestors to walk.
+    /// - Returns: A view of the ancestors of `entity`, its parent first and its root last; empty
+    ///   if it has no parent.
+    /// - Throws: ``StaleEntity`` if `entity` isn't live.
+    /// - Complexity: O(1). Each step of the walk is O(1).
+    @inlinable
+    public func ancestors(checkedOf entity: Entity) throws(StaleEntity) -> AncestorsView {
+        AncestorsView(index: childOfIndex, first: try parent(checkedOf: entity))
     }
 
     /// Returns the descendants of an entity, depth-first.
@@ -362,12 +408,24 @@ extension World {
     /// ```
     ///
     /// - Parameter entity: The entity whose descendants to walk.
-    /// - Returns: A view of the descendants of `entity`; empty if it has no children or isn't
-    ///   live.
+    /// - Returns: A view of the descendants of `entity`; empty if it has no children.
+    /// - Precondition: `entity` is live. The checked spelling, ``descendants(checkedOf:)``,
+    ///   throws instead.
     /// - Complexity: O(1). Walking the view is O(*n*), where *n* is the number of descendants.
     @inlinable
     public func descendants(of entity: Entity) -> DescendantsView {
         DescendantsView(index: childOfIndex, roots: children(of: entity))
+    }
+
+    /// Returns the descendants of an entity, depth-first, throwing if the entity is stale.
+    ///
+    /// - Parameter entity: The entity whose descendants to walk.
+    /// - Returns: A view of the descendants of `entity`; empty if it has no children.
+    /// - Throws: ``StaleEntity`` if `entity` isn't live.
+    /// - Complexity: O(1). Walking the view is O(*n*), where *n* is the number of descendants.
+    @inlinable
+    public func descendants(checkedOf entity: Entity) throws(StaleEntity) -> DescendantsView {
+        DescendantsView(index: childOfIndex, roots: try children(checkedOf: entity))
     }
 
     /// The index of the ``ChildOf`` relation, empty if no entity has had a parent.
@@ -399,7 +457,7 @@ extension World {
     /// Makes `child` the last child of `parent`, without ending the operation.
     @inlinable
     mutating func link(_ child: Entity, to parent: Entity) {
-        if let current = self.parent(of: child) {
+        if let current = liveTargets(ChildOf.self, of: child).first {
             removeTarget(ChildOf.self, current, from: child)
         }
         storeRelation(ChildOf(), from: child, to: parent)
@@ -408,7 +466,7 @@ extension World {
     /// Detaches `child` from its parent, returning the parent, without ending the operation.
     @inlinable
     mutating func unlink(_ child: Entity) -> Entity? {
-        guard let parent = parent(of: child) else { return nil }
+        guard let parent = liveTargets(ChildOf.self, of: child).first else { return nil }
         removeTarget(ChildOf.self, parent, from: child)
         return parent
     }

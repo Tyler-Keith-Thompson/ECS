@@ -238,7 +238,7 @@ struct HierarchyTests {
         #expect(world.children(of: reusedChild) == none)
     }
 
-    @Test("A stale entity reads as having no parent or children")
+    @Test("The checked readers throw StaleEntity for a stale entity and read a live one")
     func staleReads() throws {
         var world = World()
         let parent = world.spawn()
@@ -246,12 +246,57 @@ struct HierarchyTests {
         try world.addChild(child, to: parent)
         let copy = world
         world.despawn(parent)
-        let none: [Entity] = []
-        #expect(world.parent(of: child) == nil)
-        #expect(world.children(of: parent) == none)
-        #expect(Array(world.descendants(of: parent)) == none)
-        #expect(Array(world.ancestors(of: child)) == none)
-        #expect(copy.parent(of: child) == parent)
+        let childOnly: [Entity] = [child]
+        let parentOnly: [Entity] = [parent]
+        #expect(throws: StaleEntity()) { try world.parent(checkedOf: child) }
+        #expect(throws: StaleEntity()) { try world.children(checkedOf: parent) }
+        #expect(throws: StaleEntity()) { try world.descendants(checkedOf: parent) }
+        #expect(throws: StaleEntity()) { try world.ancestors(checkedOf: child) }
+        #expect(try copy.parent(checkedOf: child) == parent)
+        #expect(try copy.parent(checkedOf: parent) == nil)
+        #expect(try copy.children(checkedOf: parent) == childOnly)
+        #expect(Array(try copy.descendants(checkedOf: parent)) == childOnly)
+        #expect(Array(try copy.ancestors(checkedOf: child)) == parentOnly)
+    }
+
+    @Test("Reading the parent of a stale entity traps")
+    func parentOfStaleTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            let gone = world.spawn()
+            world.despawn(gone)
+            _ = world.parent(of: gone)
+        }
+    }
+
+    @Test("Reading the children of a stale entity traps")
+    func childrenOfStaleTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            let gone = world.spawn()
+            world.despawn(gone)
+            _ = world.children(of: gone)
+        }
+    }
+
+    @Test("Walking the ancestors of a stale entity traps")
+    func ancestorsOfStaleTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            let gone = world.spawn()
+            world.despawn(gone)
+            _ = world.ancestors(of: gone)
+        }
+    }
+
+    @Test("Walking the descendants of a stale entity traps")
+    func descendantsOfStaleTraps() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            let gone = world.spawn()
+            world.despawn(gone)
+            _ = world.descendants(of: gone)
+        }
     }
 
     @Test("A copy of a world keeps its hierarchy apart from the original")
