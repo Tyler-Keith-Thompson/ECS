@@ -120,8 +120,9 @@ extension World {
             driverColumn = -1
         }
         let checksFilter = !resolved.isEmpty
-        let chunkCount = max(1, driver.count / minimumChunk)
-        let chunkSize = (driver.count + chunkCount - 1) / chunkCount
+        let entityCount = driver.count
+        let chunkCount = max(1, entityCount / minimumChunk)
+        let chunkSize = (entityCount + chunkCount - 1) / chunkCount
 
         ticks.withUnsafeMutableBufferPointer { ticks in
             values.withUnsafeMutableBufferPointer { values in
@@ -131,11 +132,11 @@ extension World {
                     checksFilter: checksFilter, reader: reader, tick: tick, ticks: ticks, values: values, body: body
                 )
                 if chunkCount == 1 {
-                    visit.run(driver.indices)
+                    visit.run(0 ..< entityCount)
                 } else {
                     DispatchQueue.concurrentPerform(iterations: chunkCount) { chunk in
-                        let start = min(chunk * chunkSize, driver.count)
-                        visit.run(start ..< min(start + chunkSize, driver.count))
+                        let start = min(chunk * chunkSize, entityCount)
+                        visit.run(start ..< min(start + chunkSize, entityCount))
                     }
                 }
             }
