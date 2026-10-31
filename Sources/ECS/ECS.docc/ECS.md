@@ -8,7 +8,9 @@ systems run on it in a declared order.
 A ``WorldModule/World`` holds entities and the components they hold, one sparse set per component
 type, plus resources it holds once. It is a copy-on-write value, so copies are cheap and
 independent. Systems read and change it with queries, in-place updates and deferred commands, and a
-``Systems/Schedule`` runs them in the order written, adjusted by `after` and `before` constraints.
+``Systems/Schedule`` runs them as though in the order written, adjusted by `after` and `before`
+constraints, at the same time where they do not conflict. A ``SimulationModule/Simulation`` steps
+a world frame by frame through schedules by label, with a fixed timestep and states.
 
 Plain spellings trap on a stale entity or a missing component, like an array subscript; `checked`
 spellings throw a typed error instead.
@@ -37,3 +39,4 @@ print(world[Position.self, of: ball])  // Position(x: 1.0, y: 2.0)
 
 - ``WorldModule``
 - ``Systems``
+- ``SimulationModule``

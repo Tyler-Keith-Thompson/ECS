@@ -161,6 +161,11 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   comes from its parameters, or from `access` declared by hand; a system without one runs alone.
   `ambiguities()` lists conflicting systems no constraint orders, whose order rests on how they
   were written.
+- **`Simulation`**: a world and schedules by label, stepped with `update(elapsed:)`:
+  `.startup` before the first frame, then each frame `.fixedUpdate` once per fixed timestep
+  elapsed and `.update`. A `States` type (`enum GameState: States { … }`) runs `.onEnter`,
+  `.onExit` and `.onTransition` schedules when a system sets `NextState`, and `inState(…)` is a
+  run condition.
 
 Queries and updates of up to three types have overloads the compiler fully specializes; more types
 go through a parameter pack.
@@ -170,7 +175,8 @@ go through a parameter pack.
 | Module | Holds |
 |---|---|
 | `WorldModule` | `World`, `Entity`, `Component`, `Resource`, queries, updates and `Commands` |
-| `Systems` | `System` and `Schedule`, ordered with [Grafluent](https://github.com/Tyler-Keith-Thompson/Grafluent) |
+| `Systems` | `System`, `@System` and its parameters, and `Schedule`, ordered with [Grafluent](https://github.com/Tyler-Keith-Thompson/Grafluent) |
+| `SimulationModule` | `Simulation`: a world and its schedules by label, a fixed timestep and states |
 
 ## Development
 

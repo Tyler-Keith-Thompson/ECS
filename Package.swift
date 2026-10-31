@@ -16,6 +16,7 @@ let products: [Product] = [
     .library(name: "ECS", targets: ["ECS"]),
     .library(name: "WorldModule", targets: ["WorldModule"]),
     .library(name: "Systems", targets: ["Systems"]),
+    .library(name: "SimulationModule", targets: ["SimulationModule"]),
 ]
 
 let dependencies: [Package.Dependency] = [
@@ -29,17 +30,19 @@ let targets: [Target] = [
     .target(name: "WorldModule", exclude: bazelFiles),
     // Scheduling
     .target(name: "Systems", dependencies: ["WorldModule", "SystemMacros", .product(name: "Traversal", package: "grafluent")], exclude: bazelFiles),
+    .target(name: "SimulationModule", dependencies: ["WorldModule", "Systems"], exclude: bazelFiles),
     // Scheduling: compiler plugin
     .macro(name: "SystemMacros", dependencies: [.product(name: "SwiftSyntax", package: "swift-syntax"), .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax"), .product(name: "SwiftCompilerPlugin", package: "swift-syntax"), .product(name: "SwiftDiagnostics", package: "swift-syntax")], exclude: bazelFiles),
 
     // Umbrella: `import ECS` imports every module.
-    .target(name: "ECS", dependencies: ["WorldModule", "Systems"], exclude: bazelFiles),
+    .target(name: "ECS", dependencies: ["WorldModule", "Systems", "SimulationModule"], exclude: bazelFiles),
 
     // Shared fixtures (data only) for every test target.
     .target(name: "ECSTestSupport", dependencies: ["WorldModule"], path: "Tests/ECSTestSupport", exclude: bazelFiles),
 
     .testTarget(name: "WorldModuleTests", dependencies: ["WorldModule", "ECSTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "Performance"]),
     .testTarget(name: "SystemsTests", dependencies: ["Systems", "WorldModule", "ECSTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: bazelFiles),
+    .testTarget(name: "SimulationModuleTests", dependencies: ["SimulationModule", "Systems", "WorldModule", "ECSTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: bazelFiles),
     .testTarget(name: "SystemMacrosTests", dependencies: ["SystemMacros", .product(name: "SwiftSyntax", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax"), .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax"), .product(name: "SwiftSyntaxMacrosGenericTestSupport", package: "swift-syntax")], exclude: bazelFiles),
     .testTarget(name: "ECSTests", dependencies: ["ECS"], exclude: bazelFiles),
 

@@ -44,6 +44,7 @@ MODULES = [
     ("WorldModule", "Storage", "World: entities, their components and resources, with queries, in-place updates and deferred commands.", []),
     # Scheduling
     ("Systems", "Scheduling", "System and Schedule: rules that run on a world, ordered as written unless constrained otherwise.", ["WorldModule", "SystemMacros", "grafluent/Traversal"]),
+    ("SimulationModule", "Scheduling", "Simulation: a world and its schedules by label, stepped frame by frame with a fixed timestep and states.", ["WorldModule", "Systems"]),
 ]
 
 # Compiler plugins holding macros: (name, group, description, dependencies). A module lists one
@@ -69,6 +70,7 @@ GENERATED_SOURCES = {
 TEST_TARGETS = [
     ("WorldModuleTests", ["WorldModule", TEST_SUPPORT, "swift-property-based/PropertyBased"]),
     ("SystemsTests", ["Systems", "WorldModule", TEST_SUPPORT, "swift-property-based/PropertyBased"]),
+    ("SimulationModuleTests", ["SimulationModule", "Systems", "WorldModule", TEST_SUPPORT, "swift-property-based/PropertyBased"]),
     ("SystemMacrosTests", ["SystemMacros", "swift-syntax/SwiftSyntax", "swift-syntax/SwiftSyntaxMacros", "swift-syntax/SwiftSyntaxMacroExpansion", "swift-syntax/SwiftSyntaxMacrosGenericTestSupport"]),
     (f"{PROJECT}Tests", [PROJECT]),
 ]

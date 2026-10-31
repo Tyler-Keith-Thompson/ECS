@@ -4,3 +4,4 @@
 
 @_exported import WorldModule
 @_exported import Systems
+@_exported import SimulationModule

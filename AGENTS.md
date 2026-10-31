@@ -18,6 +18,7 @@ Sources/<Module>/Generated/      SwiftPM's checked-in copies of build-time gener
 Sources/WorldModule/             World, Entity, components, resources, queries, updates, Commands
 Sources/Systems/                 System, Schedule, the system parameters and the @System macro's declaration
 Sources/SystemMacros/            The @System macro's compiler plugin (swift-syntax)
+Sources/SimulationModule/        Simulation: schedules by label, fixed timestep, states
 Sources/ECS/             Umbrella module (@_exported imports) and the landing DocC catalog
 Tests/<Module>Tests/             One test target per module; Performance/ holds speed-reliant tests
 Tests/ECSTests/          The README examples, verbatim
