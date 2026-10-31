@@ -17,16 +17,36 @@ struct QueryTests {
         #expect(rows == [both, alsoBoth])
     }
 
-    @Test("A row carries its components in the order the query listed their types")
+    @Test("A row is the entity, then its components in the order the query listed their types")
     func componentOrder() throws {
         var world = World()
-        _ = world.spawn(Velocity(dx: 3, dy: 4), Position(x: 1, y: 2))
+        let spawned = world.spawn(Velocity(dx: 3, dy: 4), Position(x: 1, y: 2))
         let row = try #require(world.query(Position.self, Velocity.self).first { _ in true })
-        let (position, velocity) = row.components
+        let (entity, position, velocity) = row
         let expectedPosition = Position(x: 1, y: 2)
         let expectedVelocity = Velocity(dx: 3, dy: 4)
+        #expect(entity == spawned)
+        #expect(row.entity == spawned)
         #expect(position == expectedPosition)
         #expect(velocity == expectedVelocity)
+    }
+
+    @Test("A loop can destructure every row of one, two and three types")
+    func destructuring() {
+        var world = World()
+        let spawned = world.spawn(Position(x: 1, y: 2), Velocity(dx: 3, dy: 4), Health(5))
+        for (entity, position) in world.query(Position.self) {
+            #expect(entity == spawned)
+            #expect(position.x == 1)
+        }
+        for (entity, position, velocity) in world.query(Position.self, Velocity.self) {
+            #expect(entity == spawned)
+            #expect(position.y + velocity.dx == 5)
+        }
+        for (entity, position, velocity, health) in world.query(Position.self, Velocity.self, Health.self) {
+            #expect(entity == spawned)
+            #expect(position.x + velocity.dy + Double(health.current) == 10)
+        }
     }
 
     @Test("A query of one type carries the component itself")
@@ -35,7 +55,7 @@ struct QueryTests {
         _ = world.spawn(Health(1))
         _ = world.spawn(Health(2))
         _ = world.spawn(Name("none"))
-        let values = world.query(Health.self).map(\.components.current).sorted()
+        let values = world.query(Health.self).map(\.1.current).sorted()
         #expect(values == [1, 2])
     }
 
@@ -46,7 +66,7 @@ struct QueryTests {
         let b = world.spawn(Health(1))
         let c = world.spawn()
         world.despawn(b)
-        let rows = world.query().map(\.entity)
+        let rows = Array(world.query())
         #expect(rows == [a, c])
         #expect(world.query().count == 2)
     }
@@ -77,7 +97,7 @@ struct QueryTests {
         #expect(world.query(Health.self).without(Frozen.self).map(\.entity).sorted() == [named, plain])
         #expect(world.query(Health.self).with(Name.self).without(Frozen.self).map(\.entity) == [named])
         #expect(world.query(Health.self).with(Name.self, Frozen.self).map(\.entity) == [both])
-        #expect(world.query().with(Frozen.self).map(\.entity).sorted() == [frozen, both])
+        #expect(Array(world.query().with(Frozen.self)).sorted() == [frozen, both])
     }
 
     @Test("Requiring a type the world never stored gives nothing, and excluding one drops nothing")
@@ -113,12 +133,12 @@ struct QueryTests {
         for value in 0 ..< 4 { world.spawn(Health(value)) }
         var seen: [Int] = []
         for row in world.query(Health.self) {
-            seen.append(row.components.current)
+            seen.append(row.1.current)
             world.despawn(row.entity)
-            world.spawn(Health(100 + row.components.current))
+            world.spawn(Health(100 + row.1.current))
         }
         #expect(seen.sorted() == [0, 1, 2, 3])
-        #expect(world.query(Health.self).map(\.components.current).sorted() == [100, 101, 102, 103])
+        #expect(world.query(Health.self).map(\.1.current).sorted() == [100, 101, 102, 103])
     }
 
     @Test("count agrees with iterating, with and without a filter")

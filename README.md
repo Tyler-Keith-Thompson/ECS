@@ -87,9 +87,8 @@ print(world[Position.self, of: wall]) // Position(x: 5.0, y: 0.0)
 print(world.contains(ghost))          // false
 print(world.resources[Clock.self])    // Clock(ticks: 1)
 
-for row in world.query(Position.self, Velocity.self).without(Frozen.self) {
-    let (position, velocity) = row.components
-    print(row.entity, position, velocity)
+for (entity, position, velocity) in world.query(Position.self, Velocity.self).without(Frozen.self) {
+    print(entity, position, velocity)
 }
 ```
 
@@ -101,7 +100,8 @@ for row in world.query(Position.self, Velocity.self).without(Frozen.self) {
   or change one component in place. Plain spellings trap on a stale entity; `checked` spellings
   throw.
 - **`query`**: a lazy view of the entities holding every listed type, narrowed with `with` and
-  `without`. A view is a snapshot; writing to the world while iterating is safe.
+  `without`. Each row is a tuple, `(entity, component, …)`. A view is a snapshot; writing to the
+  world while iterating is safe.
 - **`update`**: changes one or two component types in place across every matching entity,
   reading any others. This is the fast path for systems.
 - **`Commands`**: spawns, despawns and insertions recorded during an update and applied after it.

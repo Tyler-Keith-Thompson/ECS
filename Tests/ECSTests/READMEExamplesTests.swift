@@ -58,9 +58,8 @@ struct READMEExamplesTests {
         print(world.contains(ghost))          // false
         print(world.resources[Clock.self])    // Clock(ticks: 1)
 
-        for row in world.query(Position.self, Velocity.self).without(Frozen.self) {
-            let (position, velocity) = row.components
-            print(row.entity, position, velocity)
+        for (entity, position, velocity) in world.query(Position.self, Velocity.self).without(Frozen.self) {
+            print(entity, position, velocity)
         }
 
         #expect(tick.names == ["Movement", "Reaper", "Tick"])

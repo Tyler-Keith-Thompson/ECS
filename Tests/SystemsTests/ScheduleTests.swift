@@ -189,7 +189,7 @@ struct ScheduleTests {
         var world = World()
         schedule.run(on: &world)
         schedule.run(on: &world)
-        let values = world.query(Health.self).map(\.components.current).sorted()
+        let values = world.query(Health.self).map(\.1.current).sorted()
         #expect(values == [2, 3])
     }
 }

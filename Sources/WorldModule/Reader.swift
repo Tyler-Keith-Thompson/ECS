@@ -4,27 +4,30 @@
 /// The closure is written for each number of types up to three, where the compiler specializes it
 /// fully, and once over a parameter pack for any number. Choosing among them in the fixed-arity
 /// overloads of ``World/query(_:)`` and ``World/update(_:reading:where:body:)`` keeps the
-/// per-entity work free of pack expansion.
+/// per-entity work free of pack expansion. `Row` is what a visit receives: a tuple for a query, a
+/// ``QueryRow`` for an update.
 @frozen
 @usableFromInline
-struct Reader<each R: Component> {
+struct Reader<Row> {
     /// The entities of each read column, in the order the types were listed.
     @usableFromInline let columns: [[Entity]]
     /// The row of `entity`, or nil if it lacks a read type. When `entity` was found at `cursor`
     /// in read column `driver` (pass -1 for none), that column is read at `cursor` directly.
-    @usableFromInline let row: (_ entity: Entity, _ cursor: Int, _ driver: Int) -> QueryRow<repeat each R>?
+    @usableFromInline let row: (_ entity: Entity, _ cursor: Int, _ driver: Int) -> Row?
 
     @inlinable
-    init(columns: [[Entity]], row: @escaping (Entity, Int, Int) -> QueryRow<repeat each R>?) {
+    init(columns: [[Entity]], row: @escaping (Entity, Int, Int) -> Row?) {
         self.columns = columns
         self.row = row
     }
 }
 
 extension World {
-    /// Reads any number of types.
+    /// Reads any number of types, making each row with `make`.
     @inlinable
-    func packReader<each R: Component>(_ types: repeat (each R).Type) -> Reader<repeat each R> {
+    func packReader<each R: Component, Row>(
+        _ types: repeat (each R).Type, make: @escaping (Entity, (repeat each R)) -> Row
+    ) -> Reader<Row> {
         let snapshots = (repeat snapshot(of: (each R).self))
         var columns: [[Entity]] = []
         for snapshot in repeat each snapshots {
@@ -37,14 +40,14 @@ extension World {
                 column += 1
             }
             column = 0
-            return QueryRow(entity: entity, components: (repeat (each snapshots).value(
+            return make(entity, (repeat (each snapshots).value(
                 of: entity, cursor: cursor, driverColumn: driver, column: &column)))
         }
     }
 
-    /// Reads one type.
+    /// Reads one type, making each row with `make`.
     @inlinable
-    func reader<A: Component>(_ a: A.Type) -> Reader<A> {
+    func reader<A: Component, Row>(_ a: A.Type, make: @escaping (Entity, A) -> Row) -> Reader<Row> {
         let a = snapshot(of: A.self)
         return Reader(columns: [a.index.dense]) { entity, cursor, driver in
             let first: Int
@@ -52,13 +55,15 @@ extension World {
                 guard let found = a.index.position(of: entity) else { return nil }
                 first = found
             }
-            return QueryRow(entity: entity, components: a.values[first])
+            return make(entity, a.values[first])
         }
     }
 
-    /// Reads two types.
+    /// Reads two types, making each row with `make`.
     @inlinable
-    func reader<A: Component, B: Component>(_ a: A.Type, _ b: B.Type) -> Reader<A, B> {
+    func reader<A: Component, B: Component, Row>(
+        _ a: A.Type, _ b: B.Type, make: @escaping (Entity, A, B) -> Row
+    ) -> Reader<Row> {
         let a = snapshot(of: A.self)
         let b = snapshot(of: B.self)
         return Reader(columns: [a.index.dense, b.index.dense]) { entity, cursor, driver in
@@ -72,13 +77,15 @@ extension World {
                 guard let found = b.index.position(of: entity) else { return nil }
                 second = found
             }
-            return QueryRow(entity: entity, components: (a.values[first], b.values[second]))
+            return make(entity, a.values[first], b.values[second])
         }
     }
 
-    /// Reads three types.
+    /// Reads three types, making each row with `make`.
     @inlinable
-    func reader<A: Component, B: Component, C: Component>(_ a: A.Type, _ b: B.Type, _ c: C.Type) -> Reader<A, B, C> {
+    func reader<A: Component, B: Component, C: Component, Row>(
+        _ a: A.Type, _ b: B.Type, _ c: C.Type, make: @escaping (Entity, A, B, C) -> Row
+    ) -> Reader<Row> {
         let a = snapshot(of: A.self)
         let b = snapshot(of: B.self)
         let c = snapshot(of: C.self)
@@ -98,7 +105,7 @@ extension World {
                 guard let found = c.index.position(of: entity) else { return nil }
                 third = found
             }
-            return QueryRow(entity: entity, components: (a.values[first], b.values[second], c.values[third]))
+            return make(entity, a.values[first], b.values[second], c.values[third])
         }
     }
 }

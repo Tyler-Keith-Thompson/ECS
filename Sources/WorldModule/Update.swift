@@ -34,7 +34,7 @@ extension World {
         for read in repeat (each R).self {
             reads.append(ObjectIdentifier(read))
         }
-        try update(W.self, reads: reads, reader: { world in world.packReader(repeat (each R).self) }, filter: filter, body: body)
+        try update(W.self, reads: reads, reader: { world in world.packReader(repeat (each R).self) { entity, components in QueryRow(entity: entity, components: (repeat each components)) } }, filter: filter, body: body)
     }
 
     /// Changes the `W` of every entity holding one and the read types, in place; see
@@ -46,7 +46,7 @@ extension World {
         where filter: QueryFilter = QueryFilter(),
         body: (inout W, QueryRow<R1>) throws(Failure) -> Void
     ) throws(Failure) {
-        try update(W.self, reads: [ObjectIdentifier(R1.self)], reader: { world in world.reader(R1.self) }, filter: filter, body: body)
+        try update(W.self, reads: [ObjectIdentifier(R1.self)], reader: { world in world.reader(R1.self) { QueryRow(entity: $0, components: $1) } }, filter: filter, body: body)
     }
 
     /// Changes the `W` of every entity holding one and the read types, in place; see
@@ -58,7 +58,7 @@ extension World {
         where filter: QueryFilter = QueryFilter(),
         body: (inout W, QueryRow<R1, R2>) throws(Failure) -> Void
     ) throws(Failure) {
-        try update(W.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self)], reader: { world in world.reader(R1.self, R2.self) }, filter: filter, body: body)
+        try update(W.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self)], reader: { world in world.reader(R1.self, R2.self) { QueryRow(entity: $0, components: ($1, $2)) } }, filter: filter, body: body)
     }
 
     /// Changes the `W` of every entity holding one and the read types, in place; see
@@ -70,7 +70,7 @@ extension World {
         where filter: QueryFilter = QueryFilter(),
         body: (inout W, QueryRow<R1, R2, R3>) throws(Failure) -> Void
     ) throws(Failure) {
-        try update(W.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self), ObjectIdentifier(R3.self)], reader: { world in world.reader(R1.self, R2.self, R3.self) }, filter: filter, body: body)
+        try update(W.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self), ObjectIdentifier(R3.self)], reader: { world in world.reader(R1.self, R2.self, R3.self) { QueryRow(entity: $0, components: ($1, $2, $3)) } }, filter: filter, body: body)
     }
 
     /// Changes the `A` and `B` of every entity that holds both, every type in `reading` and
@@ -107,7 +107,7 @@ extension World {
         for read in repeat (each R).self {
             reads.append(ObjectIdentifier(read))
         }
-        try update(A.self, B.self, reads: reads, reader: { world in world.packReader(repeat (each R).self) }, filter: filter, body: body)
+        try update(A.self, B.self, reads: reads, reader: { world in world.packReader(repeat (each R).self) { entity, components in QueryRow(entity: entity, components: (repeat each components)) } }, filter: filter, body: body)
     }
 
     /// Changes the `A` and `B` of every entity holding both and the read types, in place; see
@@ -120,7 +120,7 @@ extension World {
         where filter: QueryFilter = QueryFilter(),
         body: (inout A, inout B, QueryRow<R1>) throws(Failure) -> Void
     ) throws(Failure) {
-        try update(A.self, B.self, reads: [ObjectIdentifier(R1.self)], reader: { world in world.reader(R1.self) }, filter: filter, body: body)
+        try update(A.self, B.self, reads: [ObjectIdentifier(R1.self)], reader: { world in world.reader(R1.self) { QueryRow(entity: $0, components: $1) } }, filter: filter, body: body)
     }
 
     /// Changes the `A` and `B` of every entity holding both and the read types, in place; see
@@ -133,7 +133,7 @@ extension World {
         where filter: QueryFilter = QueryFilter(),
         body: (inout A, inout B, QueryRow<R1, R2>) throws(Failure) -> Void
     ) throws(Failure) {
-        try update(A.self, B.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self)], reader: { world in world.reader(R1.self, R2.self) }, filter: filter, body: body)
+        try update(A.self, B.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self)], reader: { world in world.reader(R1.self, R2.self) { QueryRow(entity: $0, components: ($1, $2)) } }, filter: filter, body: body)
     }
 
     /// Changes the `A` and `B` of every entity holding both and the read types, in place; see
@@ -146,7 +146,7 @@ extension World {
         where filter: QueryFilter = QueryFilter(),
         body: (inout A, inout B, QueryRow<R1, R2, R3>) throws(Failure) -> Void
     ) throws(Failure) {
-        try update(A.self, B.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self), ObjectIdentifier(R3.self)], reader: { world in world.reader(R1.self, R2.self, R3.self) }, filter: filter, body: body)
+        try update(A.self, B.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self), ObjectIdentifier(R3.self)], reader: { world in world.reader(R1.self, R2.self, R3.self) { QueryRow(entity: $0, components: ($1, $2, $3)) } }, filter: filter, body: body)
     }
 
     // MARK: The visits
@@ -156,7 +156,7 @@ extension World {
     mutating func update<W: Component, each R: Component, Failure: Error>(
         _ type: W.Type,
         reads: [ObjectIdentifier],
-        reader makeReader: (World) -> Reader<repeat each R>,
+        reader makeReader: (World) -> Reader<QueryRow<repeat each R>>,
         filter: QueryFilter,
         body: (inout W, QueryRow<repeat each R>) throws(Failure) -> Void
     ) throws(Failure) {
@@ -205,7 +205,7 @@ extension World {
         _ first: A.Type,
         _ second: B.Type,
         reads: [ObjectIdentifier],
-        reader makeReader: (World) -> Reader<repeat each R>,
+        reader makeReader: (World) -> Reader<QueryRow<repeat each R>>,
         filter: QueryFilter,
         body: (inout A, inout B, QueryRow<repeat each R>) throws(Failure) -> Void
     ) throws(Failure) {

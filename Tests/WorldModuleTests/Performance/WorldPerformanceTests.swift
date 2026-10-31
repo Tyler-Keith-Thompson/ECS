@@ -27,8 +27,8 @@ struct WorldPerformanceTests {
         }
         var total = 0.0
         let querying = clock.measure {
-            for row in world.query(Position.self, Velocity.self) {
-                total += row.components.0.x
+            for (_, position, _) in world.query(Position.self, Velocity.self) {
+                total += position.x
             }
         }
         let entities = Array(world.entities)

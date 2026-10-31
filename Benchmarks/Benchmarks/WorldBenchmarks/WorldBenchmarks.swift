@@ -96,7 +96,7 @@ let benchmarks: @Sendable () -> Void = {
         let world = populatedWorld()
         benchmark.startMeasurement()
         var total = 0.0
-        for row in world.query(Position.self) { total += row.components.x }
+        for (_, position) in world.query(Position.self) { total += position.x }
         benchmark.stopMeasurement()
         blackHole(total)
     }
@@ -105,7 +105,7 @@ let benchmarks: @Sendable () -> Void = {
         let world = populatedWorld()
         benchmark.startMeasurement()
         var total = 0.0
-        for row in world.query(Position.self, Velocity.self) { total += row.components.0.x + row.components.1.dx }
+        for (_, position, velocity) in world.query(Position.self, Velocity.self) { total += position.x + velocity.dx }
         benchmark.stopMeasurement()
         blackHole(total)
     }
@@ -114,7 +114,7 @@ let benchmarks: @Sendable () -> Void = {
         let world = populatedWorld()
         benchmark.startMeasurement()
         var total = 0.0
-        for row in world.query(Position.self, Velocity.self, Health.self) { total += row.components.0.x }
+        for (_, position, _, _) in world.query(Position.self, Velocity.self, Health.self) { total += position.x }
         benchmark.stopMeasurement()
         blackHole(total)
     }
@@ -123,7 +123,7 @@ let benchmarks: @Sendable () -> Void = {
         let world = populatedWorld()
         benchmark.startMeasurement()
         var total = 0.0
-        for row in world.query(Position.self).without(Health.self) { total += row.components.x }
+        for (_, position) in world.query(Position.self).without(Health.self) { total += position.x }
         benchmark.stopMeasurement()
         blackHole(total)
     }

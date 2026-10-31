@@ -28,18 +28,16 @@ struct OverloadAgreementTests {
         let two = Set(world.query(First.self, Second.self).map(\.entity))
         let three = Set(world.query(First.self, Second.self, Third.self).map(\.entity))
         let four = Set(world.query(First.self, Second.self, Third.self, Fourth.self).map(\.entity))
-        #expect(one == Set(world.query().with(First.self).map(\.entity)))
-        #expect(two == Set(world.query().with(First.self, Second.self).map(\.entity)))
-        #expect(three == Set(world.query().with(First.self, Second.self, Third.self).map(\.entity)))
-        #expect(four == Set(world.query().with(First.self, Second.self, Third.self, Fourth.self).map(\.entity)))
-        for row in world.query(First.self, Second.self, Third.self, Fourth.self) {
-            let (first, second, third, fourth) = row.components
+        #expect(one == Set(Array(world.query().with(First.self))))
+        #expect(two == Set(Array(world.query().with(First.self, Second.self))))
+        #expect(three == Set(Array(world.query().with(First.self, Second.self, Third.self))))
+        #expect(four == Set(Array(world.query().with(First.self, Second.self, Third.self, Fourth.self))))
+        for (_, first, second, third, fourth) in world.query(First.self, Second.self, Third.self, Fourth.self) {
             #expect(first.value == second.value)
             #expect(third.value == fourth.value)
             #expect(first.value == third.value)
         }
-        for row in world.query(Third.self, First.self, Second.self) {
-            let (third, first, second) = row.components
+        for (_, third, first, second) in world.query(Third.self, First.self, Second.self) {
             #expect(third.value == first.value)
             #expect(second.value == first.value)
         }
@@ -76,7 +74,7 @@ struct OverloadAgreementTests {
             if holds(First.self), holds(Second.self) { expected += 10 }
             if holds(First.self), holds(Second.self), holds(Third.self) { expected += 100 }
             if holds(First.self), holds(Second.self), holds(Third.self), holds(Fourth.self) { expected += 1_000 }
-            #expect(row.components.current == expected)
+            #expect(row.1.current == expected)
         }
     }
 
@@ -111,8 +109,7 @@ struct OverloadAgreementTests {
             name.text += "4"
         }
         for row in world.query(Health.self, Name.self) {
-            let (health, name) = row.components
-            let e = row.entity
+            let (e, health, name) = row
             var expected = "0"
             if world.contains(First.self, in: e) {
                 expected += "1"

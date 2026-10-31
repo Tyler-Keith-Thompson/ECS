@@ -118,8 +118,8 @@ struct WorldPropertyTests {
             #expect((try? world[checked: Third.self, of: entity])?.value == model.third[entity])
         }
         var pairs: [Entity: [Int]] = [:]
-        for row in world.query(First.self, Second.self) {
-            pairs[row.entity] = [row.components.0.value, row.components.1.value]
+        for (entity, first, second) in world.query(First.self, Second.self) {
+            pairs[entity] = [first.value, second.value]
         }
         var expectedPairs: [Entity: [Int]] = [:]
         for (entity, first) in model.first {
@@ -129,7 +129,7 @@ struct WorldPropertyTests {
         let withoutFirst = Set(world.query(Second.self).without(First.self).map(\.entity))
         let expectedWithoutFirst = Set(model.second.keys.filter { model.first[$0] == nil })
         #expect(withoutFirst == expectedWithoutFirst)
-        let withThird = Set(world.query().with(Third.self).map(\.entity))
+        let withThird = Set(Array(world.query().with(Third.self)))
         #expect(withThird == Set(model.third.keys))
     }
 }
