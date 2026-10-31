@@ -49,6 +49,14 @@ type the fewest entities hold and looks the others up.
 - ``Events``
 - ``EventsView``
 
+### Hooks
+
+Registered with `onAdd`, `onInsert` and `onRemove` on ``World``.
+
+### Snapshots
+
+- ``WorldSnapshot``
+
 ### Deferred changes
 
 - ``Commands``

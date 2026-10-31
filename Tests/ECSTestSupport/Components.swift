@@ -2,7 +2,7 @@
 
 import WorldModule
 
-public struct Position: Component, Hashable {
+public struct Position: Component, Hashable, Codable {
     public var x: Double
     public var y: Double
     public init(x: Double, y: Double) {
@@ -11,7 +11,7 @@ public struct Position: Component, Hashable {
     }
 }
 
-public struct Velocity: Component, Hashable {
+public struct Velocity: Component, Hashable, Codable {
     public var dx: Double
     public var dy: Double
     public init(dx: Double, dy: Double) {
@@ -20,12 +20,12 @@ public struct Velocity: Component, Hashable {
     }
 }
 
-public struct Health: Component, Hashable {
+public struct Health: Component, Hashable, Codable {
     public var current: Int
     public init(_ current: Int) { self.current = current }
 }
 
-public struct Name: Component, Hashable {
+public struct Name: Component, Hashable, Codable {
     public var text: String
     public init(_ text: String) { self.text = text }
 }

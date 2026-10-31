@@ -5,15 +5,13 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Snapshots.** Saving a world to `Codable` data and loading it back, for components that are
-   `Codable`, with entity handles preserved.
-2. **World equality.** `==` on worlds whose components are `Equatable`, for determinism tests,
+1. **World equality.** `==` on worlds whose components are `Equatable`, for determinism tests,
    replays and rollback checks.
-3. **Parallel updates.** `update` split across cores for large worlds, with a deterministic
+2. **Parallel updates.** `update` split across cores for large worlds, with a deterministic
    result.
-4. **Parallel schedules.** Systems that declare what they read and write, and a schedule that
+3. **Parallel schedules.** Systems that declare what they read and write, and a schedule that
    runs systems with disjoint access concurrently.
-5. **Groups.** EnTT-style owning groups that keep several component types packed in the same
+4. **Groups.** EnTT-style owning groups that keep several component types packed in the same
    order, for multi-type iteration with no lookups.
 
 ## Done
@@ -33,3 +31,4 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 - Bundles: the `Bundle` protocol and `BundleBuilder`; components are bundles of themselves.
 - Observers, as component hooks: `onAdd`, `onInsert`, `onRemove`, run after the firing
   operation. In-place changes are left to change detection.
+- Snapshots: `WorldSnapshot<each C>` is `Codable`; `World(restoring:)` keeps every handle.
