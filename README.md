@@ -189,6 +189,9 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   were written. A `SystemSet` (`enum Physics: SystemSet {}`) names a group: systems join it with
   `inSet`, a nested `Schedule { … }` takes `inSet`, `after`, `before` and `runIf` for all its
   systems, and `after(Physics.self)` orders after every system in it.
+- **Streams**: `ForwardEvents(to: continuation)` and `ForwardChanges(to: continuation)` are
+  systems that yield new events, or added and changed components, to an `AsyncStream`, so
+  code outside the schedule can `for await` them.
 - **`Simulation`**: a world and schedules by label, stepped with `update(elapsed:)`:
   `.startup` before the first frame, then each frame `.fixedUpdate` once per fixed timestep
   elapsed and `.update`. A `States` type (`enum GameState: States { … }`) runs `.onEnter`,

@@ -105,6 +105,13 @@ struct EventCursor<E: Event, Reader>: Resource {
     }
 }
 
+/// The place in the `E`s of each reader told apart by a number.
+package struct NumberedEventCursors<E: Event>: Resource {
+    package var next: [UInt64: Int] = [:]
+
+    package init() {}
+}
+
 /// What ``World/updateEvents()`` does to an ``Events`` without knowing its event type.
 @usableFromInline
 protocol EventBuffer: Resource {
@@ -153,6 +160,20 @@ extension World {
         let events = (try? resources[checked: Events<E>.self]) ?? Events()
         let next = (try? resources[checked: EventCursor<E, Reader>.self])?.next ?? 0
         resources.insert(EventCursor<E, Reader>(next: events.end))
+        return events.view(from: next)
+    }
+
+    /// The `E`s that the reader identified by `reader` has not read yet, oldest first, marking
+    /// them read by it; ``readEvents(_:by:)`` for readers told apart by a number rather than a
+    /// type.
+    ///
+    /// - Complexity: O(1) amortized; the view shares the events' storage.
+    package mutating func readEvents<E: Event>(_ type: E.Type, byReaderNumbered reader: UInt64) -> EventsView<E> {
+        let events = (try? resources[checked: Events<E>.self]) ?? Events()
+        var cursors = resources.remove(NumberedEventCursors<E>.self) ?? NumberedEventCursors()
+        let next = cursors.next[reader] ?? 0
+        cursors.next[reader] = events.end
+        resources.insert(cursors)
         return events.view(from: next)
     }
 

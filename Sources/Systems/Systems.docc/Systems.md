@@ -55,3 +55,8 @@ struct Movement {
 - ``ScheduleBuilder``
 - ``CyclicOrdering``
 - ``Ambiguity``
+
+### Streams
+
+- ``ForwardEvents``
+- ``ForwardChanges``
