@@ -158,6 +158,7 @@ protocol SavedComponents: Encodable, Sendable {
     var entities: [Entity] { get }
     var valueCount: Int { get }
     func restore(into world: inout World)
+    func insert(into world: inout World, mapping: [Entity: Entity])
 }
 
 extension ComponentRows: SavedComponents {
@@ -168,6 +169,46 @@ extension ComponentRows: SavedComponents {
     func restore(into world: inout World) {
         world.restore(self)
     }
+
+    @inlinable
+    func insert(into world: inout World, mapping: [Entity: Entity]) {
+        for (entity, value) in zip(entities, values) {
+            world.insert(mapped(value, by: mapping), into: mapping[entity]!)
+        }
+    }
+}
+
+/// A component that names other entities, so a scene spawned into a world
+/// (``World/spawn(contentsOf:)``) can point it at the entities spawned in their place.
+///
+/// ```swift
+/// struct Target: Component, Codable, MapEntities {
+///     var entity: Entity
+///     mutating func mapEntities(_ map: (Entity) -> Entity) {
+///         entity = map(entity)
+///     }
+/// }
+/// ```
+public protocol MapEntities {
+    /// Replaces every entity the value names with `map` of it.
+    mutating func mapEntities(_ map: (Entity) -> Entity)
+}
+
+extension Targets: MapEntities {
+    @inlinable
+    public mutating func mapEntities(_ map: (Entity) -> Entity) {
+        for index in storedEntities.indices {
+            storedEntities[index] = map(storedEntities[index])
+        }
+    }
+}
+
+/// `value` with each entity it names replaced by its entry in `mapping`, when it has one.
+@inlinable
+func mapped<C>(_ value: C, by mapping: [Entity: Entity]) -> C {
+    guard var mappable = value as? any MapEntities else { return value }
+    mappable.mapEntities { mapping[$0] ?? $0 }
+    return mappable as! C
 }
 
 /// A saved resource, of a type the code holding it does not know.
@@ -384,6 +425,50 @@ extension World {
         for (_, value) in scene.resources {
             value.insert(into: &resources)
         }
+    }
+
+    /// Spawns each live entity of `scene` as a new entity, with its components, hierarchy and
+    /// relations, and inserts the scene's resources, replacing any of the same types.
+    ///
+    /// Use it to instantiate a saved prefab many times:
+    ///
+    /// ```swift
+    /// let goblin = try decoder.decode(Scene.self, from: goblinData)
+    /// let first = world.spawn(contentsOf: goblin)
+    /// let second = world.spawn(contentsOf: goblin)
+    /// ```
+    ///
+    /// Components are inserted as `insert(_:into:)` inserts them, running hooks. A component
+    /// that conforms to ``MapEntities``, such as a relation's ``Targets``, has each entity of the
+    /// scene it names replaced by the entity spawned for it; entities outside the scene are left
+    /// as they are.
+    ///
+    /// - Returns: The entity spawned for each live entity of the scene, keyed by the scene's.
+    /// - Complexity: O(*n*) for *n* entities and components spawned.
+    @inlinable
+    @discardableResult
+    public mutating func spawn(contentsOf scene: Scene) -> [Entity: Entity] {
+        var mapping: [Entity: Entity] = [:]
+        var isVacant = [Bool](repeating: false, count: scene.generations.count)
+        for slot in scene.vacant {
+            isVacant[Int(slot)] = true
+        }
+        for slot in scene.generations.indices where !isVacant[slot] {
+            mapping[Entity(index: UInt32(slot), generation: scene.generations[slot])] = spawn()
+        }
+        for family in scene.families {
+            for child in family.children {
+                link(mapping[child]!, to: mapping[family.parent]!)
+            }
+        }
+        for (_, rows) in scene.components {
+            rows.insert(into: &self, mapping: mapping)
+        }
+        for (_, value) in scene.resources {
+            value.insert(into: &resources)
+        }
+        endOperation()
+        return mapping
     }
 
     /// A world with the given slots and hierarchy and no components.

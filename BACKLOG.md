@@ -5,8 +5,7 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Spawning a scene into a world.** Instantiate a saved scene as new entities in an existing
-   world (a prefab), mapping the entities its components and relations name to the new ones.
+Nothing queued.
 
 ## Done
 
@@ -80,3 +79,4 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
   `Schedule.writeDOT(to:)` draws the dependency graph.
 - Checked accesses: in debug builds, a system or concurrent change reaching a component or
   resource type its access does not list traps.
+- Spawning a scene into a world: `spawn(contentsOf:)`, remapping `MapEntities` components.

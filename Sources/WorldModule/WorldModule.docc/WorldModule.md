@@ -101,6 +101,7 @@ Lent by `withSpan(of:_:)` and `withMutableSpan(of:_:)` on ``World``.
 - ``Scene``
 - ``TypeRegistry``
 - ``TypeRegistryError``
+- ``MapEntities``
 
 ### Concurrent changes
 

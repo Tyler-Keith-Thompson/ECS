@@ -228,3 +228,94 @@ struct SceneTests {
 struct Gold: Resource, Codable {
     var coins: Int
 }
+
+/// The entity a turret aims at, remapped when its scene is spawned.
+struct Aim: Component, Codable, MapEntities {
+    var target: Entity
+
+    mutating func mapEntities(_ map: (Entity) -> Entity) {
+        target = map(target)
+    }
+}
+
+/// Whom an entity follows; not remapped.
+struct Follows: Component, Codable {
+    var leader: Entity
+}
+
+@Suite("Spawning scenes")
+struct SceneSpawnTests {
+    @Test("Spawning a scene adds new entities with its components, hierarchy, relations and resources")
+    func spawn() throws {
+        var registry = TypeRegistry()
+        try registry.register(Name.self, named: "Name")
+        try registry.register(Targets<Admires>.self, named: "Admires")
+        try registry.register(resource: Score.self, named: "Score")
+        var prefab = World()
+        let ship = prefab.spawn(Name("ship"))
+        let gone = prefab.spawn()
+        let deck = prefab.spawn(Name("deck"))
+        prefab.despawn(gone)
+        try prefab.addChild(deck, to: ship)
+        prefab.relate(deck, Admires(), to: ship)
+        prefab.resources.insert(Score(points: 4))
+        let decoder = JSONDecoder()
+        decoder.userInfo[.typeRegistry] = registry
+        let scene = try decoder.decode(Scene.self, from: try JSONEncoder().encode(prefab.scene(registry)))
+        var world = World()
+        let existing = world.spawn(Name("existing"))
+        let first = world.spawn(contentsOf: scene)
+        let second = world.spawn(contentsOf: scene)
+        let expectedCount = 5
+        #expect(world.count == expectedCount)
+        let expectedKeys: Set<Entity> = [ship, deck]
+        #expect(Set(first.keys) == expectedKeys)
+        for mapping in [first, second] {
+            let newShip = try #require(mapping[ship])
+            let newDeck = try #require(mapping[deck])
+            #expect(world[Name.self, of: newShip] == Name("ship"))
+            #expect(world[Name.self, of: newDeck] == Name("deck"))
+            #expect(world.parent(of: newDeck) == newShip)
+            let expectedTargets: [Entity] = [newShip]
+            #expect(Array(world.targets(Admires.self, of: newDeck)) == expectedTargets)
+        }
+        #expect(Set(first.values).isDisjoint(with: second.values))
+        #expect(!first.values.contains(existing))
+        #expect(world.resources[Score.self] == Score(points: 4))
+    }
+
+    @Test("A component conforming to MapEntities is pointed at the spawned entities; others keep theirs")
+    func mapping() throws {
+        var registry = TypeRegistry()
+        try registry.register(Aim.self, named: "Aim")
+        try registry.register(Follows.self, named: "Follows")
+        var prefab = World()
+        let target = prefab.spawn()
+        let turret = prefab.spawn(Aim(target: target), Follows(leader: target))
+        let outside = Entity(index: 99, generation: 0)
+        let stray = prefab.spawn(Aim(target: outside))
+        var world = World()
+        let mapping = world.spawn(contentsOf: prefab.scene(registry))
+        let newTurret = try #require(mapping[turret])
+        let newStray = try #require(mapping[stray])
+        #expect(world[Aim.self, of: newTurret].target == mapping[target])
+        #expect(world[Follows.self, of: newTurret].leader == target)
+        #expect(world[Aim.self, of: newStray].target == outside)
+    }
+
+    @Test("Spawning runs hooks and an empty scene spawns nothing")
+    func hooksAndEmpty() throws {
+        var registry = TypeRegistry()
+        try registry.register(Name.self, named: "Name")
+        var prefab = World()
+        prefab.spawn(Name("a"))
+        var world = World()
+        world.onAdd(Name.self) { world, _ in world.resources[Score.self].points += 1 }
+        world.resources.insert(Score(points: 0))
+        world.spawn(contentsOf: prefab.scene(registry))
+        let expectedPoints = 1
+        #expect(world.resources[Score.self].points == expectedPoints)
+        let none = world.spawn(contentsOf: World().scene(registry))
+        #expect(none.isEmpty)
+    }
+}
