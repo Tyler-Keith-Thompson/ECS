@@ -79,6 +79,7 @@ Every shell command gets a timeout. macOS has no `timeout`; use
 | `just resolve` | Re-resolve Bazel's SwiftPM dependencies after editing `PACKAGES` |
 | `just docs` | Combined DocC site into `.build/docs` |
 | `just bench`, `just bench-baseline <name>`, `just bench-compare <name>` | The benchmarks in `Benchmarks/` (package-benchmark): run, record a baseline, compare against one |
+| `just bench-simulated`, `just bench-simulated-compare` | The same benchmarks as simulated counts (Callgrind in a Linux VM, from `~/workspace/BenchmarkHarness`): record the `simulated` baseline, compare against it; steady on a busy machine |
 | `just generate` | Xcode project from the Bazel graph |
 | `just template-update` | Merge the project template's changes since `.template.json`'s commit; resolve conflicts, then `just modules`, `just test` |
 | `bazel query 'rdeps(//Tests/..., //Sources/X)'` | Test targets affected by a change to X |
@@ -267,8 +268,11 @@ produced together.
 ## Performance notes (this project)
 
 Measured with the benchmarks in `Benchmarks/`; keep these in mind when changing `WorldModule`, and
-compare against a baseline (`just bench-baseline`, `just bench-compare`) before and after. The
-benchmarks report retains and releases per entity: hot paths should show zero.
+compare before and after. For speed, record `just bench-simulated` before the change and run
+`just bench-simulated-compare` after: simulated instruction, cache-miss and branch counts don't move
+when the machine is busy, as wall clock does. The same baselines carry the retains, releases and
+allocations per entity, which `just bench-simulated-compare` checks too: hot paths should show
+zero.
 
 - Code generic over a parameter pack is not specialized: a pack expansion per entity costs about
   ten times a fixed-arity loop. Hot paths take a `Reader` whose row closure is built by
