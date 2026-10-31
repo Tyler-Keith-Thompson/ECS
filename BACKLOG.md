@@ -21,6 +21,10 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
      matches entities holding at least one of its types and yields a tuple of optionals, one
      per type, so a row keeps each group as a nested tuple (`for` patterns take it apart;
      closures receive it whole). Any number of terms and of `AnyOf` types.
+   - **Filters.** `.with`, `.without`, `.added`, `.changed`, and `.anyOf(…)` of filters, which
+     passes entities meeting at least one (`.anyOf(.changed(A.self), .without(B.self))`).
+     Terms and filters are ANDed, so any condition on which components an entity holds can be
+     written as an AND of ORs; `added` and `changed` cannot be negated.
    - **Speed.** Fixed-arity versions for one to three terms and for `AnyOf` of two to four
      types, each building its `Reader` at fixed arity, with the parameter-pack versions as the
      general fallback, as `world.query` and `world.update` have today. Benchmarks for each
@@ -46,8 +50,14 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
    @System
    struct Movement {
-       func run(_ movers: Update<Position>.Reading<Velocity>, _ time: ResourceReader<Time>) {
-           movers { position, velocity in position.x += velocity.dx * time.value.delta }
+       func run(
+           _ movers: Update<Position>.Over<Velocity, AnyOf<Wind, Current>>.Where<Without<Frozen>>,
+           _ time: ResourceReader<Time>
+       ) {
+           movers { position, row in
+               let (velocity, (wind, current)) = row
+               position.x += (velocity.dx + (wind?.force ?? 0) + (current?.force ?? 0)) * time.value.delta
+           }
        }
    }
    ```
@@ -60,13 +70,15 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
      system parameter, two parameters that conflict (when the names show it; otherwise a trap
      when the system is built), `inout` parameters or a `mutating` `run`, `async` or `throws`,
      no `run` or several.
-   - **Parameters.** `Query<…>` (item 1) reads components. `Update<A>`, `Update<A>.And<B>` and
+   - **Parameters.** Each parameter type mirrors a value of item 1. `Query<…>` reads its terms
+     (components and `AnyOf<…>`). `Update<A>`, `Update<A>.And<B>` and
      `Update<A>.And<B>.And<C>` write one to three types, each passed `inout`, optionally
-     `.Reading<…>` any number of types for the entities that hold them, as `world.update`
-     does; every level is fixed-arity, so the loops specialize. `ResourceReader<…>`,
-     `ResourceWriter<…>`, `EventReader<…>`, `EventWriter<…>`, and `Commands`, which records
-     structural changes without conflicting with anything. Parameters that write are reference
-     types, so `run` takes them by value.
+     `.Over<…>` terms read alongside, as `world.update(_:over:)` does; every write level is
+     fixed-arity, so the loops specialize. Both take `.Where<…>` filter types mirroring the
+     filter values: `With<A>`, `Without<A>`, `Added<A>`, `Changed<A>` and `AnyOf<…>` of them.
+     `ResourceReader<…>`, `ResourceWriter<…>`, `EventReader<…>`, `EventWriter<…>`, and
+     `Commands`, which records structural changes without conflicting with anything.
+     Parameters that write are reference types, so `run` takes them by value.
    - **Commands** apply at the end of the group their system ran in, buffer by buffer in written
      order, in both serial and parallel runs, so the two give the same world.
    - **Scheduling.** Replace grouping of neighbors with a dependency graph built from conflicts
