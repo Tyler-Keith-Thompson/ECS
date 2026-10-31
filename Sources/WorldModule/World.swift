@@ -1,0 +1,405 @@
+/// Entities, the components they hold, and the world's resources.
+///
+/// A world is a value: a copy is independent of the original, and copying is cheap because each
+/// component type's storage is shared between copies until one of them writes to it, and then
+/// only that type's storage is copied.
+///
+/// Components of one type are stored in a sparse set: a dense array of components with a sparse
+/// array from entity slot to position. Reading, adding, replacing and removing one component are
+/// O(1), and iterating a type is a walk over contiguous memory.
+///
+/// Operations that take an ``Entity`` trap when it is stale, like an array subscript out of
+/// range. Each has a `checked` spelling that throws instead.
+///
+/// ```swift
+/// var world = World()
+/// let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 2))
+/// world.update(Position.self, reading: Velocity.self) { position, row in
+///     position.x += row.components.dx
+///     position.y += row.components.dy
+/// }
+/// world[Position.self, of: ball]  // Position(x: 1, y: 2)
+/// ```
+@frozen
+public struct World: Sendable {
+    /// The generation of each slot's current or next entity.
+    @usableFromInline var generations: [UInt32] = []
+    /// Whether each slot holds a live entity.
+    @usableFromInline var isLive: [Bool] = []
+    /// Vacated slots, the most recently vacated last.
+    @usableFromInline var vacant: [UInt32] = []
+    /// One column per component type ever stored, in the order the types were first stored.
+    @usableFromInline var columns: ContiguousArray<AnyColumn> = []
+    @usableFromInline var columnPositions = ColumnTable()
+
+    /// The world's resources: values it holds once, outside any entity.
+    public var resources = Resources()
+
+    /// A world without entities or resources.
+    @inlinable
+    public init() {}
+
+    // MARK: Entities
+
+    /// The number of live entities.
+    @inlinable
+    public var count: Int { generations.count - vacant.count }
+
+    /// Whether the world has no live entities.
+    @inlinable
+    public var isEmpty: Bool { count == 0 }
+
+    /// The live entities, lazily, in slot order.
+    @inlinable
+    public var entities: EntitiesView { EntitiesView(generations: generations, isLive: isLive) }
+
+    /// Whether `entity` is live in this world.
+    ///
+    /// - Complexity: O(1).
+    @inlinable
+    public func contains(_ entity: Entity) -> Bool {
+        let slot = Int(entity.index)
+        return slot < generations.count && isLive[slot] && generations[slot] == entity.generation
+    }
+
+    /// Spawns an entity holding `components` and returns its handle.
+    ///
+    /// Spawning one, two or three components has overloads specialized for speed.
+    ///
+    /// A vacated slot is reused, the most recently vacated first, with a generation one higher
+    /// than its last entity's. When `components` holds two of one type, the later one is kept.
+    ///
+    /// - Complexity: O(*k*) amortized for *k* components.
+    /// - Precondition: Fewer than `UInt32.max` slots are in use.
+    @inlinable
+    @discardableResult
+    public mutating func spawn<each C: Component>(_ components: repeat each C) -> Entity {
+        let entity = makeEntity()
+        for component in repeat each components {
+            store(component, for: entity)
+        }
+        return entity
+    }
+
+    /// Spawns an entity holding `a` and returns its handle, as the variadic `spawn` does.
+    @inlinable
+    @discardableResult
+    public mutating func spawn<A: Component>(_ a: A) -> Entity {
+        let entity = makeEntity()
+        store(a, for: entity)
+        return entity
+    }
+
+    /// Spawns an entity holding `a` and `b` and returns its handle, as the variadic `spawn` does.
+    @inlinable
+    @discardableResult
+    public mutating func spawn<A: Component, B: Component>(_ a: A, _ b: B) -> Entity {
+        let entity = makeEntity()
+        store(a, for: entity)
+        store(b, for: entity)
+        return entity
+    }
+
+    /// Spawns an entity holding `a`, `b` and `c` and returns its handle, as the variadic `spawn`
+    /// does.
+    @inlinable
+    @discardableResult
+    public mutating func spawn<A: Component, B: Component, C: Component>(_ a: A, _ b: B, _ c: C) -> Entity {
+        let entity = makeEntity()
+        store(a, for: entity)
+        store(b, for: entity)
+        store(c, for: entity)
+        return entity
+    }
+
+    /// Despawns `entity` and every component it holds. Every copy of its handle is stale from
+    /// now on.
+    ///
+    /// - Complexity: O(*t*) for *t* component types the world has stored.
+    /// - Precondition: `entity` is live. Use ``despawn(checked:)`` to throw instead.
+    @inlinable
+    public mutating func despawn(_ entity: Entity) {
+        precondition(contains(entity), "Despawning stale entity \(entity)")
+        destroy(entity)
+    }
+
+    /// Despawns `entity` and every component it holds.
+    ///
+    /// - Complexity: O(*t*) for *t* component types the world has stored.
+    /// - Throws: ``StaleEntity`` when `entity` is not live; the world is unchanged.
+    @inlinable
+    public mutating func despawn(checked entity: Entity) throws(StaleEntity) {
+        guard contains(entity) else { throw StaleEntity() }
+        destroy(entity)
+    }
+
+    // MARK: Components
+
+    /// Whether `entity` is live and holds a `C`.
+    ///
+    /// - Complexity: O(1).
+    @inlinable
+    public func contains<C: Component>(_ type: C.Type, in entity: Entity) -> Bool {
+        column(of: C.self)?.index.position(of: entity) != nil
+    }
+
+    /// The `C` that `entity` holds.
+    ///
+    /// Writing through the subscript changes the component in place:
+    /// `world[Health.self, of: hero].current -= 10`.
+    ///
+    /// - Complexity: O(1), plus a copy of the `C` storage on the first write after the world was
+    ///   copied.
+    /// - Precondition: `entity` is live and holds a `C`. Use ``subscript(checked:of:)`` to throw
+    ///   instead.
+    @inlinable
+    public subscript<C: Component>(_ type: C.Type, of entity: Entity) -> C {
+        get {
+            precondition(contains(entity), "Reading a \(C.self) of stale entity \(entity)")
+            guard let column = column(of: C.self), let position = column.index.position(of: entity) else {
+                preconditionFailure("Entity \(entity) holds no \(C.self)")
+            }
+            return column.values[position]
+        }
+        _modify {
+            precondition(contains(entity), "Writing a \(C.self) of stale entity \(entity)")
+            guard let slot = columnPositions.position(of: ObjectIdentifier(C.self)),
+                  let position = columns[slot].index.position(of: entity) else {
+                preconditionFailure("Entity \(entity) holds no \(C.self)")
+            }
+            let column = uniqueColumn(at: slot, of: C.self)
+            yield &column.values[position]
+        }
+    }
+
+    /// The `C` that `entity` holds.
+    ///
+    /// `try?` gives `nil` when there is none.
+    ///
+    /// - Complexity: O(1).
+    /// - Throws: ``MissingComponent`` when `entity` is stale or holds no `C`.
+    @inlinable
+    public subscript<C: Component>(checked type: C.Type, of entity: Entity) -> C {
+        get throws(MissingComponent) {
+            guard let column = column(of: C.self), let position = column.index.position(of: entity) else {
+                throw MissingComponent()
+            }
+            return column.values[position]
+        }
+    }
+
+    /// Gives `entity` each of `components`, replacing any it holds of the same types.
+    ///
+    /// - Complexity: O(*k*) amortized for *k* components.
+    /// - Precondition: `entity` is live. Use ``insert(_:checkedInto:)`` to throw instead.
+    @inlinable
+    public mutating func insert<each C: Component>(_ components: repeat each C, into entity: Entity) {
+        precondition(contains(entity), "Inserting into stale entity \(entity)")
+        for component in repeat each components {
+            store(component, for: entity)
+        }
+    }
+
+    /// Gives `entity` the component `a`, replacing any it holds of its type.
+    ///
+    /// - Complexity: O(1) amortized.
+    /// - Precondition: `entity` is live. Use ``insert(_:checkedInto:)`` to throw instead.
+    @inlinable
+    public mutating func insert<A: Component>(_ a: A, into entity: Entity) {
+        precondition(contains(entity), "Inserting into stale entity \(entity)")
+        store(a, for: entity)
+    }
+
+    /// Gives `entity` the components `a` and `b`, replacing any it holds of their types.
+    ///
+    /// - Complexity: O(1) amortized.
+    /// - Precondition: `entity` is live. Use ``insert(_:checkedInto:)`` to throw instead.
+    @inlinable
+    public mutating func insert<A: Component, B: Component>(_ a: A, _ b: B, into entity: Entity) {
+        precondition(contains(entity), "Inserting into stale entity \(entity)")
+        store(a, for: entity)
+        store(b, for: entity)
+    }
+
+    /// Gives `entity` the components `a`, `b` and `c`, replacing any it holds of their types.
+    ///
+    /// - Complexity: O(1) amortized.
+    /// - Precondition: `entity` is live. Use ``insert(_:checkedInto:)`` to throw instead.
+    @inlinable
+    public mutating func insert<A: Component, B: Component, C: Component>(_ a: A, _ b: B, _ c: C, into entity: Entity) {
+        precondition(contains(entity), "Inserting into stale entity \(entity)")
+        store(a, for: entity)
+        store(b, for: entity)
+        store(c, for: entity)
+    }
+
+    /// Gives `entity` each of `components`, replacing any it holds of the same types.
+    ///
+    /// - Complexity: O(*k*) amortized for *k* components.
+    /// - Throws: ``StaleEntity`` when `entity` is not live; the world is unchanged.
+    @inlinable
+    public mutating func insert<each C: Component>(_ components: repeat each C, checkedInto entity: Entity) throws(StaleEntity) {
+        guard contains(entity) else { throw StaleEntity() }
+        for component in repeat each components {
+            store(component, for: entity)
+        }
+    }
+
+    /// Takes the `C` away from `entity`.
+    ///
+    /// - Returns: The `C` it held, or `nil` if it held none.
+    /// - Complexity: O(1). Removal moves the last `C` into the vacated position.
+    /// - Precondition: `entity` is live. Use ``remove(_:checkedFrom:)`` to throw instead.
+    @inlinable
+    @discardableResult
+    public mutating func remove<C: Component>(_ type: C.Type, from entity: Entity) -> C? {
+        precondition(contains(entity), "Removing a \(C.self) from stale entity \(entity)")
+        return discard(C.self, from: entity)
+    }
+
+    /// Takes the `C` away from `entity`.
+    ///
+    /// - Returns: The `C` it held, or `nil` if it held none.
+    /// - Complexity: O(1).
+    /// - Throws: ``StaleEntity`` when `entity` is not live; the world is unchanged.
+    @inlinable
+    @discardableResult
+    public mutating func remove<C: Component>(_ type: C.Type, checkedFrom entity: Entity) throws(StaleEntity) -> C? {
+        guard contains(entity) else { throw StaleEntity() }
+        return discard(C.self, from: entity)
+    }
+
+    /// The number of entities that hold a `C`.
+    ///
+    /// - Complexity: O(1).
+    @inlinable
+    public func count<C: Component>(of type: C.Type) -> Int {
+        column(of: C.self)?.index.dense.count ?? 0
+    }
+
+    // MARK: Storage
+
+    @inlinable
+    func column<C: Component>(of type: C.Type) -> Column<C>? {
+        guard let slot = columnPositions.position(of: ObjectIdentifier(C.self)) else { return nil }
+        return unsafeDowncast(columns[slot], to: Column<C>.self)
+    }
+
+    /// The `C` column's contents, empty if the world never stored a `C`.
+    @inlinable
+    func snapshot<C: Component>(of type: C.Type) -> ColumnSnapshot<C> {
+        column(of: C.self)?.snapshot ?? ColumnSnapshot()
+    }
+
+    /// The column at `slot`, copied first if another world shares it.
+    @inlinable
+    mutating func uniqueColumn<C: Component>(at slot: Int, of type: C.Type) -> Column<C> {
+        if !isKnownUniquelyReferenced(&columns[slot]) {
+            copyColumn(at: slot)
+        }
+        return unsafeDowncast(columns[slot], to: Column<C>.self)
+    }
+
+    @inline(never)
+    @usableFromInline
+    mutating func copyColumn(at slot: Int) {
+        columns[slot] = columns[slot].copy()
+    }
+
+    /// The slot of the `C` column, adding an empty column if the world has none.
+    @inlinable
+    mutating func columnSlot<C: Component>(of type: C.Type) -> Int {
+        if let slot = columnPositions.position(of: ObjectIdentifier(C.self)) { return slot }
+        columns.append(Column<C>())
+        columnPositions.insert(ObjectIdentifier(C.self), at: columns.count - 1)
+        return columns.count - 1
+    }
+
+    @inlinable
+    mutating func store<C: Component>(_ component: C, for entity: Entity) {
+        let column = uniqueColumn(at: columnSlot(of: C.self), of: C.self)
+        if let position = column.index.position(of: entity) {
+            column.values[position] = component
+        } else {
+            _ = column.index.append(entity)
+            column.values.append(component)
+        }
+    }
+
+    @inlinable
+    mutating func discard<C: Component>(_ type: C.Type, from entity: Entity) -> C? {
+        guard let slot = columnPositions.position(of: ObjectIdentifier(C.self)),
+              let position = columns[slot].index.position(of: entity) else { return nil }
+        let column = uniqueColumn(at: slot, of: C.self)
+        let component = column.values[position]
+        column.swapRemove(at: position)
+        return component
+    }
+
+    @inlinable
+    mutating func makeEntity() -> Entity {
+        if let slot = vacant.popLast() {
+            isLive[Int(slot)] = true
+            return Entity(index: slot, generation: generations[Int(slot)])
+        }
+        precondition(generations.count < Int(UInt32.max), "A world holds at most \(UInt32.max) slots")
+        generations.append(0)
+        isLive.append(true)
+        return Entity(index: UInt32(generations.count - 1), generation: 0)
+    }
+
+    @usableFromInline
+    mutating func destroy(_ entity: Entity) {
+        for slot in columns.indices {
+            guard let position = columns[slot].index.position(of: entity) else { continue }
+            if !isKnownUniquelyReferenced(&columns[slot]) {
+                copyColumn(at: slot)
+            }
+            let column = columns[slot]
+            column.swapRemove(column, position)
+        }
+        let slot = Int(entity.index)
+        isLive[slot] = false
+        generations[slot] &+= 1
+        vacant.append(entity.index)
+    }
+}
+
+/// The live entities of a world, lazily, in slot order.
+@frozen
+public struct EntitiesView: Sequence, Sendable {
+    @usableFromInline let generations: [UInt32]
+    @usableFromInline let isLive: [Bool]
+
+    @inlinable
+    init(generations: [UInt32], isLive: [Bool]) {
+        self.generations = generations
+        self.isLive = isLive
+    }
+
+    /// Steps through the live slots.
+    @frozen
+    public struct Iterator: IteratorProtocol {
+        @usableFromInline let generations: [UInt32]
+        @usableFromInline let isLive: [Bool]
+        @usableFromInline var slot = 0
+
+        @inlinable
+        init(generations: [UInt32], isLive: [Bool]) {
+            self.generations = generations
+            self.isLive = isLive
+        }
+
+        @inlinable
+        public mutating func next() -> Entity? {
+            while slot < isLive.count {
+                defer { slot += 1 }
+                if isLive[slot] { return Entity(index: UInt32(slot), generation: generations[slot]) }
+            }
+            return nil
+        }
+    }
+
+    @inlinable
+    public func makeIterator() -> Iterator { Iterator(generations: generations, isLive: isLive) }
+}

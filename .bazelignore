@@ -1,0 +1,15 @@
+# Agent worktrees are checkouts of this same repo, so `//...` would otherwise expand into every one.
+.claude
+
+# SwiftPM build directories can contain BUILD files, which Bazel would otherwise try to load.
+.build
+.swiftpm
+swift/.build
+swift/.swiftpm
+
+# Convenience symlinks.
+bazel-ECS
+bazel-bin
+bazel-out
+bazel-testlogs
+

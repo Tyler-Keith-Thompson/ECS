@@ -1,0 +1,137 @@
+/// Which entities a column holds, and where: a sparse array from slot to position, and the dense
+/// array of entities at those positions.
+///
+/// Lookup, insertion and removal are O(1); removal moves the last entity into the vacated
+/// position, so the dense order is the order of insertion with swaps on removal.
+@frozen
+@usableFromInline
+struct SparseIndex: Sendable {
+    /// Position + 1 of each slot's entity in `dense`, or 0 for none.
+    @usableFromInline var sparse: [UInt32] = []
+    @usableFromInline var dense: [Entity] = []
+
+    @inlinable
+    init() {}
+
+    /// The position of `entity` in `dense`, or nil if the column does not hold it.
+    @inlinable
+    @inline(__always)
+    func position(of entity: Entity) -> Int? {
+        let slot = Int(entity.index)
+        guard slot < sparse.count else { return nil }
+        let stored = sparse[slot]
+        guard stored != 0 else { return nil }
+        let position = Int(stored &- 1)
+        return dense[position] == entity ? position : nil
+    }
+
+    /// Appends `entity`, which the column must not hold, and returns its position.
+    @inlinable
+    mutating func append(_ entity: Entity) -> Int {
+        let slot = Int(entity.index)
+        if slot >= sparse.count {
+            sparse.append(contentsOf: repeatElement(0, count: slot - sparse.count + 1))
+        }
+        dense.append(entity)
+        sparse[slot] = UInt32(dense.count)
+        return dense.count - 1
+    }
+
+    /// Removes the entity at `position`, moving the last entity into its place.
+    @inlinable
+    mutating func swapRemove(at position: Int) {
+        let removed = dense[position]
+        let last = dense.removeLast()
+        if position < dense.count {
+            dense[position] = last
+            sparse[Int(last.index)] = UInt32(position + 1)
+        }
+        sparse[Int(removed.index)] = 0
+    }
+}
+
+/// The components of one type, whatever the type is: what a ``World`` does to a column without
+/// knowing its component type.
+///
+/// Columns are shared between copies of a world and copied before the first write to a shared
+/// one, so they are only ever mutated through a unique reference; that is why their storage needs
+/// no exclusivity checks.
+@usableFromInline
+class AnyColumn: @unchecked Sendable {
+    @exclusivity(unchecked) @usableFromInline final var index: SparseIndex
+    /// Removes the entity and component at a position, moving the last ones into its place.
+    ///
+    /// A closure made where the component type is known, so that a world removing from a column
+    /// it knows only as `AnyColumn` (when despawning) runs code specialized for the type rather
+    /// than the generic class's unspecialized methods.
+    @usableFromInline final let swapRemove: @Sendable (AnyColumn, Int) -> Void
+
+    @inlinable
+    init(index: SparseIndex, swapRemove: @escaping @Sendable (AnyColumn, Int) -> Void) {
+        self.index = index
+        self.swapRemove = swapRemove
+    }
+
+    /// A column holding the same entities and components.
+    @usableFromInline
+    func copy() -> AnyColumn { preconditionFailure("abstract") }
+}
+
+/// The `C` components of a world, densely packed, in the order of their column's index.
+@usableFromInline
+final class Column<C: Component>: AnyColumn, @unchecked Sendable {
+    @exclusivity(unchecked) @usableFromInline var values: [C]
+
+    @inlinable
+    init() {
+        values = []
+        super.init(index: SparseIndex()) { column, position in
+            unsafeDowncast(column, to: Column<C>.self).swapRemove(at: position)
+        }
+    }
+
+    @inlinable
+    init(copying column: Column<C>) {
+        values = column.values
+        super.init(index: column.index, swapRemove: column.swapRemove)
+    }
+
+    @inlinable
+    override func copy() -> AnyColumn { Column(copying: self) }
+
+    /// Removes the entity and component at `position`, moving the last ones into its place.
+    @inlinable
+    func swapRemove(at position: Int) {
+        index.swapRemove(at: position)
+        let last = values.removeLast()
+        if position < values.count { values[position] = last }
+    }
+
+    /// The column's contents, as values that later writes to the column do not change.
+    @inlinable
+    var snapshot: ColumnSnapshot<C> { ColumnSnapshot(index: index, values: values) }
+}
+
+/// A column's index and components at one moment.
+@frozen
+@usableFromInline
+struct ColumnSnapshot<C: Component>: Sendable {
+    @usableFromInline let index: SparseIndex
+    @usableFromInline let values: [C]
+
+    @inlinable
+    init(index: SparseIndex = SparseIndex(), values: [C] = []) {
+        self.index = index
+        self.values = values
+    }
+
+    /// The component of `entity`, which the column must hold, read directly at `cursor` when
+    /// this column is the one being walked (`column == driverColumn`). Counts `column` up by one,
+    /// so a pack of snapshots can be read in one expansion.
+    @inlinable
+    @inline(__always)
+    func value(of entity: Entity, cursor: Int, driverColumn: Int, column: inout Int) -> C {
+        defer { column += 1 }
+        return column == driverColumn ? values[cursor] : values[index.position(of: entity)!]
+    }
+}

@@ -1,0 +1,268 @@
+extension World {
+    /// Changes the `W` of every entity that holds one, every type in `reading` and passes
+    /// `filter`, in place.
+    ///
+    /// `body` receives the `W` to change and a row of the entity with the components it reads.
+    /// Entities are visited in the storage order of whichever of these types the fewest entities
+    /// hold.
+    ///
+    /// ```swift
+    /// world.update(Position.self, reading: Velocity.self, where: .without(Frozen.self)) { position, row in
+    ///     position.x += row.components.dx
+    /// }
+    /// ```
+    ///
+    /// Updates reading one, two or three types have overloads specialized for speed.
+    ///
+    /// - Parameters:
+    ///   - type: The component type to change.
+    ///   - reading: Component types the entity must hold, passed to `body` in this order.
+    ///   - filter: Further types the entity must hold or must not hold.
+    ///   - body: Changes one entity's `W`. If it throws, the visit stops; changes already made
+    ///     are kept.
+    /// - Complexity: O(*n*) for *n* entities in the smallest of the types, plus a copy of the
+    ///   `W` storage when another world shares it.
+    /// - Precondition: `reading` does not list `W`.
+    @inlinable
+    public mutating func update<W: Component, each R: Component, Failure: Error>(
+        _ type: W.Type,
+        reading: repeat (each R).Type,
+        where filter: QueryFilter = QueryFilter(),
+        body: (inout W, QueryRow<repeat each R>) throws(Failure) -> Void
+    ) throws(Failure) {
+        var reads: [ObjectIdentifier] = []
+        for read in repeat (each R).self {
+            reads.append(ObjectIdentifier(read))
+        }
+        try update(W.self, reads: reads, reader: { world in world.packReader(repeat (each R).self) }, filter: filter, body: body)
+    }
+
+    /// Changes the `W` of every entity holding one and the read types, in place; see
+    /// ``update(_:reading:where:body:)``.
+    @inlinable
+    public mutating func update<W: Component, R1: Component, Failure: Error>(
+        _ type: W.Type,
+        reading r1: R1.Type,
+        where filter: QueryFilter = QueryFilter(),
+        body: (inout W, QueryRow<R1>) throws(Failure) -> Void
+    ) throws(Failure) {
+        try update(W.self, reads: [ObjectIdentifier(R1.self)], reader: { world in world.reader(R1.self) }, filter: filter, body: body)
+    }
+
+    /// Changes the `W` of every entity holding one and the read types, in place; see
+    /// ``update(_:reading:where:body:)``.
+    @inlinable
+    public mutating func update<W: Component, R1: Component, R2: Component, Failure: Error>(
+        _ type: W.Type,
+        reading r1: R1.Type, _ r2: R2.Type,
+        where filter: QueryFilter = QueryFilter(),
+        body: (inout W, QueryRow<R1, R2>) throws(Failure) -> Void
+    ) throws(Failure) {
+        try update(W.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self)], reader: { world in world.reader(R1.self, R2.self) }, filter: filter, body: body)
+    }
+
+    /// Changes the `W` of every entity holding one and the read types, in place; see
+    /// ``update(_:reading:where:body:)``.
+    @inlinable
+    public mutating func update<W: Component, R1: Component, R2: Component, R3: Component, Failure: Error>(
+        _ type: W.Type,
+        reading r1: R1.Type, _ r2: R2.Type, _ r3: R3.Type,
+        where filter: QueryFilter = QueryFilter(),
+        body: (inout W, QueryRow<R1, R2, R3>) throws(Failure) -> Void
+    ) throws(Failure) {
+        try update(W.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self), ObjectIdentifier(R3.self)], reader: { world in world.reader(R1.self, R2.self, R3.self) }, filter: filter, body: body)
+    }
+
+    /// Changes the `A` and `B` of every entity that holds both, every type in `reading` and
+    /// passes `filter`, in place.
+    ///
+    /// ```swift
+    /// world.update(Health.self, Stamina.self, reading: Regeneration.self) { health, stamina, row in
+    ///     health.current += row.components.health
+    ///     stamina.current += row.components.stamina
+    /// }
+    /// ```
+    ///
+    /// Updates reading one, two or three types have overloads specialized for speed.
+    ///
+    /// - Parameters:
+    ///   - first: The first component type to change.
+    ///   - second: The second component type to change.
+    ///   - reading: Component types the entity must hold, passed to `body` in this order.
+    ///   - filter: Further types the entity must hold or must not hold.
+    ///   - body: Changes one entity's `A` and `B`. If it throws, the visit stops; changes already
+    ///     made are kept.
+    /// - Complexity: O(*n*) for *n* entities in the smallest of the types, plus a copy of the
+    ///   storage of `A` or `B` when another world shares it.
+    /// - Precondition: `A` and `B` differ, and `reading` lists neither.
+    @inlinable
+    public mutating func update<A: Component, B: Component, each R: Component, Failure: Error>(
+        _ first: A.Type,
+        _ second: B.Type,
+        reading: repeat (each R).Type,
+        where filter: QueryFilter = QueryFilter(),
+        body: (inout A, inout B, QueryRow<repeat each R>) throws(Failure) -> Void
+    ) throws(Failure) {
+        var reads: [ObjectIdentifier] = []
+        for read in repeat (each R).self {
+            reads.append(ObjectIdentifier(read))
+        }
+        try update(A.self, B.self, reads: reads, reader: { world in world.packReader(repeat (each R).self) }, filter: filter, body: body)
+    }
+
+    /// Changes the `A` and `B` of every entity holding both and the read types, in place; see
+    /// ``update(_:_:reading:where:body:)``.
+    @inlinable
+    public mutating func update<A: Component, B: Component, R1: Component, Failure: Error>(
+        _ first: A.Type,
+        _ second: B.Type,
+        reading r1: R1.Type,
+        where filter: QueryFilter = QueryFilter(),
+        body: (inout A, inout B, QueryRow<R1>) throws(Failure) -> Void
+    ) throws(Failure) {
+        try update(A.self, B.self, reads: [ObjectIdentifier(R1.self)], reader: { world in world.reader(R1.self) }, filter: filter, body: body)
+    }
+
+    /// Changes the `A` and `B` of every entity holding both and the read types, in place; see
+    /// ``update(_:_:reading:where:body:)``.
+    @inlinable
+    public mutating func update<A: Component, B: Component, R1: Component, R2: Component, Failure: Error>(
+        _ first: A.Type,
+        _ second: B.Type,
+        reading r1: R1.Type, _ r2: R2.Type,
+        where filter: QueryFilter = QueryFilter(),
+        body: (inout A, inout B, QueryRow<R1, R2>) throws(Failure) -> Void
+    ) throws(Failure) {
+        try update(A.self, B.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self)], reader: { world in world.reader(R1.self, R2.self) }, filter: filter, body: body)
+    }
+
+    /// Changes the `A` and `B` of every entity holding both and the read types, in place; see
+    /// ``update(_:_:reading:where:body:)``.
+    @inlinable
+    public mutating func update<A: Component, B: Component, R1: Component, R2: Component, R3: Component, Failure: Error>(
+        _ first: A.Type,
+        _ second: B.Type,
+        reading r1: R1.Type, _ r2: R2.Type, _ r3: R3.Type,
+        where filter: QueryFilter = QueryFilter(),
+        body: (inout A, inout B, QueryRow<R1, R2, R3>) throws(Failure) -> Void
+    ) throws(Failure) {
+        try update(A.self, B.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self), ObjectIdentifier(R3.self)], reader: { world in world.reader(R1.self, R2.self, R3.self) }, filter: filter, body: body)
+    }
+
+    // MARK: The visits
+
+    /// Visits every entity holding a `W`, the read types and passing `filter`, changing its `W`.
+    @inlinable
+    mutating func update<W: Component, each R: Component, Failure: Error>(
+        _ type: W.Type,
+        reads: [ObjectIdentifier],
+        reader makeReader: (World) -> Reader<repeat each R>,
+        filter: QueryFilter,
+        body: (inout W, QueryRow<repeat each R>) throws(Failure) -> Void
+    ) throws(Failure) {
+        precondition(!reads.contains(ObjectIdentifier(W.self)), "update reads the \(W.self) it writes")
+        guard let slot = columnPositions.position(of: ObjectIdentifier(W.self)) else { return }
+        let resolved = ResolvedFilter(filter, in: self)
+        guard !resolved.isUnsatisfiable else { return }
+        let reader = makeReader(self)
+        let column = uniqueColumn(at: slot, of: W.self)
+        let index = column.index
+        // Moved out for the visit so writes reach the storage directly and are not copied.
+        var values: [W] = []
+        swap(&values, &column.values)
+        defer { swap(&values, &column.values) }
+
+        // The column walked: -2 for W, k for the k-th read type, -1 for a filter type.
+        var driver = index.dense
+        var driverColumn = -2
+        for (column, entities) in reader.columns.enumerated() where entities.count < driver.count {
+            driver = entities
+            driverColumn = column
+        }
+        for required in resolved.required where required.dense.count < driver.count {
+            driver = required.dense
+            driverColumn = -1
+        }
+        let checksFilter = !resolved.isEmpty
+
+        for cursor in driver.indices {
+            let entity = driver[cursor]
+            var position = cursor
+            if driverColumn != -2 {
+                guard let found = index.position(of: entity) else { continue }
+                position = found
+            }
+            if checksFilter, !resolved.passes(entity) { continue }
+            guard let row = reader.row(entity, cursor, driverColumn) else { continue }
+            try body(&values[position], row)
+        }
+    }
+
+    /// Visits every entity holding an `A`, a `B`, the read types and passing `filter`, changing
+    /// its `A` and `B`.
+    @inlinable
+    mutating func update<A: Component, B: Component, each R: Component, Failure: Error>(
+        _ first: A.Type,
+        _ second: B.Type,
+        reads: [ObjectIdentifier],
+        reader makeReader: (World) -> Reader<repeat each R>,
+        filter: QueryFilter,
+        body: (inout A, inout B, QueryRow<repeat each R>) throws(Failure) -> Void
+    ) throws(Failure) {
+        precondition(ObjectIdentifier(A.self) != ObjectIdentifier(B.self), "update writes \(A.self) twice")
+        precondition(
+            !reads.contains(ObjectIdentifier(A.self)) && !reads.contains(ObjectIdentifier(B.self)),
+            "update reads a type it writes")
+        guard let firstSlot = columnPositions.position(of: ObjectIdentifier(A.self)),
+              let secondSlot = columnPositions.position(of: ObjectIdentifier(B.self)) else { return }
+        let resolved = ResolvedFilter(filter, in: self)
+        guard !resolved.isUnsatisfiable else { return }
+        let reader = makeReader(self)
+        let firstColumn = uniqueColumn(at: firstSlot, of: A.self)
+        let secondColumn = uniqueColumn(at: secondSlot, of: B.self)
+        let firstIndex = firstColumn.index
+        let secondIndex = secondColumn.index
+        var firstValues: [A] = []
+        var secondValues: [B] = []
+        swap(&firstValues, &firstColumn.values)
+        swap(&secondValues, &secondColumn.values)
+        defer {
+            swap(&firstValues, &firstColumn.values)
+            swap(&secondValues, &secondColumn.values)
+        }
+
+        // The column walked: -2 for A, -3 for B, k for the k-th read type, -1 for a filter type.
+        var driver = firstIndex.dense
+        var driverColumn = -2
+        if secondIndex.dense.count < driver.count {
+            driver = secondIndex.dense
+            driverColumn = -3
+        }
+        for (column, entities) in reader.columns.enumerated() where entities.count < driver.count {
+            driver = entities
+            driverColumn = column
+        }
+        for required in resolved.required where required.dense.count < driver.count {
+            driver = required.dense
+            driverColumn = -1
+        }
+        let checksFilter = !resolved.isEmpty
+
+        for cursor in driver.indices {
+            let entity = driver[cursor]
+            var firstPosition = cursor
+            var secondPosition = cursor
+            if driverColumn != -2 {
+                guard let found = firstIndex.position(of: entity) else { continue }
+                firstPosition = found
+            }
+            if driverColumn != -3 {
+                guard let found = secondIndex.position(of: entity) else { continue }
+                secondPosition = found
+            }
+            if checksFilter, !resolved.passes(entity) { continue }
+            guard let row = reader.row(entity, cursor, driverColumn) else { continue }
+            try body(&firstValues[firstPosition], &secondValues[secondPosition], row)
+        }
+    }
+}
