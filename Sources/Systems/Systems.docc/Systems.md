@@ -15,6 +15,7 @@ just before the one that must follow it. Constraints that form a cycle trap, or 
 
 - ``System``
 - ``ScheduledSystem``
+- ``UpdateEvents``
 
 ### Schedules
 

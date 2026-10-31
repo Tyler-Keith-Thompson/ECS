@@ -29,6 +29,12 @@ type the fewest entities hold and looks the others up.
 
 - ``ChangeTick``
 
+### Events
+
+- ``Event``
+- ``Events``
+- ``EventsView``
+
 ### Deferred changes
 
 - ``Commands``

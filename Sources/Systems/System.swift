@@ -88,3 +88,22 @@ public struct ScheduledSystem: Sendable {
 /// The source of ``ScheduledSystem`` identifiers.
 @usableFromInline
 let nextSystemID = Atomic<UInt64>(0)
+
+/// Ends an update for every event type in the world: put it first in the schedule that runs once
+/// per frame or step.
+///
+/// ```swift
+/// let frame = Schedule {
+///     UpdateEvents()
+///     Physics()
+///     Damage()
+/// }
+/// ```
+public struct UpdateEvents: System {
+    /// The system.
+    public init() {}
+
+    public func run(in world: inout World) {
+        world.updateEvents()
+    }
+}

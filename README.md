@@ -107,6 +107,9 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
 - **Change detection**: every component remembers when it was added and last changed.
   `query(…).changed(Position.self)` inside a system lists what changed since that system last
   ran; `.added(…)` lists what is new. Outside a schedule, pass a tick: `since: checkpoint`.
+- **Events**: `world.send(Collision(…))` in one system, `world.readEvents(Collision.self,
+  by: Damage.self)` in another. Each reader reads each event once; an `UpdateEvents` system at the
+  start of a frame drops events older than the previous frame.
 - **`Commands`**: spawns, despawns and insertions recorded during an update and applied after it.
 - **`Resources`**: values the world holds once, such as a clock or the frame's input.
 - **`Schedule`**: systems in the order written, adjusted by `after` and `before` constraints.
