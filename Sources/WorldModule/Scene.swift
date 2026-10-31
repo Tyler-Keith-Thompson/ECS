@@ -1,27 +1,40 @@
-/// The component and resource types a ``Scene`` saves, each under a name that identifies it in
-/// saved data.
+/// A list of the component and resource types that a scene saves, each under a name that
+/// identifies it in saved data.
 ///
-/// Register each type once, then save whole worlds without listing types:
+/// A registry lets you save whole worlds without listing their types at each call. Register
+/// each type once, when your program starts, then take scenes with ``World/scene(_:)``.
+/// Decoding a ``Scene`` needs the same registry, which you pass in the decoder's `userInfo`
+/// under `CodingUserInfoKey.typeRegistry`:
 ///
 /// ```swift
+/// import Foundation
+///
 /// var registry = TypeRegistry()
 /// try registry.register(Position.self, named: "Position")
-/// try registry.register(resource: Score.self, named: "Score")
+/// try registry.register(resource: Treasury.self, named: "Treasury")
+///
+/// var world = World()
+/// world.resources.insert(Treasury(gold: 120))
+/// let ship = world.spawn(Position(x: 3, y: 4))
 /// let data = try JSONEncoder().encode(world.scene(registry))
 ///
 /// let decoder = JSONDecoder()
 /// decoder.userInfo[.typeRegistry] = registry
 /// let restored = World(restoring: try decoder.decode(Scene.self, from: data))
+/// print(restored[Position.self, of: ship])
+/// // Prints "Position(x: 3.0, y: 4.0)"
+/// print(restored.resources[Treasury.self].gold)
+/// // Prints "120"
 /// ```
 ///
-/// Relations other than ``ChildOf`` are saved by registering their ``Targets`` component, such as
-/// `Targets<Likes>`.
+/// A scene always saves the hierarchy (``ChildOf``). To save another relation, register its
+/// ``Targets`` component, such as `Targets<Likes>`.
 @frozen
 public struct TypeRegistry: Sendable {
     @usableFromInline var components: [ComponentRegistration] = []
     @usableFromInline var resources: [ResourceRegistration] = []
 
-    /// An empty registry.
+    /// Creates an empty registry.
     @inlinable
     public init() {}
 
@@ -33,19 +46,27 @@ public struct TypeRegistry: Sendable {
     @inlinable
     public var resourceNames: [String] { resources.map(\.name) }
 
-    /// Registers the component type `C` under `name`, so scenes save its components.
+    /// Registers a component type under a name, so scenes save its components.
     ///
     /// Registering a type again under the same name changes nothing.
     ///
+    /// ```swift
+    /// var registry = TypeRegistry()
+    /// try registry.register(Position.self, named: "Position")
+    /// try registry.register(Health.self, named: "Health")
+    /// print(registry.componentNames)
+    /// // Prints "["Position", "Health"]"
+    /// ```
+    ///
     /// - Parameters:
-    ///   - type: The component type.
-    ///   - name: The name saved data identifies `C` by; by default the type's full name, such as
-    ///     `"MyGame.Position"`. Give a name of your own to keep saved data readable after the type
-    ///     or its module is renamed.
-    /// - Throws: ``TypeRegistryError/nameTaken`` when another component type has `name`;
-    ///   ``TypeRegistryError/typeAlreadyRegistered`` when `C` has another name. The registry is
-    ///   unchanged.
-    /// - Complexity: O(*t*) for *t* registered component types.
+    ///   - type: The component type to register.
+    ///   - name: The name that saved data identifies the type by. The default is the type's
+    ///     full name, such as `"MyGame.Position"`. Give a name of your own so that saved data
+    ///     stays readable after you rename the type or its module.
+    /// - Throws: ``TypeRegistryError/nameTaken`` if another component type has `name`, or
+    ///   ``TypeRegistryError/typeAlreadyRegistered`` if `type` is registered under another name.
+    ///   The registry is unchanged.
+    /// - Complexity: O(*t*), where *t* is the number of registered component types.
     @inlinable
     public mutating func register<C: Component & Codable>(_ type: C.Type, named name: String = String(reflecting: C.self)) throws(TypeRegistryError) {
         let key = ObjectIdentifier(C.self)
@@ -59,17 +80,18 @@ public struct TypeRegistry: Sendable {
         }))
     }
 
-    /// Registers the resource type `R` under `name`, so scenes save it.
+    /// Registers a resource type under a name, so scenes save it.
     ///
     /// Registering a type again under the same name changes nothing.
     ///
     /// - Parameters:
-    ///   - type: The resource type.
-    ///   - name: The name saved data identifies `R` by; by default the type's full name.
-    /// - Throws: ``TypeRegistryError/nameTaken`` when another resource type has `name`;
-    ///   ``TypeRegistryError/typeAlreadyRegistered`` when `R` has another name. The registry is
-    ///   unchanged.
-    /// - Complexity: O(*t*) for *t* registered resource types.
+    ///   - type: The resource type to register.
+    ///   - name: The name that saved data identifies the type by. The default is the type's
+    ///     full name.
+    /// - Throws: ``TypeRegistryError/nameTaken`` if another resource type has `name`, or
+    ///   ``TypeRegistryError/typeAlreadyRegistered`` if `type` is registered under another name.
+    ///   The registry is unchanged.
+    /// - Complexity: O(*t*), where *t* is the number of registered resource types.
     @inlinable
     public mutating func register<R: Resource & Codable>(resource type: R.Type, named name: String = String(reflecting: R.self)) throws(TypeRegistryError) {
         let key = ObjectIdentifier(R.self)
@@ -86,18 +108,41 @@ public struct TypeRegistry: Sendable {
     }
 }
 
-/// The error ``TypeRegistry`` registration throws, leaving the registry unchanged.
+/// An error that indicates why a type couldn't be registered in a ``TypeRegistry``.
+///
+/// The registry is unchanged when registration throws:
+///
+/// ```swift
+/// var registry = TypeRegistry()
+/// try registry.register(Position.self, named: "Position")
+///
+/// do {
+///     try registry.register(Health.self, named: "Position")
+/// } catch {
+///     print(error)
+///     // Prints "nameTaken"
+/// }
+/// ```
 @frozen
 public enum TypeRegistryError: Error, Hashable, Sendable {
-    /// Another type of the same kind is registered under the name.
+    /// Another type of the same kind, component or resource, is registered under the name.
     case nameTaken
-    /// The type is registered under another name.
+    /// The type is already registered under another name.
     case typeAlreadyRegistered
 }
 
 extension CodingUserInfoKey {
-    /// The key under which a decoder's `userInfo` holds the ``TypeRegistry`` a ``Scene`` is
-    /// decoded with.
+    /// The key under which a decoder's `userInfo` holds the type registry to decode a scene
+    /// with.
+    ///
+    /// Set it before decoding a ``Scene``:
+    ///
+    /// ```swift
+    /// import Foundation
+    ///
+    /// let decoder = JSONDecoder()
+    /// decoder.userInfo[.typeRegistry] = TypeRegistry()
+    /// ```
     public static let typeRegistry = CodingUserInfoKey(rawValue: "ECS.TypeRegistry")!
 }
 
@@ -178,23 +223,37 @@ extension ComponentRows: SavedComponents {
     }
 }
 
-/// A component that names other entities, so a scene spawned into a world
-/// (``World/spawn(contentsOf:)``) can point it at the entities spawned in their place.
+/// A type whose values name other entities, which can be pointed at different entities.
+///
+/// Conform a component that stores entity handles to `MapEntities` so that spawning a scene
+/// into a world (``World/spawn(contentsOf:)``) keeps it pointing at the right entities. The
+/// world spawns new entities in place of the scene's, then calls ``mapEntities(_:)`` with a
+/// closure that maps each of the scene's entities to its replacement.
+///
+/// The following example declares a component that names the leader an entity follows:
 ///
 /// ```swift
-/// struct Target: Component, Codable, MapEntities {
-///     var entity: Entity
+/// struct Follows: Component, Codable, MapEntities {
+///     var leader: Entity
+///
 ///     mutating func mapEntities(_ map: (Entity) -> Entity) {
-///         entity = map(entity)
+///         leader = map(leader)
 ///     }
 /// }
 /// ```
+///
+/// A relation's ``Targets`` component already conforms.
 public protocol MapEntities {
-    /// Replaces every entity the value names with `map` of it.
+    /// Replaces every entity the value names with the entity a closure maps it to.
+    ///
+    /// - Parameter map: A closure that returns the entity to name in place of the given one.
     mutating func mapEntities(_ map: (Entity) -> Entity)
 }
 
 extension Targets: MapEntities {
+    /// Replaces each target with the entity a closure maps it to.
+    ///
+    /// - Parameter map: A closure that returns the entity to name in place of the given one.
     @inlinable
     public mutating func mapEntities(_ map: (Entity) -> Entity) {
         for index in storedEntities.indices {
@@ -243,20 +302,51 @@ struct SavedResource<R: Resource & Codable>: SavedResourceValue, Codable {
     }
 }
 
-/// A world's entities, hierarchy, and the components and resources of the types a
-/// ``TypeRegistry`` names, as a `Codable` value.
+/// A saved copy of a world's entities, hierarchy, and the components and resources of the types
+/// a registry names.
 ///
-/// Take one with ``World/scene(_:)`` and rebuild a world from it with `World(restoring:)`. Every
-/// entity handle, live or stale, means the same in the restored world, and the restored world
-/// hands out the same handles from later spawns.
+/// Use a scene to save and load whole worlds, such as a game's save file or a level made in an
+/// editor, or to store a group of entities you spawn many times, such as an enemy squad. Take a
+/// scene with ``World/scene(_:)``, passing a ``TypeRegistry`` of the types to save. Then either
+/// rebuild the whole world with `World(restoring:)`, or add the scene's entities to another
+/// world as new ones with ``World/spawn(contentsOf:)``.
 ///
-/// Encoding needs nothing more. Decoding needs the registry in the decoder's `userInfo` under
-/// `CodingUserInfoKey.typeRegistry`, and throws `DecodingError.dataCorrupted` when it is
-/// missing, when the data names a type the registry does not, or for data no world could have
-/// produced. Types the registry names but the data does not are left out.
+/// A scene is `Codable`. Encoding needs nothing more; decoding needs the registry in the
+/// decoder's `userInfo` under `CodingUserInfoKey.typeRegistry`:
 ///
-/// A scene holds no hooks, observers, caches, indexes or change ticks: the restored world's
+/// ```swift
+/// import Foundation
+///
+/// var registry = TypeRegistry()
+/// try registry.register(Name.self, named: "Name")
+///
+/// var world = World()
+/// let ship = world.spawn(Name(value: "Ship"))
+/// let turret = world.spawn(Name(value: "Turret"))
+/// try world.addChild(turret, to: ship)
+/// let data = try JSONEncoder().encode(world.scene(registry))
+///
+/// let decoder = JSONDecoder()
+/// decoder.userInfo[.typeRegistry] = registry
+/// let scene = try decoder.decode(Scene.self, from: data)
+/// print(scene.count)
+/// // Prints "2"
+///
+/// let restored = World(restoring: scene)
+/// print(restored.parent(of: turret) == ship)
+/// // Prints "true"
+/// ```
+///
+/// Restoring keeps every entity handle, live or stale, meaning the same as in the original
+/// world, and the restored world hands out the same handles from later spawns. Types the
+/// registry names but the data doesn't are left out.
+///
+/// A scene holds no hooks, observers, caches, indexes or change ticks, and the restored world's
 /// components are all added at its first tick.
+///
+/// - Note: Decoding throws `DecodingError.dataCorrupted` when the decoder's `userInfo` has no
+///   registry, when the data names a type the registry doesn't, or for data that no world could
+///   have produced.
 public struct Scene: Sendable, Codable {
     @usableFromInline let generations: [UInt32]
     @usableFromInline let vacant: [UInt32]
@@ -289,6 +379,9 @@ public struct Scene: Sendable, Codable {
         case generations, vacant, families, components, resources
     }
 
+    /// Encodes the scene into the given encoder.
+    ///
+    /// - Parameter encoder: The encoder to write data to.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(generations, forKey: .generations)
@@ -304,6 +397,13 @@ public struct Scene: Sendable, Codable {
         }
     }
 
+    /// Creates a scene by decoding from the given decoder, whose `userInfo` holds the type
+    /// registry under `CodingUserInfoKey.typeRegistry`.
+    ///
+    /// - Parameter decoder: The decoder to read data from.
+    /// - Throws: `DecodingError.dataCorrupted` if the decoder has no registry, if the data names
+    ///   a type the registry doesn't, or if the data describes a world that no world could have
+    ///   produced; or any error the decoder throws.
     public init(from decoder: any Decoder) throws {
         func corrupted(_ description: String) -> DecodingError {
             .dataCorrupted(DecodingError.Context(codingPath: decoder.codingPath, debugDescription: description))
@@ -384,12 +484,14 @@ func validateLayout(generations: [UInt32], vacant: [UInt32], families: [Family],
 }
 
 extension World {
-    /// The world's entities, hierarchy, and the components and resources of the types
-    /// `registry` names.
+    /// Returns a scene of the world's entities, hierarchy, and the components and resources of
+    /// the types a registry names.
     ///
-    /// Components and resources of other types are left out.
+    /// Components and resources of other types are left out. See ``Scene`` for an example.
     ///
-    /// - Complexity: O(*n*) for *n* entities and components saved.
+    /// - Parameter registry: The types to save.
+    /// - Returns: A scene of the world.
+    /// - Complexity: O(*n*), where *n* is the number of entities and components saved.
     @inlinable
     public func scene(_ registry: TypeRegistry) -> Scene {
         Scene(
@@ -412,10 +514,14 @@ extension World {
         return families
     }
 
-    /// The world `scene` was taken of, with its entities, hierarchy, and the components and
-    /// resources it saved.
+    /// Creates a world from a scene, with the entities, hierarchy, components and resources it
+    /// saved.
     ///
-    /// - Complexity: O(*n*) for *n* entities and components restored.
+    /// Every entity handle means the same in the new world as in the world the scene was taken
+    /// of. See ``Scene`` for an example.
+    ///
+    /// - Parameter scene: The scene to restore.
+    /// - Complexity: O(*n*), where *n* is the number of entities and components restored.
     @inlinable
     public init(restoring scene: Scene) {
         self.init(slots: scene.generations, vacant: scene.vacant, families: scene.families)
@@ -427,24 +533,48 @@ extension World {
         }
     }
 
-    /// Spawns each live entity of `scene` as a new entity, with its components, hierarchy and
-    /// relations, and inserts the scene's resources, replacing any of the same types.
+    /// Adds the entities of a scene to the world as new entities, and inserts the scene's
+    /// resources.
     ///
-    /// Use it to instantiate a saved prefab many times:
+    /// Use this method to place a saved group of entities into a world, as many times as you
+    /// like: a squad of enemies, a room of a level. Each live entity of the scene is spawned as a
+    /// new entity with its components, hierarchy and relations. The scene's resources replace
+    /// any of the same types the world holds.
+    ///
+    /// A component that conforms to ``MapEntities``, such as a relation's ``Targets``, has each
+    /// of the scene's entities it names replaced by the entity spawned for it. Entities outside
+    /// the scene are left as they are. The following example spawns a squad twice, and each
+    /// copy's follower follows its own copy's leader:
     ///
     /// ```swift
-    /// let goblin = try decoder.decode(Scene.self, from: goblinData)
-    /// let first = world.spawn(contentsOf: goblin)
-    /// let second = world.spawn(contentsOf: goblin)
+    /// var registry = TypeRegistry()
+    /// try registry.register(Name.self, named: "Name")
+    /// try registry.register(Follows.self, named: "Follows")
+    ///
+    /// var squad = World()
+    /// let leader = squad.spawn(Name(value: "Captain"))
+    /// let follower = squad.spawn(Name(value: "Private"), Follows(leader: leader))
+    /// let saved = squad.scene(registry)
+    ///
+    /// var world = World()
+    /// let alpha = world.spawn(contentsOf: saved)
+    /// let bravo = world.spawn(contentsOf: saved)
+    /// print(world.count)
+    /// // Prints "4"
+    ///
+    /// let bravoFollower = bravo[follower]!
+    /// print(world[Follows.self, of: bravoFollower].leader == bravo[leader])
+    /// // Prints "true"
+    /// print(alpha[leader] == bravo[leader])
+    /// // Prints "false"
     /// ```
     ///
-    /// Components are inserted as `insert(_:into:)` inserts them, running hooks. A component
-    /// that conforms to ``MapEntities``, such as a relation's ``Targets``, has each entity of the
-    /// scene it names replaced by the entity spawned for it; entities outside the scene are left
-    /// as they are.
+    /// Components are inserted as `insert(_:into:)` inserts them, running hooks.
     ///
-    /// - Returns: The entity spawned for each live entity of the scene, keyed by the scene's.
-    /// - Complexity: O(*n*) for *n* entities and components spawned.
+    /// - Parameter scene: The scene whose entities to spawn.
+    /// - Returns: The entity spawned for each live entity of the scene, keyed by the scene's
+    ///   entity.
+    /// - Complexity: O(*n*), where *n* is the number of entities and components spawned.
     @inlinable
     @discardableResult
     public mutating func spawn(contentsOf scene: Scene) -> [Entity: Entity] {

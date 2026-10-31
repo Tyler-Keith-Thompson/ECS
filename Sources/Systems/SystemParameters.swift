@@ -1,16 +1,21 @@
 import WorldModule
 
-/// A value a system's `run` takes instead of the whole world, whose type states what it reads
-/// and writes.
+/// A type a system's `run` method can take in place of the whole world, whose type states what
+/// the system reads and writes.
 ///
-/// `@System` builds a system's ``System/access`` from its parameters' types and fetches them
-/// before each run. The parameters are ``WorldModule/Query`` and ``WorldModule/Query/Where`` for
-/// reading components, ``Update`` for writing them, ``ResourceReader`` and ``ResourceWriter``,
-/// ``EventReader`` and ``EventWriter``, ``RemovedComponents``, and `inout`
-/// ``WorldModule/Commands`` for structural changes, which conflict with nothing and apply at the
-/// end of the wave the system runs in.
+/// You don't conform to this protocol yourself. The ``System()`` macro builds a system's
+/// ``System/access`` from the types of its parameters, and fetches the parameters from the world
+/// before each run. The parameter types are:
+///
+/// - term ``/WorldModule/Query`` and ``/WorldModule/Query/Where``: Read components.
+/// - term ``Update``: Writes components, optionally reading others.
+/// - term ``ResourceReader`` and ``ResourceWriter``: Read or write a resource.
+/// - term ``EventReader`` and ``EventWriter``: Read or send events.
+/// - term ``RemovedComponents``: Lists the entities that lost a component.
+/// - term `inout` ``/WorldModule/Commands``: Queues structural changes, which apply at the end of
+///   the wave the system runs in and conflict with nothing.
 public protocol SystemParameter {
-    /// What the parameter reads and writes, as a parameter of a system of type `system`.
+    /// The types the parameter reads and writes as a parameter of a system of the given type.
     static func _access<S>(in system: S.Type) -> Access
 }
 
@@ -68,7 +73,7 @@ extension Query.Where: SystemParameter {
     }
 
     /// The query of this type with its filter, bound to `world`'s rows through `query`; see
-    /// ``WorldModule/Query/_fetch(from:query:)``.
+    /// ``/WorldModule/Query/_fetch(from:query:)``.
     @inlinable
     public static func _fetch(
         from world: World, query: (World, Query) -> QueryView<repeat (each T).Value>
@@ -86,10 +91,33 @@ extension Query.Where: SystemParameter {
 
 // MARK: Resources
 
-/// Reads the resource `R`.
+/// A system parameter that reads a resource.
+///
+/// Read the resource through ``value``. The following system slows every velocity by an amount
+/// that depends on the time step:
+///
+/// ```swift
+/// @System
+/// struct Drag {
+///     func run(_ velocities: Update<Velocity>, _ step: ResourceReader<TimeStep>) {
+///         velocities { velocity, _ in velocity.dx *= 1 - step.value.seconds }
+///     }
+/// }
+///
+/// var world = World()
+/// world.resources.insert(TimeStep(seconds: 0.25))
+/// let puck = world.spawn(Velocity(dx: 8, dy: 0))
+/// Schedule { Drag() }.run(on: &world)
+/// print(world[Velocity.self, of: puck].dx)
+/// // Prints "6.0"
+/// ```
+///
+/// Systems that only read a resource can run at the same time as one another.
+///
+/// - Important: The world must hold the resource when the system runs.
 @frozen
 public struct ResourceReader<R: Resource>: SystemParameter, Sendable {
-    /// The resource, as it was when the system started.
+    /// The resource, as it was when the system started running.
     public let value: R
 
     @inlinable
@@ -111,7 +139,32 @@ public struct ResourceReader<R: Resource>: SystemParameter, Sendable {
     }
 }
 
-/// Reads and writes the resource `R`.
+/// A system parameter that reads and writes a resource.
+///
+/// Change the resource through ``value``; the changes are kept in the world when the system
+/// finishes. The following system scores a point for each entity at or below the ground:
+///
+/// ```swift
+/// @System
+/// struct Scoring {
+///     func run(_ positions: Query<Position>, _ score: ResourceWriter<Score>) {
+///         for (_, position) in positions where position.y <= 0 {
+///             score.value.points += 1
+///         }
+///     }
+/// }
+///
+/// var world = World()
+/// world.resources.insert(Score(points: 0))
+/// world.spawn(Position(x: 0, y: 0))
+/// world.spawn(Position(x: 5, y: -2))
+/// world.spawn(Position(x: 9, y: 40))
+/// Schedule { Scoring() }.run(on: &world)
+/// print(world.resources[Score.self].points)
+/// // Prints "2"
+/// ```
+///
+/// - Important: The world must hold the resource when the system runs.
 public final class ResourceWriter<R: Resource>: SystemParameter, @unchecked Sendable {
     @usableFromInline var part: World
 
@@ -120,7 +173,7 @@ public final class ResourceWriter<R: Resource>: SystemParameter, @unchecked Send
         self.part = part
     }
 
-    /// The resource, changed in place.
+    /// The resource, which you can change in place.
     ///
     /// - Precondition: The world holds an `R`.
     @inlinable
@@ -150,10 +203,38 @@ public final class ResourceWriter<R: Resource>: SystemParameter, @unchecked Send
 
 // MARK: Events
 
-/// Reads the events of type `E` sent since the system last read them.
+/// A system parameter that reads the events of one type sent since the system last read them.
+///
+/// An event reader is a collection of the new events, oldest first. Each system type has its own
+/// place in the events, so it sees each event once however many other systems read them too. The
+/// following system applies each `Damage` event to the health of its target:
+///
+/// ```swift
+/// @System
+/// struct ApplyDamage {
+///     func run(_ damages: EventReader<Damage>, _ health: Update<Health>) {
+///         health { health, entity in
+///             for damage in damages where damage.target == entity {
+///                 health.current -= damage.amount
+///             }
+///         }
+///     }
+/// }
+///
+/// var world = World()
+/// let knight = world.spawn(Health(current: 30))
+/// world.send(Damage(target: knight, amount: 12))
+/// Schedule { ApplyDamage() }.run(on: &world)
+/// print(world[Health.self, of: knight].current)
+/// // Prints "18"
+/// ```
+///
+/// A world keeps an event for the rest of the update it was sent in and all of the next; see
+/// ``UpdateEvents``. A system that doesn't run for longer than that misses the events dropped in
+/// between.
 @frozen
 public struct EventReader<E: Event>: SystemParameter, RandomAccessCollection, Sendable {
-    /// The events, oldest first.
+    /// The new events, oldest first.
     public let events: EventsView<E>
 
     @inlinable
@@ -180,7 +261,29 @@ public struct EventReader<E: Event>: SystemParameter, RandomAccessCollection, Se
     }
 }
 
-/// Sends events of type `E`.
+/// A system parameter that sends events of one type.
+///
+/// Call ``send(_:)`` for each event. The following system sends a `Damage` event for each entity
+/// that has fallen below the ground:
+///
+/// ```swift
+/// @System
+/// struct Combat {
+///     func run(_ positions: Query<Position>, _ damages: EventWriter<Damage>) {
+///         for (entity, position) in positions where position.y < 0 {
+///             damages.send(Damage(target: entity, amount: 10))
+///         }
+///     }
+/// }
+///
+/// var world = World()
+/// world.spawn(Position(x: 0, y: -1))
+/// Schedule { Combat() }.run(on: &world)
+/// print(world.events(Damage.self).count)
+/// // Prints "1"
+/// ```
+///
+/// Readers see an event from the next time they read after it was sent.
 public final class EventWriter<E: Event>: SystemParameter, @unchecked Sendable {
     @usableFromInline var part: World
 
@@ -189,7 +292,9 @@ public final class EventWriter<E: Event>: SystemParameter, @unchecked Sendable {
         self.part = part
     }
 
-    /// Sends `event`, which readers see from the next time they read.
+    /// Sends an event, which readers see from the next time they read.
+    ///
+    /// - Parameter event: The event to send.
     @inlinable
     public func send(_ event: E) {
         part.send(event)
@@ -218,14 +323,39 @@ public final class EventWriter<E: Event>: SystemParameter, @unchecked Sendable {
 
 // MARK: Removals
 
-/// The entities that lost a `C`, by removal or despawn, since the system last read them, oldest
-/// first.
+/// A system parameter that lists the entities that lost a component since the system last read
+/// them.
 ///
-/// The system's schedule starts recording removals of `C` (``WorldModule/World/trackRemovals(of:)``)
-/// before the system first runs; removals are kept as events are.
+/// The collection holds each entity that lost a `C`, whether the component was removed or the
+/// entity despawned, oldest first. The following system scores a point for each entity that
+/// thawed:
+///
+/// ```swift
+/// @System
+/// struct CountThawed {
+///     func run(_ thawed: RemovedComponents<Frozen>, _ score: ResourceWriter<Score>) {
+///         score.value.points += thawed.count
+///     }
+/// }
+///
+/// var world = World()
+/// world.resources.insert(Score(points: 0))
+/// let statue = world.spawn(Position(x: 0, y: 0), Frozen())
+/// let frame = Schedule { CountThawed() }
+/// frame.run(on: &world)
+///
+/// world.remove(Frozen.self, from: statue)
+/// frame.run(on: &world)
+/// print(world.resources[Score.self].points)
+/// // Prints "1"
+/// ```
+///
+/// The schedule starts recording removals of `C` (``/WorldModule/World/trackRemovals(of:)``)
+/// before the system first runs, so removals before then aren't listed. Removals are kept as
+/// events are; see ``EventReader``.
 @frozen
 public struct RemovedComponents<C: Component>: SystemParameter, RandomAccessCollection, Sendable {
-    /// The removals, oldest first.
+    /// The new removals, oldest first.
     public let removals: EventsView<RemovedComponent<C>>
 
     @inlinable

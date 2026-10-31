@@ -1,28 +1,31 @@
 # ``ECS``
 
-An entity component system: entities, their components and resources in a value-type world, and
-systems run on it in a declared order.
+Build games and simulations from entities, the components they hold, and systems that update
+them in a declared order.
 
 ## Overview
 
-A ``WorldModule/World`` holds entities and the components they hold, one sparse set per component
-type, plus resources it holds once. It is a copy-on-write value, so copies are cheap and
-independent. Systems read and change it with queries, in-place updates and deferred commands, and a
-``Systems/Schedule`` runs them as though in the order written, adjusted by `after` and `before`
-constraints, at the same time where they do not conflict. A ``SimulationModule/Simulation`` steps
-a world frame by frame through schedules by label, with a fixed timestep and states.
+ECS is an entity component system for Swift. It suits any program that updates many similar
+things each step, such as the bodies of a physics simulation or the characters of a game.
 
-Plain spellings trap on a stale entity or a missing component, like an array subscript; `checked`
-spellings throw a typed error instead.
+- Entities are lightweight handles. An ``/WorldModule/Entity`` holds no data of its own.
+- Components are plain value types, such as a position or a velocity, attached to entities.
+- A ``/WorldModule/World`` holds the entities and their components, along with *resources*,
+  values the world holds once, such as a clock.
+- Systems are rules that read and change the world through queries and updates, and a
+  ``/Systems/Schedule`` runs them in the order you write, at the same time where they don't
+  conflict.
+- A ``/SimulationModule/Simulation`` runs a world frame by frame, with a fixed timestep and
+  states.
 
-`import ECS` imports every module. Each module also has its own documentation and can be
-imported on its own.
+A world is a copy-on-write value, like an array: copies are cheap and independent, so you can
+keep one for a snapshot, an undo step or a rollback.
+
+The following example, using the `Position` and `Velocity` components from
+<doc:GettingStarted>, spawns a ball and moves it one step by its velocity:
 
 ```swift
 import ECS
-
-struct Position: Component { var x: Double, y: Double }
-struct Velocity: Component { var dx: Double, dy: Double }
 
 var world = World()
 let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 2))
@@ -30,13 +33,21 @@ world.update(Position.self, reading: Velocity.self) { position, row in
     position.x += row.components.dx
     position.y += row.components.dy
 }
-print(world[Position.self, of: ball])  // Position(x: 1.0, y: 2.0)
+print(world[Position.self, of: ball])
+// Prints "Position(x: 1.0, y: 2.0)"
 ```
+
+`import ECS` imports every module. Each module also has its own documentation, and you can
+import one on its own.
 
 ## Topics
 
+### Essentials
+
+- <doc:GettingStarted>
+
 ### Modules
 
-- ``WorldModule``
-- ``Systems``
-- ``SimulationModule``
+- ``/WorldModule``
+- ``/Systems``
+- ``/SimulationModule``

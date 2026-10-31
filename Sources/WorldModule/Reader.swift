@@ -1,16 +1,16 @@
-/// How a query or an update reads its component types: their columns' entities, for choosing
-/// which column to walk, and a closure that reads one entity's row.
-///
-/// The closure is written for each number of types up to three, where the compiler specializes it
-/// fully, and once over a parameter pack for any number. Choosing among them in the fixed-arity
-/// overloads of ``World/query(_:)`` and ``World/update(_:reading:where:body:)`` keeps the
-/// per-entity work free of pack expansion. `Row` is what a visit receives: a tuple for a query, a
-/// ``QueryRow`` for an update.
 /// The driver of a visit over an owning group's entities: every column holds the entity at the
 /// cursor.
 @usableFromInline
 let alignedDriver = Int.max
 
+/// How a query or an update reads its component types: their columns' entities, for choosing
+/// which column to walk, and a closure that reads one entity's row.
+///
+/// The closure is written for each number of types up to three, where the compiler specializes it
+/// fully, and once over a parameter pack for any number. Choosing among them in the fixed-arity
+/// overloads of `World.query(_:)` and `World.update(_:reading:where:body:)` keeps the
+/// per-entity work free of pack expansion. `Row` is what a visit receives: a tuple for a query, a
+/// ``QueryRow`` for an update.
 @frozen
 @usableFromInline
 struct Reader<Row> {

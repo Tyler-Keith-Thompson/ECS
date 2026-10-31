@@ -1,54 +1,140 @@
-/// A kind of link from one entity, the source, to others, its targets: a pair of the relation and
-/// a target.
+/// A type that describes a kind of link from one entity to others.
 ///
-/// A source holds its pairs of a relation in a ``Targets`` component, so queries find sources
-/// with `.with(Targets<Likes>.self)` and read their targets as a term; the world also indexes
-/// each target's sources, so `.related(Likes.self, to: bob)` visits only those.
+/// A relation links a *source* entity to one or more *target* entities: a unit likes another,
+/// a turret is aimed at a ship, a part is a child of its parent (``ChildOf``). Declare a relation
+/// as a type that conforms to `Relation`, then link entities with ``World/relate(_:_:to:)``:
 ///
 /// ```swift
 /// struct Likes: Relation {}
+///
+/// var world = World()
+/// let alice = world.spawn(Name(value: "Alice"))
+/// let bob = world.spawn(Name(value: "Bob"))
 /// world.relate(alice, Likes(), to: bob)
-/// world.targets(Likes.self, of: alice)  // [bob]
-/// world.sources(Likes.self, of: bob)    // [alice]
+///
+/// print(world.targets(Likes.self, of: alice) == [bob])
+/// // Prints "true"
+/// print(world.sources(Likes.self, of: bob) == [alice])
+/// // Prints "true"
 /// ```
 ///
-/// A relation's value is stored with each pair, so relations can carry data
-/// (`struct Owes: Relation { var amount: Int }`).
+/// The world stores each link as a pair of a target and a value of the relation, so a relation
+/// can carry data about the link:
+///
+/// ```swift
+/// struct Owes: Relation { var amount: Int }
+///
+/// var world = World()
+/// let alice = world.spawn(Name(value: "Alice"))
+/// let bob = world.spawn(Name(value: "Bob"))
+/// world.relate(alice, Owes(amount: 20), to: bob)
+///
+/// if let debt = world[Targets<Owes>.self, of: alice][bob] {
+///     print(debt.amount)
+///     // Prints "20"
+/// }
+/// ```
+///
+/// ### Querying Relations
+///
+/// A source holds its pairs of a relation in a ``Targets`` component, so you can read and filter
+/// on it like any other component. The world also keeps an index of each target's sources, so
+/// filtering a query with `.related(_:to:)` visits only the entities related to that target:
+///
+/// ```swift
+/// var world = World()
+/// let alice = world.spawn(Name(value: "Alice"))
+/// let bob = world.spawn(Name(value: "Bob"))
+/// let carol = world.spawn(Name(value: "Carol"))
+/// world.relate(alice, Likes(), to: bob)
+/// world.relate(carol, Likes(), to: bob)
+///
+/// let fans = world.query(Name.self).related(Likes.self, to: bob).map { $0.1.value }
+/// print(fans.sorted())
+/// // Prints "["Alice", "Carol"]"
+/// ```
+///
+/// ### Customizing a Relation
+///
+/// By default a source can relate to any number of targets, and despawning a target removes
+/// its pairs from the sources. Implement ``isExclusive`` or ``onTargetDespawn`` to change that.
 public protocol Relation: Sendable {
-    /// Whether a source relates to at most one target: relating it to another replaces the first.
-    /// False by default.
+    /// A Boolean value indicating whether a source relates to at most one target.
+    ///
+    /// When this is `true`, relating a source to a new target replaces its previous one. The
+    /// default implementation returns `false`.
     static var isExclusive: Bool { get }
 
-    /// What despawning a target does to the sources related to it: ``CleanupAction/remove`` (the
-    /// default) removes their pairs with it, ``CleanupAction/despawn`` despawns them too.
+    /// What despawning a target does to the sources related to it.
+    ///
+    /// The default implementation returns ``CleanupAction/remove``, which removes the sources'
+    /// pairs with the target. Return ``CleanupAction/despawn`` to despawn the sources along with
+    /// the target, as ``ChildOf`` does.
     static var onTargetDespawn: CleanupAction { get }
 }
 
 extension Relation {
-    /// Not exclusive.
+    /// A Boolean value indicating whether a source relates to at most one target; by default,
+    /// `false`.
     @inlinable
     public static var isExclusive: Bool { false }
 
+    /// What despawning a target does to the sources related to it; by default,
     /// ``CleanupAction/remove``.
     @inlinable
     public static var onTargetDespawn: CleanupAction { .remove }
 }
 
 /// What despawning a relation's target does to the sources related to it.
+///
+/// A relation chooses its cleanup with ``Relation/onTargetDespawn``. The following example
+/// declares a relation whose sources are despawned with their target:
+///
+/// ```swift
+/// struct Orbits: Relation {
+///     static var isExclusive: Bool { true }
+///     static var onTargetDespawn: CleanupAction { .despawn }
+/// }
+///
+/// var world = World()
+/// let planet = world.spawn(Name(value: "Planet"))
+/// let moon = world.spawn(Name(value: "Moon"))
+/// world.relate(moon, Orbits(), to: planet)
+///
+/// world.despawn(planet)
+/// print(world.contains(moon))
+/// // Prints "false"
+/// ```
 @frozen
 public enum CleanupAction: Hashable, Sendable {
-    /// Removes the sources' pairs with the target.
+    /// Removes the sources' pairs with the target, keeping the sources.
     case remove
-    /// Despawns the sources, and in turn what despawning them cleans up.
+    /// Despawns the sources, which in turn cleans up whatever is related to them.
     case despawn
 }
 
-/// The targets a source relates to by `R`, with the relation's value for each, in the order they
-/// were related.
+/// The component that holds a source entity's targets of a relation, with the relation's value
+/// for each.
 ///
-/// The world keeps this component: ``World/relate(_:_:to:)`` and ``World/unrelate(_:_:from:)``
-/// change it, and despawning a target removes its pair. Read it like any component, in a query or
-/// with the world's subscript.
+/// The world maintains this component for you: ``World/relate(_:_:to:)`` and
+/// ``World/unrelate(_:_:from:)`` change it, and despawning a target removes its pair. A source
+/// with no targets of `R` holds no `Targets<R>`. Read it like any other component, with the
+/// world's subscript or as a query term:
+///
+/// ```swift
+/// var world = World()
+/// let alice = world.spawn(Name(value: "Alice"))
+/// let bob = world.spawn(Name(value: "Bob"))
+/// let carol = world.spawn(Name(value: "Carol"))
+/// world.relate(alice, Owes(amount: 20), to: bob)
+/// world.relate(alice, Owes(amount: 5), to: carol)
+///
+/// let debts = world[Targets<Owes>.self, of: alice]
+/// print(debts.count)
+/// // Prints "2"
+/// print(debts.relations.map(\.amount))
+/// // Prints "[20, 5]"
+/// ```
 @frozen
 public struct Targets<R: Relation>: Component {
     @usableFromInline var storedEntities: [Entity]
@@ -72,9 +158,11 @@ public struct Targets<R: Relation>: Component {
     @inlinable
     public var count: Int { entities.count }
 
-    /// The relation's value for `target`, or nil if the source does not relate to it.
+    /// Accesses the relation's value for the given target.
     ///
-    /// - Complexity: O(*k*) for *k* targets.
+    /// - Parameter target: A target of the source.
+    /// - Returns: The relation's value for `target`, or `nil` if the source doesn't relate to it.
+    /// - Complexity: O(*k*), where *k* is the number of targets.
     @inlinable
     public subscript(target: Entity) -> R? {
         entities.firstIndex(of: target).map { relations[$0] }
@@ -201,17 +289,31 @@ extension World {
         }
     }
 
-    /// Relates `source` to `target` by `relation`, replacing the value of a pair it already has.
+    /// Links a source entity to a target entity by a relation.
     ///
-    /// For an exclusive relation (``Relation/isExclusive``), the source's other pair is removed.
+    /// The pair is added to the end of the source's targets of `R`. If the source already relates
+    /// to `target` by `R`, this method replaces the pair's value instead. For an exclusive
+    /// relation (``Relation/isExclusive``), the new pair replaces the source's previous one.
     ///
     /// ```swift
-    /// world.relate(alice, Likes(), to: bob)
+    /// var world = World()
+    /// let alice = world.spawn(Name(value: "Alice"))
+    /// let bob = world.spawn(Name(value: "Bob"))
+    ///
+    /// world.relate(alice, Owes(amount: 20), to: bob)
+    /// world.relate(alice, Owes(amount: 35), to: bob)
+    /// print(world[Targets<Owes>.self, of: alice].relations.map(\.amount))
+    /// // Prints "[35]"
     /// ```
     ///
-    /// - Complexity: O(*k*) for *k* targets of `source` and sources of the targets it gains or
-    ///   loses.
-    /// - Precondition: Both entities are live. Use ``relate(_:_:checkedTo:)`` to throw instead.
+    /// - Parameters:
+    ///   - source: The entity the link starts from.
+    ///   - relation: The relation's value for the pair.
+    ///   - target: The entity the link points to.
+    /// - Precondition: Both entities are live. The checked spelling,
+    ///   ``relate(_:_:checkedTo:)``, throws instead.
+    /// - Complexity: O(*k*), where *k* is the number of targets of `source` plus the number of
+    ///   sources of each target it gains or loses.
     @inlinable
     public mutating func relate<R: Relation>(_ source: Entity, _ relation: R, to target: Entity) {
         precondition(contains(source), "Relating stale entity \(source)")
@@ -220,9 +322,19 @@ extension World {
         endOperation()
     }
 
-    /// Relates `source` to `target` by `relation`; see ``relate(_:_:to:)``.
+    /// Links a source entity to a target entity by a relation, throwing if either entity is
+    /// stale.
     ///
-    /// - Throws: ``StaleEntity`` when either entity is not live; the world is unchanged.
+    /// This method behaves like ``relate(_:_:to:)``, but reports a stale entity as an error
+    /// rather than trapping.
+    ///
+    /// - Parameters:
+    ///   - source: The entity the link starts from.
+    ///   - relation: The relation's value for the pair.
+    ///   - target: The entity the link points to.
+    /// - Throws: ``StaleEntity`` if either entity isn't live. The world is unchanged.
+    /// - Complexity: O(*k*), where *k* is the number of targets of `source` plus the number of
+    ///   sources of each target it gains or loses.
     @inlinable
     public mutating func relate<R: Relation>(_ source: Entity, _ relation: R, checkedTo target: Entity) throws(StaleEntity) {
         guard contains(source), contains(target) else { throw StaleEntity() }
@@ -230,11 +342,34 @@ extension World {
         endOperation()
     }
 
-    /// Removes the pair of `source` and `target` by `R`, returning its value, or nil if there
-    /// was none. A source left with no targets loses its ``Targets`` component.
+    /// Removes the link between a source entity and a target entity and returns its value.
     ///
-    /// - Complexity: O(*k*) for *k* targets of `source` and sources of `target`.
-    /// - Precondition: `source` is live. Use ``unrelate(_:_:checkedFrom:)`` to throw instead.
+    /// A source left with no targets of `R` loses its ``Targets`` component.
+    ///
+    /// ```swift
+    /// var world = World()
+    /// let alice = world.spawn(Name(value: "Alice"))
+    /// let bob = world.spawn(Name(value: "Bob"))
+    /// world.relate(alice, Owes(amount: 20), to: bob)
+    ///
+    /// if let settled = world.unrelate(alice, Owes.self, from: bob) {
+    ///     print(settled.amount)
+    ///     // Prints "20"
+    /// }
+    /// print(world.contains(Targets<Owes>.self, in: alice))
+    /// // Prints "false"
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - source: The entity the link starts from.
+    ///   - type: The relation type.
+    ///   - target: The entity the link points to.
+    /// - Returns: The relation's value for the pair, or `nil` if `source` didn't relate to
+    ///   `target`.
+    /// - Precondition: `source` is live. The checked spelling, ``unrelate(_:_:checkedFrom:)``,
+    ///   throws instead.
+    /// - Complexity: O(*k*), where *k* is the number of targets of `source` plus the number of
+    ///   sources of `target`.
     @inlinable
     @discardableResult
     public mutating func unrelate<R: Relation>(_ source: Entity, _ type: R.Type, from target: Entity) -> R? {
@@ -244,9 +379,21 @@ extension World {
         return removed
     }
 
-    /// Removes the pair of `source` and `target` by `R`; see ``unrelate(_:_:from:)``.
+    /// Removes the link between a source entity and a target entity and returns its value,
+    /// throwing if the source is stale.
     ///
-    /// - Throws: ``StaleEntity`` when `source` is not live; the world is unchanged.
+    /// This method behaves like ``unrelate(_:_:from:)``, but reports a stale source as an error
+    /// rather than trapping.
+    ///
+    /// - Parameters:
+    ///   - source: The entity the link starts from.
+    ///   - type: The relation type.
+    ///   - target: The entity the link points to.
+    /// - Returns: The relation's value for the pair, or `nil` if `source` didn't relate to
+    ///   `target`.
+    /// - Throws: ``StaleEntity`` if `source` isn't live. The world is unchanged.
+    /// - Complexity: O(*k*), where *k* is the number of targets of `source` plus the number of
+    ///   sources of `target`.
     @inlinable
     @discardableResult
     public mutating func unrelate<R: Relation>(_ source: Entity, _ type: R.Type, checkedFrom target: Entity) throws(StaleEntity) -> R? {
@@ -256,19 +403,27 @@ extension World {
         return removed
     }
 
-    /// The entities `source` relates to by `R`, in the order they were related; empty for a
-    /// stale entity.
+    /// Returns the entities a source relates to by a relation, in the order they were related.
     ///
+    /// - Parameters:
+    ///   - type: The relation type.
+    ///   - source: The entity the links start from.
+    /// - Returns: The targets of `source`, or an empty array if it has none or isn't live.
     /// - Complexity: O(1).
     @inlinable
     public func targets<R: Relation>(_ type: R.Type, of source: Entity) -> [Entity] {
         (try? self[checked: Targets<R>.self, of: source])?.entities ?? []
     }
 
-    /// The entities related to `target` by `R`, in the order they were related; empty for a
-    /// stale entity.
+    /// Returns the entities that relate to a target by a relation, in the order they were
+    /// related.
     ///
-    /// - Complexity: O(*r*) for *r* relations the world has stored.
+    /// - Parameters:
+    ///   - type: The relation type.
+    ///   - target: The entity the links point to.
+    /// - Returns: The sources related to `target`, or an empty array if it has none or isn't
+    ///   live.
+    /// - Complexity: O(*r*), where *r* is the number of relation types the world has stored.
     @inlinable
     public func sources<R: Relation>(_ type: R.Type, of target: Entity) -> [Entity] {
         guard contains(target) else { return [] }

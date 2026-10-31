@@ -1,18 +1,35 @@
-/// A world's entities, hierarchy and components of the types `C`, as a `Codable` value.
+/// A saved copy of a world's entities, hierarchy and the components of the listed types.
 ///
-/// Take one with ``World/snapshot(_:)`` and rebuild a world from it with
-/// `World(restoring:)`. Every entity handle, live or stale, means the same in the restored
-/// world, and the restored world hands out the same handles from later spawns.
+/// Use a snapshot to save a world and restore it later, or to compare two worlds. A snapshot
+/// is `Codable`, so you can encode it with any encoder, such as `JSONEncoder`. Take one with
+/// ``World/snapshot(_:)``, listing the component types to save, and rebuild a world from it
+/// with `World(restoring:)`. Each component type you save must conform to `Codable`.
+///
+/// The following example saves a world as JSON and restores it:
 ///
 /// ```swift
-/// let data = try JSONEncoder().encode(world.snapshot(Position.self, Velocity.self))
-/// let snapshot = try JSONDecoder().decode(WorldSnapshot<Position, Velocity>.self, from: data)
-/// let restored = World(restoring: snapshot)
+/// import Foundation
+///
+/// var world = World()
+/// let ship = world.spawn(Position(x: 1, y: 2), Health(current: 3))
+/// let data = try JSONEncoder().encode(world.snapshot(Position.self, Health.self))
+///
+/// let decoded = try JSONDecoder().decode(WorldSnapshot<Position, Health>.self, from: data)
+/// let restored = World(restoring: decoded)
+/// print(restored[Position.self, of: ship])
+/// // Prints "Position(x: 1.0, y: 2.0)"
 /// ```
 ///
-/// A snapshot holds no resources, hooks or change ticks: the restored world's components are all
-/// added at its first tick. Decoding throws `DecodingError.dataCorrupted` for data no world could
-/// have produced.
+/// Every entity handle, live or stale, means the same in the restored world as in the original,
+/// so handles you saved elsewhere stay valid. The restored world also hands out the same handles
+/// from later spawns.
+///
+/// A snapshot holds no resources, hooks or change ticks, and the restored world's components
+/// are all added at its first tick. To save resources too, or to save a world without listing
+/// its types at each call, use a ``Scene``.
+///
+/// - Note: Decoding throws `DecodingError.dataCorrupted` for data that no world could have
+///   produced, such as a component of an entity that isn't live.
 public struct WorldSnapshot<each C: Component & Codable>: Sendable, Codable {
     @usableFromInline let generations: [UInt32]
     @usableFromInline let vacant: [UInt32]
@@ -32,6 +49,9 @@ public struct WorldSnapshot<each C: Component & Codable>: Sendable, Codable {
     @inlinable
     public var count: Int { generations.count - vacant.count }
 
+    /// Encodes the snapshot into the given encoder.
+    ///
+    /// - Parameter encoder: The encoder to write data to.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: WorldSnapshotCodingKeys.self)
         try container.encode(generations, forKey: .generations)
@@ -43,6 +63,11 @@ public struct WorldSnapshot<each C: Component & Codable>: Sendable, Codable {
         }
     }
 
+    /// Creates a snapshot by decoding from the given decoder.
+    ///
+    /// - Parameter decoder: The decoder to read data from.
+    /// - Throws: `DecodingError.dataCorrupted` if the data describes a world that no world
+    ///   could have produced, or any error the decoder throws.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: WorldSnapshotCodingKeys.self)
         let generations = try container.decode([UInt32].self, forKey: .generations)
@@ -92,11 +117,14 @@ struct ComponentRows<C: Component & Codable>: Sendable, Codable {
 }
 
 extension World {
-    /// The world's entities, hierarchy and components of the types `C`.
+    /// Returns a snapshot of the world's entities, hierarchy and the components of the given
+    /// types.
     ///
-    /// Components of other types are left out.
+    /// Components of other types are left out. See ``WorldSnapshot`` for an example.
     ///
-    /// - Complexity: O(*n*) for *n* entities and components saved.
+    /// - Parameter types: The component types to save.
+    /// - Returns: A snapshot of the world.
+    /// - Complexity: O(*n*), where *n* is the number of entities and components saved.
     @inlinable
     public func snapshot<each C: Component & Codable>(_ types: repeat (each C).Type) -> WorldSnapshot<repeat each C> {
         return WorldSnapshot(
@@ -113,10 +141,13 @@ extension World {
         return ComponentRows(entities: column.index.dense, values: column.values)
     }
 
-    /// The world `snapshot` was taken of, with its entities, hierarchy and the components it
-    /// saved.
+    /// Creates a world from a snapshot, with the entities, hierarchy and components it saved.
     ///
-    /// - Complexity: O(*n*) for *n* entities and components restored.
+    /// Every entity handle means the same in the new world as in the world the snapshot was
+    /// taken of. See ``WorldSnapshot`` for an example.
+    ///
+    /// - Parameter snapshot: The snapshot to restore.
+    /// - Complexity: O(*n*), where *n* is the number of entities and components restored.
     @inlinable
     public init<each C: Component & Codable>(restoring snapshot: WorldSnapshot<repeat each C>) {
         self.init(slots: snapshot.generations, vacant: snapshot.vacant, families: snapshot.families)
@@ -134,19 +165,34 @@ extension World {
 }
 
 extension WorldSnapshot: Equatable where repeat each C: Equatable {
-    /// Whether the two snapshots hold the same entities, hierarchy and components, whatever
-    /// order the worlds stored their components in.
+    /// Returns a Boolean value indicating whether two snapshots hold the same entities,
+    /// hierarchy and components.
     ///
-    /// Comparing the snapshots of two worlds compares the worlds:
+    /// Use this operator to compare two worlds, such as a world replayed from recorded input
+    /// and the world that was recorded. The order a world stored its components in doesn't
+    /// matter:
     ///
     /// ```swift
-    /// #expect(replayed.snapshot(Position.self, Health.self) == recorded.snapshot(Position.self, Health.self))
+    /// var recorded = World()
+    /// let first = recorded.spawn(Position(x: 0, y: 0))
+    /// recorded.spawn(Position(x: 5, y: 5))
+    ///
+    /// var replayed = recorded
+    /// replayed.remove(Position.self, from: first)
+    /// replayed.insert(Position(x: 0, y: 0), into: first)
+    ///
+    /// print(replayed.snapshot(Position.self) == recorded.snapshot(Position.self))
+    /// // Prints "true"
     /// ```
     ///
-    /// Slots, generations and the order of vacated slots must match, so equal worlds also hand
-    /// out the same handles from later spawns, and children must be in the same order.
+    /// Two snapshots are equal only if their slots, generations and order of vacated slots
+    /// match, so equal worlds also hand out the same handles from later spawns. Children must be
+    /// in the same order.
     ///
-    /// - Complexity: O(*n* log *n*) for *n* entities and components.
+    /// - Parameters:
+    ///   - lhs: A snapshot to compare.
+    ///   - rhs: Another snapshot to compare.
+    /// - Complexity: O(*n* log *n*), where *n* is the number of entities and components.
     public static func == (lhs: Self, rhs: Self) -> Bool {
         guard lhs.generations == rhs.generations, lhs.vacant == rhs.vacant,
               lhs.families.sorted(by: { $0.parent < $1.parent }) == rhs.families.sorted(by: { $0.parent < $1.parent })

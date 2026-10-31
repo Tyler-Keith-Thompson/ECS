@@ -1,17 +1,55 @@
-/// A message one part of a program sends and others read: a collision, a key press, a death.
+/// A type that describes a message one part of a program sends and other parts read later.
+///
+/// Use events to decouple the code that notices something from the code that responds to it:
+/// a physics step sends a collision, and separate damage and sound systems each read it. Declare
+/// an event as a type that conforms to `Event`, send it with ``World/send(_:)``, and read it
+/// with ``World/readEvents(_:by:)``:
 ///
 /// ```swift
 /// struct Collision: Event { var first: Entity, second: Entity }
+/// enum DamageReader {}
+///
+/// var world = World()
+/// let ship = world.spawn(Health(current: 3))
+/// let asteroid = world.spawn(Health(current: 1))
+/// world.send(Collision(first: ship, second: asteroid))
+///
+/// for collision in world.readEvents(Collision.self, by: DamageReader.self) {
+///     world[Health.self, of: collision.first].current -= 1
+/// }
+/// print(world[Health.self, of: ship])
+/// // Prints "Health(current: 2)"
 /// ```
+///
+/// Events wait in the world's ``Events`` resource until ``World/updateEvents()`` drops them,
+/// so senders and readers don't need to run at the same moment. Unlike an ``EntityEvent``, an
+/// event isn't aimed at an entity and runs no code when sent.
 public protocol Event: Sendable {}
 
-/// The events of one type a world holds: those sent since the last update and those sent in the
-/// update before, double-buffered.
+/// The resource that holds a world's events of one type.
 ///
-/// Each ``World/updateEvents()`` drops the older buffer, so an event can be read for the rest of
-/// the update it was sent in and all of the next, whichever order the sender and readers run in.
-/// Events are numbered in the order they were sent; readers remember the number of the next
-/// event they have not read.
+/// A world keeps the events of each type in two buffers: the events sent since the last update,
+/// and those sent in the update before. Each call to ``World/updateEvents()`` drops the older
+/// buffer, so an event can be read for the rest of the update it was sent in and all of the
+/// next, whichever order the sender and its readers run in.
+///
+/// ``World/send(_:)`` creates this resource the first time it sends an event of a type, and
+/// ``World/readEvents(_:by:)`` keeps each reader's place in it. Read the resource directly when
+/// you need every event held, regardless of who has read them:
+///
+/// ```swift
+/// var world = World()
+/// let ship = world.spawn(Health(current: 3))
+/// let asteroid = world.spawn(Health(current: 1))
+/// world.send(Collision(first: ship, second: asteroid))
+///
+/// world.updateEvents()
+/// print(world.resources[Events<Collision>.self].count)
+/// // Prints "1"
+/// world.updateEvents()
+/// print(world.resources[Events<Collision>.self].isEmpty)
+/// // Prints "true"
+/// ```
 @frozen
 public struct Events<E: Event>: Resource {
     @usableFromInline var previous: [E] = []
@@ -19,7 +57,7 @@ public struct Events<E: Event>: Resource {
     /// The number of the first event in `previous`.
     @usableFromInline var previousStart = 0
 
-    /// No events.
+    /// Creates an empty event buffer.
     @inlinable
     public init() {}
 
@@ -35,18 +73,25 @@ public struct Events<E: Event>: Resource {
     @inlinable
     public var count: Int { previous.count + current.count }
 
-    /// Whether no events are held.
+    /// A Boolean value indicating whether no events are held.
     @inlinable
     public var isEmpty: Bool { count == 0 }
 
-    /// Adds `event` after every event held.
+    /// Adds an event after every event held.
+    ///
+    /// - Parameter event: The event to add.
+    /// - Complexity: O(1) amortized.
     @inlinable
     public mutating func send(_ event: E) {
         current.append(event)
     }
 
-    /// Drops the events sent before the last update; the events sent since become the older
-    /// buffer.
+    /// Drops the events sent before the last update, and makes the events sent since then the
+    /// older buffer.
+    ///
+    /// ``World/updateEvents()`` calls this method on every event type at once.
+    ///
+    /// - Complexity: O(*n*), where *n* is the number of events dropped.
     @inlinable
     public mutating func update() {
         previousStart = currentStart
@@ -54,7 +99,7 @@ public struct Events<E: Event>: Resource {
         current.removeAll(keepingCapacity: true)
     }
 
-    /// Every event held, oldest first.
+    /// Every event held, oldest first, whether or not any reader has read it.
     @inlinable
     public var all: EventsView<E> { view(from: previousStart) }
 
@@ -68,7 +113,10 @@ public struct Events<E: Event>: Resource {
     }
 }
 
-/// Events of one type, oldest first: the part of a world's ``Events`` a reader asked for.
+/// A collection of events of one type, oldest first.
+///
+/// You get a view of events from ``World/readEvents(_:by:)``, ``World/events(_:)`` or
+/// ``Events/all``. The view shares the events' storage, so creating one copies nothing.
 @frozen
 public struct EventsView<E: Event>: RandomAccessCollection, Sendable {
     @usableFromInline let previous: ArraySlice<E>
@@ -121,9 +169,12 @@ protocol EventBuffer: Resource {
 extension Events: EventBuffer {}
 
 extension World {
-    /// Sends `event`: every reader of `E` can read it for the rest of this update and all of the
-    /// next.
+    /// Sends an event for readers of its type.
     ///
+    /// Every reader of `E` can read the event for the rest of this update and all of the next
+    /// (see ``Events``). The first event of a type creates the world's `Events<E>` resource.
+    ///
+    /// - Parameter event: The event to send.
     /// - Complexity: O(1) amortized.
     @inlinable
     public mutating func send<E: Event>(_ event: E) {
@@ -136,25 +187,62 @@ extension World {
         }
     }
 
-    /// Every `E` the world holds, oldest first, without marking any read.
+    /// Returns every event of a type that the world holds, oldest first, without marking any as
+    /// read.
+    ///
+    /// ```swift
+    /// var world = World()
+    /// let ship = world.spawn(Health(current: 3))
+    /// let asteroid = world.spawn(Health(current: 1))
+    /// world.send(Collision(first: ship, second: asteroid))
+    ///
+    /// print(world.events(Collision.self).count)
+    /// // Prints "1"
+    /// ```
+    ///
+    /// - Parameter type: The event type.
+    /// - Returns: The events of `type`, or an empty view if none were sent.
     @inlinable
     public func events<E: Event>(_ type: E.Type) -> EventsView<E> {
         ((try? resources[checked: Events<E>.self]) ?? Events()).all
     }
 
-    /// The `E`s that `reader` has not read yet, oldest first, marking them read by it.
+    /// Returns the events of a type that a reader hasn't read yet, oldest first, and marks them
+    /// as read by that reader.
     ///
-    /// Each reader type has its own place in the events, kept in the world, so readers do not
-    /// affect one another and a copy of the world keeps the places its original had. A reader
-    /// that has not read for two updates misses the events dropped in between.
+    /// A reader is any type you choose to identify the code reading, such as the system's own
+    /// type. The world keeps each reader's place in the events, so readers don't affect one
+    /// another, and a copy of the world keeps the places its original had:
     ///
     /// ```swift
-    /// for collision in world.readEvents(Collision.self, by: DamageSystem.self) {
-    ///     world[Health.self, of: collision.first].current -= 1
-    /// }
+    /// enum SoundReader {}
+    ///
+    /// var world = World()
+    /// let ship = world.spawn(Health(current: 3))
+    /// let asteroid = world.spawn(Health(current: 1))
+    /// world.send(Collision(first: ship, second: asteroid))
+    ///
+    /// let heard = world.readEvents(Collision.self, by: SoundReader.self)
+    /// print(heard.count)
+    /// // Prints "1"
+    ///
+    /// let heardAgain = world.readEvents(Collision.self, by: SoundReader.self)
+    /// print(heardAgain.count)
+    /// // Prints "0"
+    ///
+    /// let damaging = world.readEvents(Collision.self, by: DamageReader.self)
+    /// print(damaging.count)
+    /// // Prints "1"
     /// ```
     ///
-    /// - Complexity: O(1); the view shares the events' storage.
+    /// - Important: A reader that doesn't read for two updates misses the events dropped in
+    ///   between.
+    ///
+    /// - Parameters:
+    ///   - type: The event type.
+    ///   - reader: The type that identifies the reader.
+    /// - Returns: The events of `type` that `reader` hasn't read.
+    /// - Complexity: O(1). The view shares the events' storage.
     @inlinable
     public mutating func readEvents<E: Event, Reader>(_ type: E.Type, by reader: Reader.Type) -> EventsView<E> {
         let events = (try? resources[checked: Events<E>.self]) ?? Events()
@@ -177,12 +265,13 @@ extension World {
         return events.view(from: next)
     }
 
-    /// Ends an update for every event type: drops the events sent before the previous update.
+    /// Ends an update for every event type, dropping the events sent before the previous
+    /// update.
     ///
-    /// Call it once per frame or step, before the systems that send and read events; the
-    /// `UpdateEvents` system does so as part of a schedule.
+    /// Call this method once per frame or step, before the systems that send and read events.
+    /// The `UpdateEvents` system does so as part of a schedule.
     ///
-    /// - Complexity: O(*r*) for *r* resources.
+    /// - Complexity: O(*r*), where *r* is the number of resources.
     @inlinable
     public mutating func updateEvents() {
         resources.updateEvents()
@@ -202,7 +291,10 @@ extension Resources {
 }
 
 extension Commands {
-    /// Records sending `event`.
+    /// Records sending an event, which ``World/send(_:)`` performs when the commands are
+    /// applied.
+    ///
+    /// - Parameter event: The event to send.
     @inlinable
     public mutating func send<E: Event>(_ event: E) {
         operations.append { world, _ in world.send(event) }

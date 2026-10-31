@@ -21,12 +21,13 @@ Sources/SystemMacros/            The @System macro's compiler plugin (swift-synt
 Sources/SimulationModule/        Simulation: schedules by label, fixed timestep, states
 Sources/ECS/             Umbrella module (@_exported imports) and the landing DocC catalog
 Tests/<Module>Tests/             One test target per module; Performance/ holds speed-reliant tests
-Tests/ECSTests/          The README examples, verbatim
+Tests/ECSTests/          The documentation's examples, generated from it (tools/DocumentationExamples)
 Tests/ECSTestSupport/    Shared test fixtures (data only)
 scripts/modules.py               The module graph
 Benchmarks/                      package-benchmark suite, a separate package (not in Bazel)
 tools/                           Bazel rule wrappers (warnings as errors, Swift 6 mode), DocC rules
 tools/QueryShapes/               Generator of WorldModule's fixed-arity query and update overloads
+tools/DocumentationExamples/     Generator of the tests holding every ```swift block of the documentation
 KNOWN_ISSUES.md                  Swift compiler and runtime bugs worked around, with the workarounds
 ```
 
@@ -122,8 +123,9 @@ have.
    - `checked:` spellings and their errors;
    - exit tests for every trap;
    - a property test against a naive reference (`swift-property-based`).
-3. **A README example**, if the feature changes how the package is introduced, copied verbatim
-   into `Tests/ECSTests`.
+3. **Documentation examples**: a compiled example in the doc comment of each new public type and
+   of any member whose use isn't obvious, and a README example if the feature changes how the
+   package is introduced. Run `just sources` after changing any documentation (see "Docs").
 
 Watch for these:
 
@@ -205,7 +207,20 @@ Every push to `main` releases a patch version, and CI minutes are scarce, so bat
   fine.
 - Doc comments: a one-line summary, then parameters, return value, complexity, and what traps or
   throws.
-- The README's examples are tests (`Tests/ECSTests`).
+- Write the way Apple documents its own symbols: a noun phrase summarizing a type or property, a
+  verb phrase for a method ("Adds a component to an entity."), a discussion of what it is for and
+  when to use it, examples introduced by a sentence, then `- Parameters:`, `- Returns:`,
+  `- Throws:` and `- Complexity:`. Large types group their members with a `## Topics`
+  extension file in the module's `.docc` catalog.
+- Examples are tests. Every block fenced ```` ```swift ```` in a doc comment, a `.docc` article or
+  the README is compiled and run by `//Tests/ECSTests`: `tools/DocumentationExamples` writes
+  each block as a test, its type declarations shared with the other blocks of the same module (or
+  of the README), so a module's examples never declare a name twice and reuse the components its
+  landing page declares. Show output Apple's way, `print(x)` followed by `// Prints "text"`;
+  the test checks that `x` prints `text`. Warnings are errors here too. A fragment that cannot
+  compile alone (a `Package.swift` excerpt) is fenced ```` ```swift Package.swift ````. After
+  editing documentation, run `just sources` to refresh SwiftPM's copy,
+  `Tests/ECSTests/Generated/DocumentationExamples/`.
 
 ### Git (*default*)
 

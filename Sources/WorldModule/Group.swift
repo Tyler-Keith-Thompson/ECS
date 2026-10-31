@@ -16,37 +16,56 @@ struct OwningGroup: Sendable {
     }
 }
 
-/// The error ``World/group(checked:)`` throws: one case per way grouping can fail.
+/// An error that grouping component types throws.
+///
+/// ``World/group(checked:)`` throws this error, with one case per way grouping can fail, and
+/// leaves the world unchanged.
 @frozen
 public enum GroupError: Error, Hashable, Sendable {
-    /// Fewer than two types, or one type listed twice.
+    /// The group lists fewer than two types, or lists a type twice.
     case tooFewTypes
-    /// A type is already owned by another group.
+    /// Another group already owns one of the types.
     case alreadyOwned
 }
 
 extension World {
     // MARK: Groups
 
-    /// Keeps `types` packed in the same order from now on, so queries and updates over exactly
-    /// these types visit their entities with no lookups.
+    /// Keeps the given component types packed in the same order, so that queries and updates of
+    /// exactly these types visit their entities without lookups.
     ///
-    /// The entities holding every one of `types` sit at the front of each type's storage, at the
-    /// same positions; spawning, inserting, removing and despawning keep them there. A query of
-    /// the same types in any order, or an update writing and reading exactly them, walks that
-    /// front directly.
+    /// A query of several types normally walks one type's storage and looks up the entity in each
+    /// of the others. After you group the types, the entities that hold all of them sit at the
+    /// front of each type's storage, at the same positions, and spawning, inserting, removing and
+    /// despawning keep them there. A query of the same types in any order, or an update that
+    /// writes and reads exactly those types, walks that front directly.
+    ///
+    /// Use a group for a set of types you visit together on every step, such as position and
+    /// velocity:
     ///
     /// ```swift
+    /// var world = World()
+    /// let comet = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 2))
+    /// world.spawn(Position(x: 9, y: 9))
     /// world.group(Position.self, Velocity.self)
-    /// world.update(Position.self, reading: Velocity.self) { position, row in … }  // no lookups
+    ///
+    /// world.update(Position.self, reading: Velocity.self) { position, row in
+    ///     position.x += row.components.dx
+    ///     position.y += row.components.dy
+    /// }
+    /// print(world[Position.self, of: comet])
+    /// // Prints "Position(x: 1.0, y: 2.0)"
     /// ```
     ///
-    /// Grouping changes the order queries list entities in, and makes adding and removing the
-    /// owned types a little slower. A copy of the world keeps the group; a snapshot does not.
+    /// Grouping doesn't change which entities a query or update visits, only how it finds them.
+    /// It does change the order queries list entities in, and makes adding and removing the
+    /// grouped types a little slower. Each type belongs to at most one group. A copy of the world
+    /// keeps the group; a snapshot doesn't.
     ///
+    /// - Parameter types: The component types to keep packed together.
     /// - Complexity: O(*n*·*t*) for *n* entities in the smallest of the *t* types.
-    /// - Precondition: At least two distinct types, none owned by another group. Use
-    ///   ``group(checked:)`` to throw instead.
+    /// - Precondition: `types` lists at least two distinct types, and no other group owns any of
+    ///   them. The checked spelling, ``group(checked:)``, throws instead.
     @inlinable
     public mutating func group<each C: Component>(_ types: repeat (each C).Type) {
         do throws(GroupError) {
@@ -56,11 +75,27 @@ extension World {
         }
     }
 
-    /// Keeps `types` packed in the same order from now on; see ``group(_:)``.
+    /// Keeps the given component types packed in the same order, throwing an error if they can't
+    /// be grouped.
     ///
+    /// This method groups the types as ``group(_:)`` does, but throws where that method traps:
+    ///
+    /// ```swift
+    /// var world = World()
+    /// try world.group(checked: Position.self, Velocity.self)
+    ///
+    /// do {
+    ///     try world.group(checked: Velocity.self, Health.self)
+    /// } catch {
+    ///     print(error)
+    ///     // Prints "alreadyOwned"
+    /// }
+    /// ```
+    ///
+    /// - Parameter types: The component types to keep packed together.
     /// - Complexity: O(*n*·*t*) for *n* entities in the smallest of the *t* types.
-    /// - Throws: ``GroupError/tooFewTypes`` for fewer than two distinct types and
-    ///   ``GroupError/alreadyOwned`` when a type is owned by another group; the world is unchanged.
+    /// - Throws: ``GroupError/tooFewTypes`` if `types` lists fewer than two distinct types, and
+    ///   ``GroupError/alreadyOwned`` if another group owns one of them. The world is unchanged.
     @inlinable
     public mutating func group<each C: Component>(checked types: repeat (each C).Type) throws(GroupError) {
         var identifiers: [ObjectIdentifier] = []

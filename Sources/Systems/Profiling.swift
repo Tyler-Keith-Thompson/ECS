@@ -5,18 +5,20 @@ import GraphProtocols
 import Synchronization
 import WorldModule
 
-/// How long one system of a schedule took over its runs.
+/// The times one system of a schedule has taken to run.
+///
+/// Read the timings from a world's ``SystemProfile``.
 @frozen
 public struct SystemTiming: Hashable, Sendable {
     /// The name of the system's type.
     public let name: String
-    /// The number of times the system ran.
+    /// The number of times the system has run.
     public internal(set) var runs: Int
-    /// The time its runs took together.
+    /// The total time the system's runs have taken.
     public internal(set) var total: Duration
-    /// The time its longest run took.
+    /// The time the system's longest run took.
     public internal(set) var longest: Duration
-    /// The time its latest run took.
+    /// The time the system's latest run took.
     public internal(set) var latest: Duration
 
     @usableFromInline
@@ -28,7 +30,7 @@ public struct SystemTiming: Hashable, Sendable {
         latest = .zero
     }
 
-    /// The time its runs took on average.
+    /// The average time the system's runs have taken, or zero if it hasn't run.
     @inlinable
     public var average: Duration { runs == 0 ? .zero : total / runs }
 
@@ -40,27 +42,44 @@ public struct SystemTiming: Hashable, Sendable {
     }
 }
 
-/// The time each system takes, recorded by every schedule that runs on a world holding this
-/// resource.
+/// A resource that records how long each system takes to run.
+///
+/// Insert a profile into a world to find out where a schedule spends its time. Every schedule
+/// that runs on the world then records each system's runs in it:
 ///
 /// ```swift
+/// var world = World()
 /// world.resources.insert(SystemProfile())
-/// frame.run(on: &world)
-/// for timing in world.resources[SystemProfile.self].timings {
-///     print(timing.name, timing.average)
+/// world.spawn(Position(x: 0, y: 100), Velocity(dx: 0, dy: 0))
+///
+/// let frame = Schedule {
+///     Gravity()
+///     Movement().after(Gravity.self)
 /// }
+/// frame.run(on: &world)
+/// frame.run(on: &world)
+///
+/// let timings = world.resources[SystemProfile.self].timings
+/// print(timings.map(\.name))
+/// // Prints "["Gravity", "Movement"]"
+/// print(timings.map(\.runs))
+/// // Prints "[2, 2]"
 /// ```
 ///
-/// A run measures the system's own body on a continuous clock: not its conditions, nor the
-/// commands it queued, which apply after its wave. A system skipped by its conditions does not
-/// run. Systems sharing a wave run at the same time, so their times can add up to more than the
-/// wave took. Insert a new profile to start over.
+/// Each ``SystemTiming`` also holds the total, average, longest and latest time of the system's
+/// runs.
+///
+/// A run's time covers the system's own work, measured on a continuous clock: not its
+/// conditions, nor the commands it queued, which apply after its wave. A system its conditions
+/// skip doesn't run, so nothing is recorded for it. Systems in the same wave run at the same
+/// time, so their times can add up to more than the wave took. Insert a new profile to start
+/// over.
 public struct SystemProfile: Resource {
-    /// Each system that has run, in the order each first ran.
+    /// The timing of each system that has run, in the order the systems first ran.
     public private(set) var timings: [SystemTiming] = []
     var positions: [UInt64: Int] = [:]
 
-    /// An empty profile.
+    /// Creates an empty profile.
     public init() {}
 
     mutating func record(_ duration: Duration, for system: ScheduledSystem) {
@@ -86,23 +105,39 @@ final class WaveTimes: Sendable {
 }
 
 extension Schedule {
-    /// Writes the schedule's dependency graph as DOT, for Graphviz.
+    /// Writes the schedule's dependency graph in the DOT language, for drawing with Graphviz.
     ///
-    /// Each system is a node labeled with its name, in the order the schedule runs them. An arc
-    /// from one system to another means the second runs after the first: solid when an `after`
-    /// or `before` constraint orders them, dashed when only their accesses conflict. Arcs that
-    /// other arcs imply are left out.
+    /// Use this method to see why systems run in the order they do, and which could run at the
+    /// same time. Each system is a node labeled with its type's name, numbered in the order the
+    /// schedule runs them. An arc from one system to another means the second runs after the
+    /// first: solid when an ordering constraint orders them, dashed when only their accesses
+    /// conflict. Arcs that other arcs imply are left out.
     ///
     /// ```swift
+    /// let frame = Schedule {
+    ///     Gravity()
+    ///     Movement().after(Gravity.self)
+    ///     Scoring()
+    /// }
     /// var dot = ""
     /// frame.writeDOT(to: &dot)
-    /// // digraph {
-    /// //     0 [label=Input];
-    /// //     1 [label=Movement];
-    /// //     0 -> 1;
-    /// // }
     /// ```
     ///
+    /// The DOT text it writes shows that `Movement` is ordered after `Gravity`, and that
+    /// `Scoring` runs after `Movement` only because it reads the `Position` that `Movement`
+    /// writes:
+    ///
+    /// ```dot
+    /// digraph {
+    ///     0 [label=Gravity];
+    ///     1 [label=Movement];
+    ///     2 [label=Scoring];
+    ///     0 -> 1;
+    ///     1 -> 2 [style=dashed];
+    /// }
+    /// ```
+    ///
+    /// - Parameter output: The stream to write the DOT text to.
     /// - Complexity: O(*s*²) for *s* systems.
     public func writeDOT(to output: inout some TextOutputStream) {
         var dependencies: [DirectedEdge<Int>] = []

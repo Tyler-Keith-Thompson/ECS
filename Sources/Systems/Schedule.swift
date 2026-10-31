@@ -1,16 +1,35 @@
 import Traversal
 import WorldModule
 
-/// The error ``Schedule/init(checked:)`` throws when the ordering constraints of its systems form
-/// a cycle, so no order satisfies them all.
+/// An error indicating that the ordering constraints of a schedule's systems form a cycle, so no
+/// order satisfies them all.
+///
+/// ``Schedule/init(checked:)`` throws this error.
 @frozen
 public struct CyclicOrdering: Error, Hashable, Sendable {
+    /// Creates the error.
     @inlinable
     public init() {}
 }
 
-/// Builds the systems of a ``Schedule`` from the systems, scheduled systems and schedules written
-/// in a block.
+/// A result builder that collects the systems written in a ``Schedule``'s closure.
+///
+/// A schedule's closure can list systems, main-actor systems, scheduled systems (a system with
+/// modifiers such as `after(_:)`) and other schedules, whose systems are added in place. It can
+/// also use `if`, `if`-`else`, `switch` and `for`-`in`:
+///
+/// ```swift
+/// let world = World()
+/// let frame = Schedule {
+///     Gravity()
+///     Movement().after(Gravity.self)
+///     if world.resources.contains(Score.self) {
+///         Scoring()
+///     }
+/// }
+/// print(frame.names)
+/// // Prints "["Gravity", "Movement"]"
+/// ```
 @resultBuilder
 public enum ScheduleBuilder {
     public static func buildExpression(_ system: some System) -> [ScheduledSystem] { [ScheduledSystem(system)] }
@@ -24,36 +43,71 @@ public enum ScheduleBuilder {
     public static func buildArray(_ parts: [[ScheduledSystem]]) -> [ScheduledSystem] { parts.flatMap(\.self) }
 }
 
-/// Systems that run on a world, as though in the order written, at the same time where they can.
+/// A list of systems that run on a world, in order, and at the same time where they can.
 ///
-/// Systems take the order they are written in, except where `after` and `before` constraints
-/// require otherwise: a system that must run before one written earlier is moved up to run just
-/// before it. A constraint naming a type with no system in the schedule is ignored, and one
-/// naming the system's own type does not order the system against itself.
-///
-/// Systems that conflict, one writing what the other reads or writes, run in that order; those
-/// that do not run at the same time (see ``run(on:)``).
+/// A schedule holds the systems of one frame or step of a simulation. You build it by listing
+/// the systems in a closure, and run it on a world with ``run(on:)``, which runs each system once:
 ///
 /// ```swift
-/// let tick = Schedule {
-///     Collisions().after(Movement.self)
-///     Movement()
-///     if debugging { DrawBoxes() }
+/// var world = World()
+/// let ball = world.spawn(Position(x: 0, y: 100), Velocity(dx: 2, dy: 0))
+///
+/// let frame = Schedule {
+///     Gravity()
+///     Movement().after(Gravity.self)
 /// }
-/// tick.run(on: &world)  // Movement, Collisions, then DrawBoxes when debugging
+/// frame.run(on: &world)
+/// frame.run(on: &world)
+/// print(world[Position.self, of: ball])
+/// // Prints "Position(x: 4.0, y: 70.0)"
 /// ```
+///
+/// ### Ordering Systems
+///
+/// Systems run in the order they're written, except where an ordering constraint requires
+/// otherwise. A system that must run after one written later, by `after(_:)`, or before one
+/// written earlier, by `before(_:)`, is moved to satisfy the constraint, and every other system
+/// keeps its written place:
+///
+/// ```swift
+/// let frame = Schedule {
+///     Scoring().after(Movement.self)
+///     Movement()
+///     Gravity().before(Movement.self)
+/// }
+/// print(frame.names)
+/// // Prints "["Gravity", "Movement", "Scoring"]"
+/// ```
+///
+/// A constraint naming a type with no system in the schedule is ignored, and one naming a
+/// system's own type doesn't order the system against itself. Constraints that form a cycle,
+/// so that no order satisfies them all, trap; build the schedule with ``init(checked:)`` to throw
+/// ``CyclicOrdering`` instead.
+///
+/// ### Running Systems at the Same Time
+///
+/// Two systems *conflict* when one writes a type the other reads or writes, or when either has no
+/// ``System/access``. ``run(on:)`` runs conflicting systems in order and the rest at the same
+/// time, and the world ends as though the systems had run one after another in order.
+///
+/// When two conflicting systems aren't ordered by any constraint, the order they run in rests
+/// only on how they happen to be written. ``ambiguities()`` lists those pairs, so a test can
+/// keep a schedule free of them.
 public struct Schedule: Sendable {
-    /// The systems, in an order that satisfies their constraints and in which conflicting
-    /// systems run.
+    /// The schedule's systems, in the order they run.
+    ///
+    /// The order satisfies every ordering constraint, and conflicting systems run in this order.
     public let systems: [ScheduledSystem]
     /// The positions in ``systems`` of the systems each wave runs at the same time.
     package let waves: [[Int]]
 
-    /// The systems written in `build`, in an order that satisfies their constraints.
+    /// Creates a schedule of the systems listed in a closure.
     ///
+    /// - Parameter build: A closure listing the systems; see ``ScheduleBuilder``.
     /// - Complexity: O(*s* + *c*·*k*) for *s* systems, *c* constraints and at most *k* systems
     ///   of one type.
-    /// - Precondition: The constraints form no cycle. Use ``init(checked:)`` to throw instead.
+    /// - Precondition: The ordering constraints form no cycle. The checked initializer,
+    ///   ``init(checked:)``, throws instead.
     public init(@ScheduleBuilder _ build: () -> [ScheduledSystem]) {
         guard let systems = Self.ordered(build()) else {
             preconditionFailure("The schedule's ordering constraints form a cycle")
@@ -61,12 +115,25 @@ public struct Schedule: Sendable {
         self.init(ordered: systems)
     }
 
-    /// `systems`, in an order that satisfies their constraints.
+    /// Creates a schedule of the given systems, throwing an error if their ordering constraints
+    /// form a cycle.
+    ///
+    /// Use this initializer when the systems or their constraints come from elsewhere, such as
+    /// from configuration, and a cycle is an error to report rather than a bug:
     ///
     /// ```swift
-    /// let tick = try Schedule(checked: [Collisions().after(Movement.self), ScheduledSystem(Movement())])
+    /// do {
+    ///     _ = try Schedule(checked: [
+    ///         Movement().after(Gravity.self),
+    ///         Gravity().after(Movement.self),
+    ///     ])
+    /// } catch {
+    ///     print(error)
+    ///     // Prints "CyclicOrdering()"
+    /// }
     /// ```
     ///
+    /// - Parameter systems: The systems, in the order to run them where constraints allow.
     /// - Complexity: O(*s* + *c*·*k*) for *s* systems, *c* constraints and at most *k* systems
     ///   of one type.
     /// - Throws: ``CyclicOrdering`` when the constraints form a cycle.
@@ -75,51 +142,81 @@ public struct Schedule: Sendable {
         self.init(ordered: ordered)
     }
 
-    /// This schedule, each of its systems run only when `condition` holds for the world at the
-    /// start of the wave that system runs in.
+    /// Returns this schedule with each of its systems run only when a condition holds.
     ///
-    /// The condition is checked once per system, so a system in an earlier wave that changes what
-    /// it depends on stops the systems after it.
+    /// Use this method to switch a group of systems on and off together. The following example
+    /// stops physics while the world holds a `Paused` resource, but keeps scoring:
     ///
     /// ```swift
+    /// var world = World()
+    /// world.resources.insert(Score(points: 0))
+    /// world.resources.insert(Paused())
+    /// let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
+    ///
     /// let frame = Schedule {
-    ///     Input()
     ///     Schedule {
-    ///         Movement()
-    ///         Collisions()
+    ///         Gravity()
+    ///         Movement().after(Gravity.self)
     ///     }
     ///     .runIf { world in !world.resources.contains(Paused.self) }
+    ///     Scoring().after(Movement.self)
     /// }
+    /// frame.run(on: &world)
+    /// print(world[Position.self, of: ball].x)
+    /// // Prints "0.0"
+    /// print(world.resources[Score.self].points)
+    /// // Prints "1"
     /// ```
     ///
+    /// The condition is checked separately for each system, at the start of the wave it runs in,
+    /// so a system that changes what the condition reads stops the systems in later waves.
+    ///
+    /// - Parameter condition: A closure that takes the world and returns whether a system runs.
+    ///   It must read only what each system's access lists.
+    /// - Returns: A schedule whose systems each have the condition added.
     /// - Complexity: O(*s*) for *s* systems.
     public func runIf(_ condition: @escaping @Sendable (World) -> Bool) -> Schedule {
         Schedule(ordered: systems.map { $0.runIf(condition) })
     }
 
-    /// This schedule, each of its systems also ordered after every system of each of `sets`.
+    /// Returns this schedule with each of its systems ordered to run after every system in each
+    /// of the given sets.
     ///
+    /// - Parameter sets: The system types and system sets to run after.
+    /// - Returns: A schedule whose systems each have the ordering constraint added.
     /// - Precondition: The constraints form no cycle.
     public func after<each S: SystemSet>(_ sets: repeat (each S).Type) -> Schedule {
         Schedule { for system in systems { system.after(repeat each sets) } }
     }
 
-    /// This schedule, each of its systems also ordered before every system of each of `sets`.
+    /// Returns this schedule with each of its systems ordered to run before every system in each
+    /// of the given sets.
     ///
+    /// - Parameter sets: The system types and system sets to run before.
+    /// - Returns: A schedule whose systems each have the ordering constraint added.
     /// - Precondition: The constraints form no cycle.
     public func before<each S: SystemSet>(_ sets: repeat (each S).Type) -> Schedule {
         Schedule { for system in systems { system.before(repeat each sets) } }
     }
 
-    /// This schedule, each of its systems also in each of `sets`.
+    /// Returns this schedule with each of its systems a member of each of the given system sets.
     ///
+    /// See ``SystemSet``.
+    ///
+    /// - Parameter sets: The system sets to join.
+    /// - Returns: A schedule whose systems are each in the given sets.
     /// - Precondition: The constraints form no cycle.
     public func inSet<each S: SystemSet>(_ sets: repeat (each S).Type) -> Schedule {
         Schedule { for system in systems { system.inSet(repeat each sets) } }
     }
 
-    /// This schedule, each of its systems also free to run in either order with every system of
-    /// each of `sets`.
+    /// Returns this schedule with each of its systems free to run in either order with every
+    /// system in each of the given sets.
+    ///
+    /// See ``ScheduledSystem/ambiguous(with:)``.
+    ///
+    /// - Parameter sets: The system types and system sets either order is right with.
+    /// - Returns: A schedule whose systems ``ambiguities()`` doesn't report with those sets.
     public func ambiguous<each S: SystemSet>(with sets: repeat (each S).Type) -> Schedule {
         Schedule(ordered: systems.map { $0.ambiguous(with: repeat each sets) })
     }
@@ -130,47 +227,82 @@ public struct Schedule: Sendable {
         waves = Self.waves(of: systems)
     }
 
-    /// The names of the systems, in the order of ``systems``.
+    /// The names of the schedule's systems' types, in the order the systems run.
     public var names: [String] { systems.map(\.name) }
 
-    /// Runs every system once on `world`, running systems that do not depend on each other at the
+    /// Runs each system once on a world, running systems that don't depend on each other at the
     /// same time.
     ///
-    /// A system depends on the systems before it that it must run after, by an `after` or
-    /// `before` constraint, and on those it conflicts with: one writes what the other reads or
-    /// writes, or either has no ``System/access``. The systems run in waves: each wave holds the
-    /// systems whose dependencies all ran in earlier waves, and runs them with
-    /// ``WorldModule/World/runConcurrently(_:)``. A system without an access runs alone. The world
-    /// ends as it would running the systems one after another in order.
+    /// The world ends as though the systems had run one after another, in the order of
+    /// ``systems``.
     ///
-    /// At the start of each wave, every condition of its systems is checked, so a condition reads
-    /// only what its system's access lists, and the world's change tick advances. Each system's
-    /// ``WorldModule/World/lastRun`` is the tick of its previous run, so filters such as
-    /// `.changed(Position.self)` show it what changed since then: changes made by the systems
-    /// after it on the previous run and before it on this one, but not its own. A system that has
-    /// not run on this world before sees every component as added and changed. A skipped system
-    /// has not run: the next time it runs, it sees everything since it last did.
+    /// A system depends on the systems before it that a constraint orders it after, and on those
+    /// it conflicts with: one writes what the other reads or writes, or either has no
+    /// ``System/access``. The systems run in *waves*. Each wave holds the systems whose
+    /// dependencies all ran in earlier waves, and runs them at the same time with
+    /// ``/WorldModule/World/runConcurrently(_:)``. A system without an access runs alone, and a
+    /// ``MainActorSystem`` runs on the calling thread after the other systems of its wave.
     ///
-    /// Before the first wave, each system that has not run on this world is initialized
-    /// (``System/initialize(in:)``).
+    /// Before the first wave, each system that hasn't run on this world before is initialized
+    /// (``System/initialize(in:)``). At the start of each wave, the conditions of its systems are
+    /// checked, and systems whose conditions don't hold are skipped. Commands the wave's systems
+    /// queue apply at the end of the wave, in the order the systems run.
     ///
-    /// Command buffers the wave's systems queue (``WorldModule/World/queue(_:)``) apply at the end
-    /// of the wave, in the order the systems run. The tick advances once more after the last wave,
-    /// so changes made to the world between runs are newer than every system's previous run.
+    /// ### Change Detection
     ///
-    /// A ``MainActorSystem`` runs on the calling thread after the other systems of its wave.
+    /// The world's change tick advances at the start of each wave. While a system runs, the
+    /// world's ``/WorldModule/World/lastRun`` is the tick of that system's previous run, so a
+    /// filter such as `Changed<Position>` shows it what changed since then: the changes the
+    /// systems after it made on the previous run and the systems before it made on this one, but
+    /// not its own. The following system counts the positions that changed since it last ran:
     ///
+    /// ```swift
+    /// struct Moves: Resource { var count: Int }
+    ///
+    /// @System
+    /// struct CountMoves {
+    ///     func run(_ moved: Query<Position>.Where<Changed<Position>>, _ moves: ResourceWriter<Moves>) {
+    ///         for _ in moved { moves.value.count += 1 }
+    ///     }
+    /// }
+    ///
+    /// var world = World()
+    /// world.resources.insert(Moves(count: 0))
+    /// let ball = world.spawn(Position(x: 0, y: 0))
+    /// world.spawn(Position(x: 5, y: 0))
+    ///
+    /// let frame = Schedule { CountMoves() }
+    /// frame.run(on: &world)
+    /// print(world.resources[Moves.self].count)
+    /// // Prints "2"
+    ///
+    /// world[Position.self, of: ball].x = 1
+    /// frame.run(on: &world)
+    /// print(world.resources[Moves.self].count)
+    /// // Prints "3"
+    /// ```
+    ///
+    /// A system that hasn't run on this world before sees every component as added and changed.
+    /// A skipped system hasn't run, so the next time it runs it sees every change since it last
+    /// did. The tick advances once more after the last wave, so changes you make to the world
+    /// between runs are newer than every system's previous run.
+    ///
+    /// - Parameter world: The world to run the systems on.
     /// - Precondition: Every system with an access reads and writes only what it lists; see
-    ///   ``WorldModule/World/runConcurrently(_:)``. A schedule whose main-actor systems run is run
-    ///   on the main actor.
+    ///   ``/WorldModule/World/runConcurrently(_:)``. A schedule holding a main-actor system that
+    ///   runs is run on the main actor.
     public func run(on world: inout World) {
         run(on: &world, concurrently: true)
     }
 
-    /// Runs every system once on `world`, as ``run(on:)`` does but one system at a time.
+    /// Runs each system once on a world, one system at a time.
     ///
-    /// The waves, conditions, change ticks and commands are those of ``run(on:)``, so the two
-    /// end with the same world; running serially makes a system's work easy to step through.
+    /// This method runs the same waves as ``run(on:)``, with the same conditions, change ticks
+    /// and commands, so the two end with the same world. Use it when you want to step through a
+    /// system's work in a debugger, or to rule out running at the same time as the cause of a
+    /// problem.
+    ///
+    /// - Parameter world: The world to run the systems on.
     public func runSerially(on world: inout World) {
         run(on: &world, concurrently: false)
     }
@@ -321,9 +453,10 @@ public struct Schedule: Sendable {
     }
 }
 
-/// Two systems of a schedule whose accesses conflict but which no `after` or `before`
-/// constraint orders, directly or through other systems, so the order they run in rests on the
-/// order they were written in.
+/// Two systems of a schedule whose accesses conflict but that no ordering constraint orders, so
+/// the order they run in rests only on the order they were written in.
+///
+/// ``Schedule/ambiguities()`` returns the ambiguities of a schedule.
 @frozen
 public struct Ambiguity: Hashable, Sendable {
     /// The position in ``Schedule/systems`` of the system that runs first.
@@ -331,6 +464,11 @@ public struct Ambiguity: Hashable, Sendable {
     /// The position in ``Schedule/systems`` of the system that runs second.
     public let second: Int
 
+    /// Creates an ambiguity between the systems at two positions of a schedule.
+    ///
+    /// - Parameters:
+    ///   - first: The position of the system that runs first.
+    ///   - second: The position of the system that runs second.
     @inlinable
     public init(first: Int, second: Int) {
         self.first = first
@@ -339,17 +477,38 @@ public struct Ambiguity: Hashable, Sendable {
 }
 
 extension Schedule {
-    /// Every pair of systems whose accesses conflict but which no constraint orders, in the
-    /// order of ``systems``.
+    /// Returns every pair of systems whose accesses conflict but that no ordering constraint
+    /// orders.
     ///
-    /// Such a pair runs in the order written, which is easy to change by accident. Order each
-    /// pair with `after` or `before`, or mark it with
-    /// ``ScheduledSystem/ambiguous(with:)`` when either order is right. Systems without an access
-    /// run alone, in the order written, and are left out.
+    /// Such a pair runs in the order it's written in, which is easy to change by accident. In the
+    /// following schedule, `Gravity` writes the `Velocity` that `Movement` reads, but nothing
+    /// says which runs first:
     ///
     /// ```swift
-    /// #expect(frame.ambiguities().isEmpty)
+    /// let frame = Schedule {
+    ///     Gravity()
+    ///     Movement()
+    /// }
+    /// for ambiguity in frame.ambiguities() {
+    ///     print(frame.names[ambiguity.first], frame.names[ambiguity.second])
+    ///     // Prints "Gravity Movement"
+    /// }
+    ///
+    /// let ordered = Schedule {
+    ///     Gravity()
+    ///     Movement().after(Gravity.self)
+    /// }
+    /// print(ordered.ambiguities().isEmpty)
+    /// // Prints "true"
     /// ```
+    ///
+    /// Order each pair with `after(_:)` or `before(_:)`, or mark it with
+    /// ``ScheduledSystem/ambiguous(with:)`` when either order is right. Systems without an access
+    /// always run alone, in the order written, and are left out. Call this method in a test to
+    /// keep a schedule free of ambiguities.
+    ///
+    /// - Returns: The ambiguous pairs, ordered by the position of their first system and then
+    ///   their second.
     ///
     /// - Complexity: O(*s*·(*s* + *c*)) for *s* systems and *c* ordered pairs.
     public func ambiguities() -> [Ambiguity] {

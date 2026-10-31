@@ -1,28 +1,44 @@
 extension World {
-    /// Changes the `W` of every entity that holds one, every type in `reading` and passes
-    /// `filter`, in place.
+    /// Changes a component of every entity that holds it and the given read types, in place.
     ///
-    /// `body` receives the `W` to change and a row of the entity with the components it reads.
-    /// Entities are visited in the storage order of whichever of these types the fewest entities
-    /// hold. Every `W` visited is marked changed at the current ``changeTick``.
+    /// Use this method to apply the same change to many entities, such as moving everything by its
+    /// velocity. The method visits every entity that holds a `W` and every type in `reading`, and
+    /// that passes `filter`. For each one, `body` receives the entity's `W` to change and a
+    /// ``QueryRow`` carrying the entity and the components it reads:
     ///
     /// ```swift
+    /// var world = World()
+    /// let comet = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 2))
+    /// let statue = world.spawn(Position(x: 5, y: 5), Velocity(dx: 1, dy: 1), Frozen())
+    ///
     /// world.update(Position.self, reading: Velocity.self, where: .without(Frozen.self)) { position, row in
     ///     position.x += row.components.dx
+    ///     position.y += row.components.dy
     /// }
+    /// print(world[Position.self, of: comet])
+    /// // Prints "Position(x: 1.0, y: 2.0)"
+    /// print(world[Position.self, of: statue])
+    /// // Prints "Position(x: 5.0, y: 5.0)"
     /// ```
     ///
-    /// Updates reading one, two or three types have overloads specialized for speed.
+    /// The update writes each component where it's stored, so no component is copied out and back.
+    /// Every `W` visited is marked changed at the world's current ``changeTick``, even if `body`
+    /// leaves it as it was. Entities are visited in the storage order of whichever of the types the
+    /// fewest entities hold. Updates reading one, two or three types run through code specialized
+    /// for that number of types.
+    ///
+    /// To read ``AnyOf`` groups, pass a ``Query`` to `update(_:over:body:)` instead.
     ///
     /// - Parameters:
     ///   - type: The component type to change.
-    ///   - reading: Component types the entity must hold, passed to `body` in this order.
-    ///   - filter: Further types the entity must hold or must not hold.
-    ///   - body: Changes one entity's `W`. If it throws, the visit stops; changes already made
-    ///     are kept.
-    /// - Complexity: O(*n*) for *n* entities in the smallest of the types, plus a copy of the
-    ///   `W` storage when another world shares it.
-    /// - Precondition: `reading` does not list `W`.
+    ///   - reading: The component types an entity must also hold, which `body` receives in this
+    ///     order.
+    ///   - filter: Further conditions an entity must meet. The default passes every entity.
+    ///   - body: A closure that changes one entity's component. If it throws, the visit stops and
+    ///     the method rethrows the error; changes already made are kept.
+    /// - Complexity: O(*n*) for *n* entities in the smallest of the types, plus a copy of the `W`
+    ///   storage when another world shares it.
+    /// - Precondition: `reading` doesn't list `W`.
     @inlinable
     public mutating func update<W: Component, each R: Component, Failure: Error>(
         _ type: W.Type,
@@ -37,8 +53,9 @@ extension World {
         try update(W.self, reads: reads, reader: { world in world.packReader(repeat (each R).self) { entity, components in QueryRow(entity: entity, components: (repeat each components)) } }, filter: filter, body: body)
     }
 
-    /// Changes the `W` of every entity holding one and the read types, in place; see
-    /// ``update(_:reading:where:body:)``.
+    /// Changes a component of every entity that holds it and the given read types, in place.
+    ///
+    /// See `update(_:reading:where:body:)` for how a visit proceeds.
     @inlinable
     public mutating func update<W: Component, R1: Component, Failure: Error>(
         _ type: W.Type,
@@ -49,8 +66,9 @@ extension World {
         try update(W.self, reads: [ObjectIdentifier(R1.self)], reader: { world in world.reader(R1.self) { QueryRow(entity: $0, components: $1) } }, filter: filter, body: body)
     }
 
-    /// Changes the `W` of every entity holding one and the read types, in place; see
-    /// ``update(_:reading:where:body:)``.
+    /// Changes a component of every entity that holds it and the given read types, in place.
+    ///
+    /// See `update(_:reading:where:body:)` for how a visit proceeds.
     @inlinable
     public mutating func update<W: Component, R1: Component, R2: Component, Failure: Error>(
         _ type: W.Type,
@@ -61,8 +79,9 @@ extension World {
         try update(W.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self)], reader: { world in world.reader(R1.self, R2.self) { QueryRow(entity: $0, components: ($1, $2)) } }, filter: filter, body: body)
     }
 
-    /// Changes the `W` of every entity holding one and the read types, in place; see
-    /// ``update(_:reading:where:body:)``.
+    /// Changes a component of every entity that holds it and the given read types, in place.
+    ///
+    /// See `update(_:reading:where:body:)` for how a visit proceeds.
     @inlinable
     public mutating func update<W: Component, R1: Component, R2: Component, R3: Component, Failure: Error>(
         _ type: W.Type,
@@ -73,29 +92,41 @@ extension World {
         try update(W.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self), ObjectIdentifier(R3.self)], reader: { world in world.reader(R1.self, R2.self, R3.self) { QueryRow(entity: $0, components: ($1, $2, $3)) } }, filter: filter, body: body)
     }
 
-    /// Changes the `A` and `B` of every entity that holds both, every type in `reading` and
-    /// passes `filter`, in place. Every `A` and `B` visited is marked changed at the current
-    /// ``changeTick``.
+    /// Changes two components of every entity that holds both and the given read types, in place.
+    ///
+    /// The method visits every entity that holds an `A`, a `B` and every type in `reading`, and
+    /// that passes `filter`. Every `A` and `B` visited is marked changed at the world's current
+    /// ``changeTick``. The following example declares stamina and a regeneration rate, then
+    /// restores both health and stamina:
     ///
     /// ```swift
+    /// struct Stamina: Component { var current: Int }
+    /// struct Regeneration: Component { var health: Int, stamina: Int }
+    /// ```
+    ///
+    /// ```swift
+    /// var world = World()
+    /// let hero = world.spawn(Health(current: 5), Stamina(current: 2), Regeneration(health: 1, stamina: 3))
+    ///
     /// world.update(Health.self, Stamina.self, reading: Regeneration.self) { health, stamina, row in
     ///     health.current += row.components.health
     ///     stamina.current += row.components.stamina
     /// }
+    /// print(world[Health.self, of: hero].current, world[Stamina.self, of: hero].current)
+    /// // Prints "6 5"
     /// ```
-    ///
-    /// Updates reading one, two or three types have overloads specialized for speed.
     ///
     /// - Parameters:
     ///   - first: The first component type to change.
     ///   - second: The second component type to change.
-    ///   - reading: Component types the entity must hold, passed to `body` in this order.
-    ///   - filter: Further types the entity must hold or must not hold.
-    ///   - body: Changes one entity's `A` and `B`. If it throws, the visit stops; changes already
-    ///     made are kept.
+    ///   - reading: The component types an entity must also hold, which `body` receives in this
+    ///     order.
+    ///   - filter: Further conditions an entity must meet. The default passes every entity.
+    ///   - body: A closure that changes one entity's components. If it throws, the visit stops and
+    ///     the method rethrows the error; changes already made are kept.
     /// - Complexity: O(*n*) for *n* entities in the smallest of the types, plus a copy of the
     ///   storage of `A` or `B` when another world shares it.
-    /// - Precondition: `A` and `B` differ, and `reading` lists neither.
+    /// - Precondition: `A` and `B` are different types, and `reading` lists neither.
     @inlinable
     public mutating func update<A: Component, B: Component, each R: Component, Failure: Error>(
         _ first: A.Type,
@@ -111,8 +142,9 @@ extension World {
         try update(A.self, B.self, reads: reads, reader: { world in world.packReader(repeat (each R).self) { entity, components in QueryRow(entity: entity, components: (repeat each components)) } }, filter: filter, body: body)
     }
 
-    /// Changes the `A` and `B` of every entity holding both and the read types, in place; see
-    /// ``update(_:_:reading:where:body:)``.
+    /// Changes two components of every entity that holds both and the given read types, in place.
+    ///
+    /// See `update(_:_:reading:where:body:)` for how a visit proceeds.
     @inlinable
     public mutating func update<A: Component, B: Component, R1: Component, Failure: Error>(
         _ first: A.Type,
@@ -124,8 +156,9 @@ extension World {
         try update(A.self, B.self, reads: [ObjectIdentifier(R1.self)], reader: { world in world.reader(R1.self) { QueryRow(entity: $0, components: $1) } }, filter: filter, body: body)
     }
 
-    /// Changes the `A` and `B` of every entity holding both and the read types, in place; see
-    /// ``update(_:_:reading:where:body:)``.
+    /// Changes two components of every entity that holds both and the given read types, in place.
+    ///
+    /// See `update(_:_:reading:where:body:)` for how a visit proceeds.
     @inlinable
     public mutating func update<A: Component, B: Component, R1: Component, R2: Component, Failure: Error>(
         _ first: A.Type,
@@ -137,8 +170,9 @@ extension World {
         try update(A.self, B.self, reads: [ObjectIdentifier(R1.self), ObjectIdentifier(R2.self)], reader: { world in world.reader(R1.self, R2.self) { QueryRow(entity: $0, components: ($1, $2)) } }, filter: filter, body: body)
     }
 
-    /// Changes the `A` and `B` of every entity holding both and the read types, in place; see
-    /// ``update(_:_:reading:where:body:)``.
+    /// Changes two components of every entity that holds both and the given read types, in place.
+    ///
+    /// See `update(_:_:reading:where:body:)` for how a visit proceeds.
     @inlinable
     public mutating func update<A: Component, B: Component, R1: Component, R2: Component, R3: Component, Failure: Error>(
         _ first: A.Type,

@@ -1,39 +1,93 @@
-/// An event triggered on an entity, which the observers watching it run at once.
+/// A type that describes something that happens to a particular entity, which its observers
+/// respond to at once.
+///
+/// Use an entity event when one part of a program needs to tell an entity that something
+/// happened to it, and other parts need to respond right away: a barrel is hit, a button is
+/// clicked. Declare the event as a type that conforms to `EntityEvent`, register observers with
+/// ``World/observe(_:on:perform:)`` or ``World/observe(_:perform:)``, and trigger it with
+/// ``World/trigger(_:on:)``. The observers run before `trigger(_:on:)` returns.
+///
+/// The following example despawns a barrel when it explodes:
 ///
 /// ```swift
 /// struct Explode: EntityEvent { var radius: Double }
+///
+/// var world = World()
+/// let barrel = world.spawn(Name(value: "Barrel"))
 /// world.observe(Explode.self, on: barrel) { world, trigger in
 ///     world.despawn(trigger.entity)
 /// }
+///
 /// world.trigger(Explode(radius: 3), on: barrel)
+/// print(world.contains(barrel))
+/// // Prints "false"
 /// ```
 ///
-/// Unlike an ``Event``, which waits in a queue for systems to read, an entity event runs its
-/// observers before ``World/trigger(_:on:)`` returns.
+/// An entity event differs from an ``Event``, which waits in a queue until systems read it.
+///
+/// ### Propagating Up the Hierarchy
+///
+/// An event whose ``propagates`` property is `true` moves on to the entity's parent
+/// (``ChildOf``) after the entity's observers run, then to that entity's parent, and so on up to
+/// the root. The following example lets a panel respond to clicks on any of its buttons:
+///
+/// ```swift
+/// struct Clicked: EntityEvent {
+///     static var propagates: Bool { true }
+/// }
+/// struct ClickLog: Resource { var entries: [String] = [] }
+///
+/// var world = World()
+/// world.resources.insert(ClickLog())
+/// let panel = world.spawn(Name(value: "Panel"))
+/// let button = world.spawn(Name(value: "OK"))
+/// try world.addChild(button, to: panel)
+///
+/// world.observe(Clicked.self, on: panel) { world, trigger in
+///     let name = world[Name.self, of: trigger.originalEntity].value
+///     world.resources[ClickLog.self].entries.append("Panel saw a click on \(name)")
+/// }
+///
+/// world.trigger(Clicked(), on: button)
+/// print(world.resources[ClickLog.self].entries)
+/// // Prints "["Panel saw a click on OK"]"
+/// ```
+///
+/// An observer can stop an event from going further by setting the trigger's
+/// ``Trigger/propagates`` property to `false`.
 public protocol EntityEvent: Sendable {
-    /// Whether the event moves on to the entity's parent (``ChildOf``) after its observers run,
-    /// and so on up to the root. False by default; an observer can change it for one trigger.
+    /// A Boolean value indicating whether the event moves on to the entity's parent after the
+    /// entity's observers run.
+    ///
+    /// When this is `true`, the event continues up the hierarchy (``ChildOf``) to the root. An
+    /// observer can stop one trigger by setting ``Trigger/propagates`` to `false`. The default
+    /// implementation returns `false`.
     static var propagates: Bool { get }
 }
 
 extension EntityEvent {
-    /// False: the event stops at the entity it was triggered on.
+    /// A Boolean value indicating whether the event moves on to the entity's parent; by
+    /// default, `false`.
     @inlinable
     public static var propagates: Bool { false }
 }
 
-/// What an observer receives: the event, the entity it is being observed on and the entity it
-/// was triggered on.
+/// The event an observer receives, with the entity it's being observed on and the entity it was
+/// triggered on.
+///
+/// Each observer receives the trigger `inout`, so it can change the event for the observers
+/// after it, or stop the event from propagating further by setting ``propagates`` to `false`.
 @frozen
 public struct Trigger<E: EntityEvent>: Sendable {
-    /// The event, which observers may change for the observers after them.
+    /// The event, which an observer can change for the observers after it.
     public var event: E
-    /// The entity whose observers are running: the one the event was triggered on, or an
+    /// The entity whose observers are running: the entity the event was triggered on, or an
     /// ancestor it propagated to.
     public let entity: Entity
     /// The entity the event was triggered on.
     public let originalEntity: Entity
-    /// Whether the event moves on to ``entity``'s parent after its observers run.
+    /// A Boolean value indicating whether the event moves on to the parent of ``entity`` after
+    /// its observers run.
     public var propagates: Bool
 
     @inlinable
@@ -72,15 +126,34 @@ struct Observers: Sendable {
 extension World {
     // MARK: Observers
 
-    /// Runs `observer` whenever an `E` is triggered on any entity, after the observers of that
+    /// Registers a closure to run whenever an event of the given type is triggered on any
     /// entity.
     ///
+    /// A global observer runs after the observers of the entity the event reached. If the event
+    /// propagates, the observer runs again for each ancestor it reaches.
+    ///
+    /// The following example counts every explosion in the world:
+    ///
     /// ```swift
-    /// world.observe(Explode.self) { world, trigger in
-    ///     world.resources[Log.self].append("\(trigger.entity) exploded")
+    /// struct ExplosionCount: Resource { var count = 0 }
+    ///
+    /// var world = World()
+    /// world.resources.insert(ExplosionCount())
+    /// world.observe(Explode.self) { world, _ in
+    ///     world.resources[ExplosionCount.self].count += 1
     /// }
+    ///
+    /// let barrel = world.spawn(Name(value: "Barrel"))
+    /// let crate = world.spawn(Name(value: "Crate"))
+    /// world.trigger(Explode(radius: 3), on: barrel)
+    /// world.trigger(Explode(radius: 1), on: crate)
+    /// print(world.resources[ExplosionCount.self].count)
+    /// // Prints "2"
     /// ```
     ///
+    /// - Parameters:
+    ///   - type: The event type to observe.
+    ///   - observer: The closure to run, given the world and the trigger.
     /// - Complexity: O(1) amortized.
     @inlinable
     public mutating func observe<E: EntityEvent>(_ type: E.Type, perform observer: @escaping @Sendable (inout World, inout Trigger<E>) -> Void) {
@@ -89,11 +162,18 @@ extension World {
         self.observers.global[ObjectIdentifier(E.self)] = observers
     }
 
-    /// Runs `observer` whenever an `E` is triggered on `entity`, or propagates to it, until the
-    /// entity is despawned.
+    /// Registers a closure to run whenever an event of the given type is triggered on an
+    /// entity, or propagates to it.
     ///
-    /// - Complexity: O(1) amortized.
+    /// The observer stays registered until `entity` is despawned. See ``EntityEvent`` for an
+    /// example.
+    ///
+    /// - Parameters:
+    ///   - type: The event type to observe.
+    ///   - entity: The entity to observe.
+    ///   - observer: The closure to run, given the world and the trigger.
     /// - Precondition: `entity` is live.
+    /// - Complexity: O(1) amortized.
     @inlinable
     public mutating func observe<E: EntityEvent>(_ type: E.Type, on entity: Entity, perform observer: @escaping @Sendable (inout World, inout Trigger<E>) -> Void) {
         precondition(contains(entity), "Observing stale entity \(entity)")
@@ -110,15 +190,20 @@ extension World {
         }
     }
 
-    /// Triggers `event` on `entity`: runs the observers of `entity`, then those of every entity,
-    /// and, while the trigger propagates, the same for each ancestor in turn.
+    /// Triggers an event on an entity, running its observers before returning.
     ///
-    /// Observers run before this returns, in the order they were registered, each seeing the
-    /// world as the observers before it left it.
+    /// The observers of `entity` run first, then the global observers of `E`. While the trigger
+    /// propagates (``EntityEvent/propagates``), the same happens for each ancestor in turn.
+    /// Observers run in the order they were registered, each seeing the world as the observers
+    /// before it left it. See ``EntityEvent`` for an example.
     ///
-    /// - Complexity: O(*o*·*d*) besides the observers themselves, for *o* observers and *d*
-    ///   ancestors visited.
-    /// - Precondition: `entity` is live. Use ``trigger(_:checkedOn:)`` to throw instead.
+    /// - Parameters:
+    ///   - event: The event to trigger.
+    ///   - entity: The entity to trigger it on.
+    /// - Precondition: `entity` is live. The checked spelling, ``trigger(_:checkedOn:)``, throws
+    ///   instead.
+    /// - Complexity: O(*o* × *d*), not counting the observers' own work, where *o* is the number
+    ///   of observers and *d* is the number of ancestors visited.
     @inlinable
     public mutating func trigger<E: EntityEvent>(_ event: E, on entity: Entity) {
         precondition(contains(entity), "Triggering on stale entity \(entity)")
@@ -126,9 +211,15 @@ extension World {
         endOperation()
     }
 
-    /// Triggers `event` on `entity`; see ``trigger(_:on:)``.
+    /// Triggers an event on an entity, throwing if the entity is stale.
     ///
-    /// - Throws: ``StaleEntity`` when `entity` is not live; nothing runs.
+    /// This method behaves like ``trigger(_:on:)``, but reports a stale entity as an error
+    /// rather than trapping.
+    ///
+    /// - Parameters:
+    ///   - event: The event to trigger.
+    ///   - entity: The entity to trigger it on.
+    /// - Throws: ``StaleEntity`` if `entity` isn't live. No observer runs.
     @inlinable
     public mutating func trigger<E: EntityEvent>(_ event: E, checkedOn entity: Entity) throws(StaleEntity) {
         guard contains(entity) else { throw StaleEntity() }
@@ -165,35 +256,72 @@ extension World {
 
     // MARK: Query observers
 
-    /// Runs `hook` whenever an entity starts matching `query`'s structural conditions: by
-    /// spawning, inserting, removing or a command.
+    /// Registers a closure to run whenever an entity starts matching a query.
     ///
-    /// The conditions are those a cache of the query keeps (``cache(_:)``): its component terms
-    /// and the types its filter requires, excludes or skips by default. Entities that already
-    /// match when the hook is registered do not run it. Hooks run as the component
-    /// `onAdd(_:perform:)` describes.
+    /// Use this method to respond when an entity gains the combination of components a query
+    /// describes, rather than a single component. The hook runs when spawning, inserting,
+    /// removing or applying a command makes an entity match. Entities that already match when
+    /// you register the hook don't run it. Query hooks run at the same point component hooks do
+    /// (see the component `onAdd(_:perform:)`).
+    ///
+    /// Only the query's structural conditions count: its component terms and the types its
+    /// filter requires, excludes or skips by default, the conditions a cache of the query keeps
+    /// (``cache(_:)``). The following example counts the entities that start moving:
     ///
     /// ```swift
-    /// world.onAdd(Query(Position.self, Velocity.self).without(Frozen.self)) { world, entity in
-    ///     world.resources[Movers.self].count += 1
+    /// struct MoverCount: Resource { var count = 0 }
+    ///
+    /// var world = World()
+    /// world.resources.insert(MoverCount())
+    /// world.onAdd(Query(Position.self, Velocity.self).without(Frozen.self)) { world, _ in
+    ///     world.resources[MoverCount.self].count += 1
     /// }
+    ///
+    /// let rock = world.spawn(Position(x: 0, y: 0))
+    /// world.insert(Velocity(dx: 1, dy: 0), into: rock)
+    /// print(world.resources[MoverCount.self].count)
+    /// // Prints "1"
     /// ```
     ///
-    /// - Complexity: That of ``cache(_:)`` when no cache of the conditions exists; then O(1)
-    ///   amortized.
+    /// - Parameters:
+    ///   - query: The query whose matches to watch.
+    ///   - hook: The closure to run, given the world and the entity that started matching.
+    /// - Complexity: That of ``cache(_:)`` when the world keeps no cache of the query's
+    ///   conditions; otherwise, O(1) amortized.
     @inlinable
     public mutating func onAdd<each T: QueryTerm>(_ query: Query<repeat each T>, perform hook: @escaping @Sendable (inout World, Entity) -> Void) {
         let position = cachePosition(of: query)
         caches[position].onAdd.append(hook)
     }
 
-    /// Runs `hook` whenever an entity stops matching `query`'s structural conditions: by
-    /// inserting, removing, despawning or a command; see the query `onAdd(_:perform:)`.
+    /// Registers a closure to run whenever an entity stops matching a query.
     ///
-    /// A despawned entity is no longer live when the hook runs.
+    /// The hook runs when inserting, removing, despawning or applying a command makes an entity
+    /// stop matching the query's structural conditions, as the query `onAdd(_:perform:)`
+    /// describes. After a despawn, the entity is no longer live when the hook runs.
     ///
-    /// - Complexity: That of ``cache(_:)`` when no cache of the conditions exists; then O(1)
-    ///   amortized.
+    /// The following example counts the movers that are frozen in place:
+    ///
+    /// ```swift
+    /// struct StoppedCount: Resource { var count = 0 }
+    ///
+    /// var world = World()
+    /// world.resources.insert(StoppedCount())
+    /// world.onRemove(Query(Position.self, Velocity.self).without(Frozen.self)) { world, _ in
+    ///     world.resources[StoppedCount.self].count += 1
+    /// }
+    ///
+    /// let rock = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
+    /// world.insert(Frozen(), into: rock)
+    /// print(world.resources[StoppedCount.self].count)
+    /// // Prints "1"
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - query: The query whose matches to watch.
+    ///   - hook: The closure to run, given the world and the entity that stopped matching.
+    /// - Complexity: That of ``cache(_:)`` when the world keeps no cache of the query's
+    ///   conditions; otherwise, O(1) amortized.
     @inlinable
     public mutating func onRemove<each T: QueryTerm>(_ query: Query<repeat each T>, perform hook: @escaping @Sendable (inout World, Entity) -> Void) {
         let position = cachePosition(of: query)

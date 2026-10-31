@@ -1,9 +1,13 @@
-/// One part of a ``Query``: which entities it matches and the value it yields for each.
+/// A type that can be a term of a query, deciding which entities match and what the query reads
+/// from each.
 ///
-/// Every ``Component`` is a term that matches the entities holding it and yields the component.
-/// ``AnyOf`` is a term that matches entities holding at least one of its types.
+/// Every ``Component`` is a query term: it matches the entities that hold the component and reads
+/// the component's value. ``AnyOf`` is a query term that matches the entities holding at least one
+/// of its component types and reads each as an optional.
+///
+/// You don't conform types to this protocol yourself; declare components and use ``AnyOf``.
 public protocol QueryTerm: Sendable {
-    /// What a query row holds for this term.
+    /// The value a query's row holds for this term.
     associatedtype Value
 
     /// Reads this term from `world`; the general path a query of any shape takes.
@@ -73,26 +77,43 @@ extension Component {
     }
 }
 
-/// A query term matching entities that hold at least one of its component types, yielding each
-/// as an optional.
+/// A group of types an entity matches by matching at least one of them.
+///
+/// As a term of a ``Query``, `AnyOf` of component types matches the entities that hold at least
+/// one of the types, and reads a tuple with one optional per type: the entity's component, or
+/// `nil` where the entity lacks that type. Use it to visit entities that may carry any of several
+/// related components:
 ///
 /// ```swift
-/// let movers = Query(Position.self, AnyOf<Wind, Current>.self)
-/// for (entity, position, (wind, current)) in world.query(movers) {
-///     print(entity, position, wind ?? Wind(), current ?? Current())
+/// var world = World()
+/// world.spawn(Name(value: "frozen comet"), Velocity(dx: 4, dy: 0), Frozen())
+/// world.spawn(Name(value: "comet"), Velocity(dx: 2, dy: 0))
+/// world.spawn(Name(value: "ice"), Frozen())
+/// world.spawn(Name(value: "rock"))
+///
+/// var descriptions: [String] = []
+/// for (_, name, (velocity, frozen)) in world.query(Query(Name.self, AnyOf<Velocity, Frozen>.self)) {
+///     let state = frozen == nil ? "moving at \(velocity?.dx ?? 0)" : "frozen"
+///     descriptions.append("\(name.value) is \(state)")
 /// }
+/// print(descriptions)
+/// // Prints "["frozen comet is frozen", "comet is moving at 2.0", "ice is frozen"]"
 /// ```
 ///
-/// Queries of up to three terms, with `AnyOf` groups of two to four types, are specialized for
-/// speed.
+/// The rock holds neither type, so the query skips it.
 ///
-/// Among a query's filter types (``Query/Where``), `AnyOf` of filter types passes entities that
-/// pass at least one: `AnyOf<Changed<Health>, Without<Shield>>`.
+/// As a filter type of a system's query (``Query/Where``), `AnyOf` of filter types passes the
+/// entities that pass at least one of them: `Query<Health>.Where<AnyOf<Changed<Health>,
+/// Without<Frozen>>>` visits the entities whose health changed and the ones that aren't frozen.
+///
+/// Queries of one to three terms, with `AnyOf` groups of two to four types, run through code
+/// specialized for their exact shape.
 @frozen
 public struct AnyOf<each C>: Sendable {}
 
 extension AnyOf: QueryTerm where repeat each C: Component {
-    /// One optional per type, in the order listed: nil where the entity lacks that type.
+    /// A tuple of one optional per component type, in the order listed, with `nil` where the
+    /// entity lacks that type.
     public typealias Value = (repeat Optional<each C>)
 
     @_documentation(visibility: internal)

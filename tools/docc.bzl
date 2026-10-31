@@ -178,10 +178,13 @@ def _docc_archive_impl(ctx):
     args.add("--source-service", "github")
     args.add("--source-service-base-url", _SOURCE_SERVICE_BASE_URL)
     args.add("--checkout-path", _CHECKOUT_ROOT)
+    # A broken link or an unknown symbol fails the build, like a first-party compiler warning.
+    args.add("--warnings-as-errors")
 
     docc = _docc(ctx)
     ctx.actions.run_shell(
-        command = docc.command + ' "$@" > /dev/null',
+        # docc writes its diagnostics to standard output, among its progress; show them on failure.
+        command = 'log=$(mktemp) && ' + docc.command + ' "$@" > "$log" || { cat "$log" >&2; exit 1; }',
         arguments = [args],
         inputs = depset([symbol_graph_dir] + catalog + dependencies),
         outputs = [archive],

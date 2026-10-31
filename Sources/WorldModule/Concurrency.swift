@@ -1,14 +1,25 @@
 import Dispatch
 
-/// What a change to a world reads and writes: component types and resource types.
+/// A description of the component and resource types that a change to a world reads and writes.
 ///
-/// Changes whose accesses do not conflict can run at the same time with
-/// ``World/runConcurrently(_:)``: neither writes a type the other reads or writes.
+/// Two changes *conflict* when one writes a type the other reads or writes. Changes that don't
+/// conflict can run at the same time, with ``World/runConcurrently(_:)`` or in a schedule.
+///
+/// Build an access by chaining the types a change reads and writes:
 ///
 /// ```swift
 /// let movement = Access.reads(Velocity.self).writes(Position.self)
 /// let scoring = Access.reads(Health.self).writes(resources: Score.self)
+/// let healing = Access.writes(Health.self)
+///
+/// print(movement.conflicts(with: scoring))
+/// // Prints "false"
+/// print(scoring.conflicts(with: healing))
+/// // Prints "true"
 /// ```
+///
+/// Writing a type includes changing, inserting and removing it. Reading and writing events are
+/// described with ``sends(_:)-swift.type.method`` and ``readsEvents(_:by:)-swift.type.method``.
 public struct Access: Sendable {
     @usableFromInline var componentReads: Set<ObjectIdentifier> = []
     /// Each written component type, with what stores its column in a world.
@@ -16,47 +27,64 @@ public struct Access: Sendable {
     @usableFromInline var resourceReads: Set<ObjectIdentifier> = []
     @usableFromInline var resourceWrites: Set<ObjectIdentifier> = []
 
-    /// Reading and writing nothing.
+    /// Creates an access that reads and writes nothing.
     @inlinable
     public init() {}
 
-    /// Reading the component types `types`.
+    /// Returns an access that reads the given component types.
+    ///
+    /// - Parameter types: The component types to read.
     @inlinable
     public static func reads<each C: Component>(_ types: repeat (each C).Type) -> Access {
         Access().reads(repeat each types)
     }
 
-    /// Writing the component types `types`: changing, inserting and removing them.
+    /// Returns an access that writes the given component types: changes, inserts and removes
+    /// them.
+    ///
+    /// - Parameter types: The component types to write.
     @inlinable
     public static func writes<each C: Component>(_ types: repeat (each C).Type) -> Access {
         Access().writes(repeat each types)
     }
 
-    /// Reading the resource types `types`.
+    /// Returns an access that reads the given resource types.
+    ///
+    /// - Parameter types: The resource types to read.
     @inlinable
     public static func reads<each R: Resource>(resources types: repeat (each R).Type) -> Access {
         Access().reads(resources: repeat each types)
     }
 
-    /// Writing the resource types `types`: changing, inserting and removing them.
+    /// Returns an access that writes the given resource types: changes, inserts and removes them.
+    ///
+    /// - Parameter types: The resource types to write.
     @inlinable
     public static func writes<each R: Resource>(resources types: repeat (each R).Type) -> Access {
         Access().writes(resources: repeat each types)
     }
 
-    /// Sending events of type `E`.
+    /// Returns an access that sends events of the given type.
+    ///
+    /// - Parameter type: The type of the events to send.
     @inlinable
     public static func sends<E: Event>(_ type: E.Type) -> Access {
         Access().sends(E.self)
     }
 
-    /// Reading events of type `E` with ``World/readEvents(_:by:)`` as `reader`.
+    /// Returns an access that reads events of the given type with ``World/readEvents(_:by:)``.
+    ///
+    /// - Parameters:
+    ///   - type: The type of the events to read.
+    ///   - reader: The reader type whose position in the events is kept.
     @inlinable
     public static func readsEvents<E: Event, Reader>(_ type: E.Type, by reader: Reader.Type) -> Access {
         Access().readsEvents(E.self, by: Reader.self)
     }
 
-    /// This access, also reading the component types `types`.
+    /// Returns this access, also reading the given component types.
+    ///
+    /// - Parameter types: The component types to read.
     @inlinable
     public func reads<each C: Component>(_ types: repeat (each C).Type) -> Access {
         var access = self
@@ -66,8 +94,12 @@ public struct Access: Sendable {
         return access
     }
 
-    /// This access, also writing the component types `types`, and so the removals of them
-    /// recorded as ``RemovedComponent`` events.
+    /// Returns this access, also writing the given component types.
+    ///
+    /// Writing a component type includes changing, inserting and removing it, and so writing the
+    /// ``RemovedComponent`` events of the type.
+    ///
+    /// - Parameter types: The component types to write.
     @inlinable
     public func writes<each C: Component>(_ types: repeat (each C).Type) -> Access {
         var access = self
@@ -88,7 +120,9 @@ public struct Access: Sendable {
         { world in _ = world.columnSlot(of: C.self) }
     }
 
-    /// This access, also reading the resource types `types`.
+    /// Returns this access, also reading the given resource types.
+    ///
+    /// - Parameter types: The resource types to read.
     @inlinable
     public func reads<each R: Resource>(resources types: repeat (each R).Type) -> Access {
         var access = self
@@ -98,7 +132,9 @@ public struct Access: Sendable {
         return access
     }
 
-    /// This access, also writing the resource types `types`.
+    /// Returns this access, also writing the given resource types.
+    ///
+    /// - Parameter types: The resource types to write.
     @inlinable
     public func writes<each R: Resource>(resources types: repeat (each R).Type) -> Access {
         var access = self
@@ -108,22 +144,30 @@ public struct Access: Sendable {
         return access
     }
 
-    /// This access, also sending events of type `E`.
+    /// Returns this access, also sending events of the given type.
+    ///
+    /// - Parameter type: The type of the events to send.
     @inlinable
     public func sends<E: Event>(_ type: E.Type) -> Access {
         writes(resources: Events<E>.self)
     }
 
-    /// This access, also reading events of type `E` with ``World/readEvents(_:by:)`` as
-    /// `reader`.
+    /// Returns this access, also reading events of the given type with
+    /// ``World/readEvents(_:by:)``.
+    ///
+    /// - Parameters:
+    ///   - type: The type of the events to read.
+    ///   - reader: The reader type whose position in the events is kept.
     @inlinable
     public func readsEvents<E: Event, Reader>(_ type: E.Type, by reader: Reader.Type) -> Access {
         reads(resources: Events<E>.self).writes(resources: EventCursor<E, Reader>.self)
     }
 
-    /// This access, also reading and writing everything `other` does.
+    /// Returns this access, also reading and writing everything another access does.
     ///
-    /// - Complexity: O(*t*) for *t* types in `other`.
+    /// - Parameter other: The access to combine with this one.
+    /// - Returns: An access that reads and writes the types of both.
+    /// - Complexity: O(*t*), where *t* is the number of types in `other`.
     @inlinable
     public func merging(_ other: Access) -> Access {
         var access = self
@@ -134,10 +178,15 @@ public struct Access: Sendable {
         return access
     }
 
-    /// Whether this access and `other` cannot run at the same time: one writes a type the
-    /// other reads or writes.
+    /// Returns a Boolean value indicating whether this access and another can't run at the same
+    /// time.
     ///
-    /// - Complexity: O(*t*) for *t* types in the two accesses.
+    /// Two accesses conflict when one writes a component or resource type that the other reads
+    /// or writes. Two accesses that only read a type don't conflict.
+    ///
+    /// - Parameter other: The access to compare with.
+    /// - Returns: `true` if the accesses conflict; otherwise, `false`.
+    /// - Complexity: O(*t*), where *t* is the number of types in the two accesses.
     @inlinable
     public func conflicts(with other: Access) -> Bool {
         func writes(_ writer: Access, touch reader: Access) -> Bool {
@@ -148,14 +197,21 @@ public struct Access: Sendable {
     }
 }
 
-/// A change to a world and what it reads and writes, for ``World/runConcurrently(_:)``.
+/// A change to a world, paired with the access that describes what it reads and writes.
+///
+/// You pass concurrent changes to ``World/runConcurrently(_:)``, which runs changes whose
+/// accesses don't conflict at the same time.
 public struct ConcurrentChange: Sendable {
-    /// What `body` reads and writes.
+    /// The component and resource types the change reads and writes.
     public let access: Access
-    /// The change.
+    /// The closure that makes the change.
     public let body: @Sendable (inout World) -> Void
 
-    /// `body`, which reads and writes only what `access` lists.
+    /// Creates a change from a closure and the access that describes it.
+    ///
+    /// - Parameters:
+    ///   - access: The component and resource types `body` reads and writes.
+    ///   - body: A closure that changes the world, reading and writing only what `access` lists.
     @inlinable
     public init(access: Access, body: @escaping @Sendable (inout World) -> Void) {
         self.access = access
@@ -164,22 +220,47 @@ public struct ConcurrentChange: Sendable {
 }
 
 extension World {
-    /// Runs `changes` at the same time, each on a copy of the world, and keeps what each wrote.
+    /// Runs changes at the same time, each on its own copy of the world, and keeps what each one
+    /// wrote.
     ///
-    /// Each change reads the world as it was before any of them ran, and writes only the types
-    /// its access lists, so the result is the same as running them one after another in any
-    /// order. A change sees the components and resources other changes write as missing, so it
-    /// must declare everything it reads. Command buffers a change queues (``queue(_:)``) are
-    /// queued here in the order of `changes`.
+    /// Use this method to spread independent work across the processor's cores. Each change reads
+    /// the world as it was before any of them ran, and writes only the types its access lists, so
+    /// the result is the same as running the changes one after another in any order:
     ///
-    /// - Complexity: O(*c*·*t*) besides the changes themselves, for *c* changes and *t* stored
-    ///   component types.
-    /// - Precondition: No two accesses conflict. Each change writes only the component and
-    ///   resource types its access lists (relations through their ``Targets``, the hierarchy
-    ///   through `Targets<ChildOf>`), and spawns and despawns not at all; a change that writes
-    ///   another component type or changes the entities traps. In debug builds, a change that
-    ///   reads a component or resource type its access does not list traps too; any change may
-    ///   read ``Disabled`` and ``Prefab``.
+    /// ```swift
+    /// var world = World()
+    /// let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0), Health(current: 10))
+    ///
+    /// world.runConcurrently([
+    ///     ConcurrentChange(access: .reads(Velocity.self).writes(Position.self)) { world in
+    ///         world.update(Position.self, reading: Velocity.self) { position, row in
+    ///             position.x += row.components.dx
+    ///         }
+    ///     },
+    ///     ConcurrentChange(access: .writes(Health.self)) { world in
+    ///         world.update(Health.self) { health, _ in health.current -= 1 }
+    ///     },
+    /// ])
+    ///
+    /// print(world[Position.self, of: ball].x, world[Health.self, of: ball].current)
+    /// // Prints "1.0 9"
+    /// ```
+    ///
+    /// A change sees the components and resources that other changes write as missing, so its
+    /// access must list everything it reads. Command buffers a change queues with ``queue(_:)``
+    /// are queued in this world in the order of `changes`.
+    ///
+    /// - Important: A change must write only the component and resource types its access lists,
+    ///   and must not spawn or despawn entities. It writes relations through their ``Targets``
+    ///   components, and the hierarchy through `Targets<ChildOf>`.
+    ///
+    /// - Parameter changes: The changes to run.
+    /// - Complexity: O(*c*·*t*), besides the cost of the changes themselves, where *c* is the
+    ///   number of changes and *t* is the number of component types the world has stored.
+    /// - Precondition: No two accesses conflict, and each change writes only what its access
+    ///   lists and spawns and despawns nothing; a change that breaks this traps. In debug builds,
+    ///   a change that reads a component or resource type its access doesn't list traps too. Any
+    ///   change may read ``Disabled`` and ``Prefab``.
     public mutating func runConcurrently(_ changes: [ConcurrentChange]) {
         for first in changes.indices {
             for second in changes.indices where second > first {

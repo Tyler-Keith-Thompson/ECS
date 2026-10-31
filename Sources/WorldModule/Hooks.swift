@@ -43,22 +43,40 @@ struct Hooks: Sendable {
 extension World {
     // MARK: Hooks
 
-    /// Runs `hook` whenever an entity gains a `C` it did not hold: by spawning, inserting or a
-    /// command.
+    /// Registers a closure to run whenever an entity gains a component of the given type.
     ///
-    /// Hooks run after the world operation that fired them has finished, in the order they were
-    /// fired, so a hook sees every component a spawn or bundle insert gave. A change a hook makes
-    /// fires hooks of its own, which run after the hooks already waiting.
+    /// Use hooks to keep data outside the components in step with them, such as an index of
+    /// entities by name. An *add hook* runs when an entity that didn't hold a `C` gets one, by
+    /// spawning, inserting or applying a command. Replacing a `C` the entity already holds
+    /// doesn't run it; see ``onInsert(_:perform:)`` for a hook that runs then too.
+    ///
+    /// The following example records each named entity in a resource as it's spawned:
     ///
     /// ```swift
+    /// struct NameDirectory: Resource { var entities: [String: Entity] = [:] }
+    ///
+    /// var world = World()
+    /// world.resources.insert(NameDirectory())
     /// world.onAdd(Name.self) { world, entity in
-    ///     world.resources[NameIndex.self].insert(world[Name.self, of: entity], for: entity)
+    ///     let name = world[Name.self, of: entity].value
+    ///     world.resources[NameDirectory.self].entities[name] = entity
     /// }
+    ///
+    /// let hero = world.spawn(Name(value: "Hero"))
+    /// print(world.resources[NameDirectory.self].entities["Hero"] == hero)
+    /// // Prints "true"
     /// ```
     ///
-    /// Changes made in place, through the subscript or ``update(_:reading:where:body:)``, run no
-    /// hooks; find them with change detection instead.
+    /// A hook runs after the world operation that fired it has finished, so it sees every
+    /// component a spawn or bundle insert gave. Hooks run in the order they were fired. A change
+    /// that a hook makes fires hooks of its own, which run after the hooks already waiting.
     ///
+    /// - Note: Changes made in place, through the world's subscript or an update, run no hooks.
+    ///   Find those with change detection instead.
+    ///
+    /// - Parameters:
+    ///   - type: The component type to watch.
+    ///   - hook: The closure to run, given the world and the entity that gained a `C`.
     /// - Complexity: O(1) amortized.
     @inlinable
     public mutating func onAdd<C: Component>(_ type: C.Type, perform hook: @escaping @Sendable (inout World, Entity) -> Void) {
@@ -66,11 +84,34 @@ extension World {
         hooks.byType[ObjectIdentifier(C.self)]!.onAdd.append(hook)
     }
 
-    /// Runs `hook` whenever an entity is given a `C`, whether it is new or replaces one it held.
+    /// Registers a closure to run whenever an entity is given a component of the given type,
+    /// whether it's new or replaces one the entity held.
     ///
-    /// Hooks run as the component `onAdd(_:perform:)` describes; for a new component, the add hooks run
-    /// first.
+    /// Insert hooks run at the same point add hooks do (see `onAdd(_:perform:)`). For a new
+    /// component, the add hooks run first.
     ///
+    /// The following example counts every insert of a `Health` component, and shows that a
+    /// change made in place doesn't run the hook:
+    ///
+    /// ```swift
+    /// struct HealthWrites: Resource { var count = 0 }
+    ///
+    /// var world = World()
+    /// world.resources.insert(HealthWrites())
+    /// world.onInsert(Health.self) { world, _ in
+    ///     world.resources[HealthWrites.self].count += 1
+    /// }
+    ///
+    /// let knight = world.spawn(Health(current: 10))
+    /// world.insert(Health(current: 8), into: knight)
+    /// world[Health.self, of: knight].current -= 1
+    /// print(world.resources[HealthWrites.self].count)
+    /// // Prints "2"
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - type: The component type to watch.
+    ///   - hook: The closure to run, given the world and the entity that was given a `C`.
     /// - Complexity: O(1) amortized.
     @inlinable
     public mutating func onInsert<C: Component>(_ type: C.Type, perform hook: @escaping @Sendable (inout World, Entity) -> Void) {
@@ -78,18 +119,36 @@ extension World {
         hooks.byType[ObjectIdentifier(C.self)]!.onInsert.append(hook)
     }
 
-    /// Runs `hook` with the removed component whenever an entity loses a `C`: by removing it,
-    /// removing a bundle that holds it or despawning the entity.
+    /// Registers a closure to run whenever an entity loses a component of the given type.
     ///
-    /// Hooks run as the component `onAdd(_:perform:)` describes. The component is gone from the entity when
-    /// the hook runs, and a despawned entity is no longer live.
+    /// A *remove hook* runs when an entity loses its `C` by removing it, removing a bundle that
+    /// holds it, or being despawned. The hook receives the removed component, since it's gone
+    /// from the entity by the time the hook runs; after a despawn, the entity is no longer live.
+    /// Remove hooks run at the same point add hooks do (see `onAdd(_:perform:)`).
+    ///
+    /// The following example keeps a directory of named entities in step as they're despawned:
     ///
     /// ```swift
-    /// world.onRemove(Name.self) { world, entity, name in
-    ///     world.resources[NameIndex.self].remove(name, for: entity)
+    /// var world = World()
+    /// world.resources.insert(NameDirectory())
+    /// world.onAdd(Name.self) { world, entity in
+    ///     let name = world[Name.self, of: entity].value
+    ///     world.resources[NameDirectory.self].entities[name] = entity
     /// }
+    /// world.onRemove(Name.self) { world, _, name in
+    ///     world.resources[NameDirectory.self].entities[name.value] = nil
+    /// }
+    ///
+    /// let villain = world.spawn(Name(value: "Villain"))
+    /// world.despawn(villain)
+    /// print(world.resources[NameDirectory.self].entities.isEmpty)
+    /// // Prints "true"
     /// ```
     ///
+    /// - Parameters:
+    ///   - type: The component type to watch.
+    ///   - hook: The closure to run, given the world, the entity that lost its `C` and the
+    ///     component it lost.
     /// - Complexity: O(1) amortized.
     @inlinable
     public mutating func onRemove<C: Component>(_ type: C.Type, perform hook: @escaping @Sendable (inout World, Entity, C) -> Void) {
@@ -99,9 +158,13 @@ extension World {
         }
     }
 
-    /// Removes every hook registered for `C`.
+    /// Removes every hook registered for a component type.
     ///
-    /// - Complexity: O(*h*) for *h* hooked types.
+    /// This removes the add, insert and remove hooks of `C`. If the world was recording
+    /// removals of `C` (``trackRemovals(of:)``), it stops.
+    ///
+    /// - Parameter type: The component type whose hooks to remove.
+    /// - Complexity: O(*h*), where *h* is the number of hooked component types.
     @inlinable
     public mutating func removeHooks<C: Component>(of type: C.Type) {
         guard hooks.byType.removeValue(forKey: ObjectIdentifier(C.self)) != nil else { return }

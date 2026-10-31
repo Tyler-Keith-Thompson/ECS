@@ -1,15 +1,37 @@
-/// Component types an entity must hold, types it must not, and types that must have been added or
-/// changed since a tick, beyond the ones a query reads.
+/// A set of conditions an entity must meet, beyond holding the components a query reads.
 ///
-/// Filters compose: each modifier returns a new filter, which an entity passes only if it meets
-/// every condition. ``anyOf(_:)-swift.type.method`` passes entities meeting at least one of several
-/// filters, so any condition on which components an entity holds can be written.
+/// A filter can require component types, exclude them, require components added or changed since
+/// a tick, and require a relation to a target. Filters read nothing: an entity's components decide
+/// whether it passes, but a query's rows carry only the values of its terms.
+///
+/// Build a filter from a static method such as ``with(_:)-swift.type.method`` and refine it with
+/// the instance methods of the same names. Each method returns a new filter that an entity passes
+/// only if it meets every condition. To pass entities that meet at least one of several filters,
+/// use ``anyOf(_:)-swift.type.method``, so you can write any condition on which component types an
+/// entity holds:
 ///
 /// ```swift
-/// let living = QueryFilter.with(Player.self).without(Dead.self)
-/// let moved = QueryFilter.changed(Position.self)
-/// let armedOrShielded = QueryFilter.anyOf(.with(Sword.self, Arm.self), .with(Shield.self))
+/// var world = World()
+/// world.spawn(Name(value: "drifter"), Velocity(dx: 1, dy: 0))
+/// world.spawn(Name(value: "statue"), Frozen())
+/// world.spawn(Name(value: "ghost"), Velocity(dx: 1, dy: 0), Frozen())
+/// world.spawn(Name(value: "rock"))
+///
+/// let moving = QueryFilter.with(Velocity.self).without(Frozen.self)
+/// let movingOrFrozen = QueryFilter.anyOf(.with(Velocity.self), .with(Frozen.self))
+///
+/// let movingNames = world.query(Name.self).filtered(by: moving).map { $0.1.value }
+/// print(movingNames)
+/// // Prints "["drifter"]"
+///
+/// let movingOrFrozenNames = world.query(Name.self).filtered(by: movingOrFrozen).map { $0.1.value }
+/// print(movingOrFrozenNames)
+/// // Prints "["drifter", "statue", "ghost"]"
 /// ```
+///
+/// Pass a filter to ``Query/init(filter:)``, to ``Query/filtered(by:)``, or as the `where`
+/// argument of `update(_:reading:where:body:)`. Queries, views and updates also offer the same
+/// methods directly, so you can write `Query(Name.self).without(Frozen.self)`.
 @frozen
 public struct QueryFilter: Hashable, Sendable {
     @usableFromInline var required: [ObjectIdentifier] = []
@@ -52,68 +74,100 @@ public struct QueryFilter: Hashable, Sendable {
         }
     }
 
-    /// A filter that passes every entity.
+    /// Creates a filter that every entity passes.
     @inlinable
     public init() {}
 
-    /// A filter that passes entities holding every one of `types`.
+    /// Returns a filter that passes the entities holding every one of the given component types.
+    ///
+    /// - Parameter types: The component types an entity must hold.
+    /// - Returns: A filter with that one condition.
     @inlinable
     public static func with<each C: Component>(_ types: repeat (each C).Type) -> QueryFilter {
         QueryFilter().with(repeat each types)
     }
 
-    /// A filter that passes entities holding none of `types`.
+    /// Returns a filter that passes the entities holding none of the given component types.
+    ///
+    /// - Parameter types: The component types an entity must not hold.
+    /// - Returns: A filter with that one condition.
     @inlinable
     public static func without<each C: Component>(_ types: repeat (each C).Type) -> QueryFilter {
         QueryFilter().without(repeat each types)
     }
 
-    /// A filter that passes entities related to `target` by `R`; visits with it walk only the
-    /// target's sources.
+    /// Returns a filter that passes the entities related to the given target.
     ///
-    /// To pass entities related by `R` to any target, require the relation's ``Targets``:
-    /// `.with(Targets<R>.self)`.
+    /// A visit with this filter walks only the target's sources, not every entity holding the
+    /// queried types. To pass the entities related by `R` to any target, require the relation's
+    /// ``Targets`` component instead: `.with(Targets<R>.self)`.
+    ///
+    /// - Parameters:
+    ///   - type: The relation type.
+    ///   - target: The entity a passing entity must relate to by `type`.
+    /// - Returns: A filter with that one condition.
     @inlinable
     public static func related<R: Relation>(_ type: R.Type, to target: Entity) -> QueryFilter {
         QueryFilter().related(R.self, to: target)
     }
 
-    /// A filter that passes entities whose `C` was added after `since`.
+    /// Returns a filter that passes the entities whose component of the given type was added after
+    /// a tick.
     ///
-    /// - Parameter since: The tick to compare against; nil for the world's ``World/lastRun``,
-    ///   which a schedule sets to the running system's previous run.
+    /// - Parameters:
+    ///   - type: The component type an entity must have gained.
+    ///   - since: The tick the component must be newer than. Pass `nil`, the default, to compare
+    ///     against the world's ``World/lastRun``, which a schedule sets to the running system's
+    ///     previous run.
+    /// - Returns: A filter with that one condition.
     @inlinable
     public static func added<C: Component>(_ type: C.Type, since: ChangeTick? = nil) -> QueryFilter {
         QueryFilter().added(C.self, since: since)
     }
 
-    /// A filter that passes entities whose `C` was added or changed after `since`.
+    /// Returns a filter that passes the entities whose component of the given type was added or
+    /// changed after a tick.
     ///
-    /// - Parameter since: The tick to compare against; nil for the world's ``World/lastRun``,
-    ///   which a schedule sets to the running system's previous run.
+    /// Writing a component through the world's subscript, an update or a mutable span marks it
+    /// changed at the world's current ``World/changeTick``.
+    ///
+    /// - Parameters:
+    ///   - type: The component type that must have been added or changed.
+    ///   - since: The tick the change must be newer than. Pass `nil`, the default, to compare
+    ///     against the world's ``World/lastRun``, which a schedule sets to the running system's
+    ///     previous run.
+    /// - Returns: A filter with that one condition.
     @inlinable
     public static func changed<C: Component>(_ type: C.Type, since: ChangeTick? = nil) -> QueryFilter {
         QueryFilter().changed(C.self, since: since)
     }
 
-    /// A filter that passes entities holding any of `types`, disabling components that queries
-    /// skip by default (``World/registerDisablingComponent(_:)``), as well as those that do not.
+    /// Returns a filter that also passes the entities holding the given disabling components.
+    ///
+    /// A query skips entities that hold a disabling component, such as ``Disabled`` or ``Prefab``,
+    /// unless it reads that type or names it in its filter. This filter names the types without
+    /// requiring them, so entities pass whether or not they hold them.
+    ///
+    /// - Parameter types: The disabling component types whose entities pass.
+    /// - Returns: A filter with that one condition.
     @inlinable
     public static func allowing<each C: Component>(_ types: repeat (each C).Type) -> QueryFilter {
         QueryFilter().allowing(repeat each types)
     }
 
-    /// A filter that passes entities that at least one of `filters` passes.
+    /// Returns a filter that passes the entities that pass at least one of the given filters.
     ///
-    /// With no filters, it passes nothing.
+    /// - Parameter filters: The alternatives. With none, the filter passes no entity.
+    /// - Returns: A filter with that one condition.
     @inlinable
     public static func anyOf(_ filters: QueryFilter...) -> QueryFilter {
         QueryFilter().anyOf(filters)
     }
 
-    /// This filter, also requiring that at least one of `filters` passes.
+    /// Returns this filter, also requiring that an entity pass at least one of the given filters.
     ///
-    /// With no filters, it passes nothing.
+    /// - Parameter filters: The alternatives. With none, the filter passes no entity.
+    /// - Returns: A filter with this filter's conditions and the new one.
     @inlinable
     public func anyOf(_ filters: QueryFilter...) -> QueryFilter {
         anyOf(filters)
@@ -127,7 +181,10 @@ public struct QueryFilter: Hashable, Sendable {
         return filter
     }
 
-    /// This filter, also requiring every one of `types`.
+    /// Returns this filter, also requiring every one of the given component types.
+    ///
+    /// - Parameter types: The component types an entity must hold.
+    /// - Returns: A filter with this filter's conditions and the new one.
     @inlinable
     public func with<each C: Component>(_ types: repeat (each C).Type) -> QueryFilter {
         var filter = self
@@ -137,7 +194,12 @@ public struct QueryFilter: Hashable, Sendable {
         return filter
     }
 
-    /// This filter, also requiring that entities relate to `target` by `R`.
+    /// Returns this filter, also requiring a relation to the given target.
+    ///
+    /// - Parameters:
+    ///   - type: The relation type.
+    ///   - target: The entity a passing entity must relate to by `type`.
+    /// - Returns: A filter with this filter's conditions and the new one.
     @inlinable
     public func related<R: Relation>(_ type: R.Type, to target: Entity) -> QueryFilter {
         var filter = self
@@ -145,8 +207,13 @@ public struct QueryFilter: Hashable, Sendable {
         return filter
     }
 
-    /// This filter, also requiring that the `C` was added after `since` (nil for the world's
-    /// ``World/lastRun``).
+    /// Returns this filter, also requiring a component of the given type added after a tick.
+    ///
+    /// - Parameters:
+    ///   - type: The component type an entity must have gained.
+    ///   - since: The tick the component must be newer than, or `nil` for the world's
+    ///     ``World/lastRun``.
+    /// - Returns: A filter with this filter's conditions and the new one.
     @inlinable
     public func added<C: Component>(_ type: C.Type, since: ChangeTick? = nil) -> QueryFilter {
         var filter = self
@@ -154,8 +221,14 @@ public struct QueryFilter: Hashable, Sendable {
         return filter
     }
 
-    /// This filter, also requiring that the `C` was added or changed after `since` (nil for the
-    /// world's ``World/lastRun``).
+    /// Returns this filter, also requiring a component of the given type added or changed after a
+    /// tick.
+    ///
+    /// - Parameters:
+    ///   - type: The component type that must have been added or changed.
+    ///   - since: The tick the change must be newer than, or `nil` for the world's
+    ///     ``World/lastRun``.
+    /// - Returns: A filter with this filter's conditions and the new one.
     @inlinable
     public func changed<C: Component>(_ type: C.Type, since: ChangeTick? = nil) -> QueryFilter {
         var filter = self
@@ -163,12 +236,23 @@ public struct QueryFilter: Hashable, Sendable {
         return filter
     }
 
-    /// This filter, also passing entities holding any of `types`, disabling components that
-    /// queries skip by default (``World/registerDisablingComponent(_:)``).
+    /// Returns this filter, also passing the entities holding the given disabling components.
+    ///
+    /// The following example counts every named entity, including a disabled one:
     ///
     /// ```swift
-    /// for (entity, name) in world.query(Name.self).allowing(Disabled.self) { … }
+    /// var world = World()
+    /// world.spawn(Name(value: "guard"))
+    /// world.spawn(Name(value: "sleeper"), Disabled())
+    ///
+    /// print(world.query(Name.self).count)
+    /// // Prints "1"
+    /// print(world.query(Name.self).filtered(by: QueryFilter().allowing(Disabled.self)).count)
+    /// // Prints "2"
     /// ```
+    ///
+    /// - Parameter types: The disabling component types whose entities pass.
+    /// - Returns: A filter with this filter's conditions and the new one.
     @inlinable
     public func allowing<each C: Component>(_ types: repeat (each C).Type) -> QueryFilter {
         var filter = self
@@ -187,7 +271,10 @@ public struct QueryFilter: Hashable, Sendable {
             || alternatives.contains { group in group.contains { $0.mentions(type) } }
     }
 
-    /// This filter, also requiring everything `other` requires.
+    /// Returns a filter with the conditions of this filter and another.
+    ///
+    /// - Parameter other: The filter whose conditions to add.
+    /// - Returns: A filter that an entity passes only if it passes both.
     @inlinable
     public func merging(_ other: QueryFilter) -> QueryFilter {
         var filter = self
@@ -201,7 +288,10 @@ public struct QueryFilter: Hashable, Sendable {
         return filter
     }
 
-    /// This filter, also excluding each of `types`.
+    /// Returns this filter, also excluding the entities holding any of the given component types.
+    ///
+    /// - Parameter types: The component types an entity must not hold.
+    /// - Returns: A filter with this filter's conditions and the new one.
     @inlinable
     public func without<each C: Component>(_ types: repeat (each C).Type) -> QueryFilter {
         var filter = self

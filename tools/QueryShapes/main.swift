@@ -117,6 +117,10 @@ func reader(_ shape: Shape) -> String {
 
 func query(_ shape: Shape) -> String {
     """
+        /// Returns the entities that match a query of this shape, with the values of its terms.
+        ///
+        /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+        /// resolution; it lists the same rows.
         @_documentation(visibility: internal)
         @inlinable
         public func query<\(shape.genericParameters)>(_ query: Query<\(shape.types)>) -> QueryView<\(shape.valueTypes)> {
@@ -134,6 +138,10 @@ func update(_ shape: Shape, writing count: Int) -> String {
     let inouts = written.map { "inout \($0)" }.joined(separator: ", ")
     let writtenSelf = written.map { "\($0).self" }.joined(separator: ", ")
     return """
+        /// Changes components of every entity that matches a query of this shape, in place.
+        ///
+        /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+        /// changed types, chosen by overload resolution; it visits the same entities.
         @_documentation(visibility: internal)
         @inlinable
         public mutating func update<\(generics), \(shape.genericParameters), Failure: Error>(

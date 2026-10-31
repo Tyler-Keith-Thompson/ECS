@@ -1,25 +1,102 @@
-/// Entities, the components they hold, and the world's resources.
+/// A collection of entities, the components they hold, and resources.
 ///
-/// A world is a value: a copy is independent of the original, and copying is cheap because each
-/// component type's storage is shared between copies until one of them writes to it, and then
-/// only that type's storage is copied.
+/// A world is where the state of your game or simulation lives. An *entity* is one thing in it,
+/// such as a ball, a player or a particle, and you refer to it by its handle, an ``Entity``. An
+/// entity has no data of its own; instead it holds *components*, plain values that conform to
+/// ``Component``, at most one of each type. A *resource* is a value the world holds once, outside
+/// any entity, such as a clock or a score; you reach resources through ``resources``.
 ///
-/// Components of one type are stored in a sparse set: a dense array of components with a sparse
-/// array from entity slot to position. Reading, adding, replacing and removing one component are
-/// O(1), and iterating a type is a walk over contiguous memory.
-///
-/// Operations that take an ``Entity`` trap when it is stale, like an array subscript out of
-/// range. Each has a `checked` spelling that throws instead.
+/// Create a world, spawn an entity with its components, and read or change a component through
+/// the entity's handle:
 ///
 /// ```swift
 /// var world = World()
 /// let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 2))
+///
+/// world[Position.self, of: ball].x = 5
+/// print(world[Position.self, of: ball])
+/// // Prints "Position(x: 5.0, y: 0.0)"
+/// ```
+///
+/// You can give an entity more components with `insert(_:into:)`, take them away with
+/// `remove(_:from:)`, and remove the entity and everything it holds with ``despawn(_:)``.
+///
+/// ### Working with Many Entities
+///
+/// Most work in a game touches every entity that holds some set of component types. Use
+/// `query(_:)` to read those entities, and `update(_:reading:where:body:)` to change one
+/// component of each in place while reading others. The following example moves every entity
+/// that holds both a position and a velocity, then reads back the positions:
+///
+/// ```swift
+/// var world = World()
+/// world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
+/// world.spawn(Position(x: 10, y: 0), Velocity(dx: 0, dy: 2))
+/// world.spawn(Position(x: 99, y: 99))  // No velocity, so it doesn't move.
+///
 /// world.update(Position.self, reading: Velocity.self) { position, row in
 ///     position.x += row.components.dx
 ///     position.y += row.components.dy
 /// }
-/// world[Position.self, of: ball]  // Position(x: 1, y: 2)
+///
+/// var coordinates: [(Double, Double)] = []
+/// for (_, position) in world.query(Position.self) {
+///     coordinates.append((position.x, position.y))
+/// }
+/// print(coordinates)
+/// // Prints "[(1.0, 0.0), (10.0, 2.0), (99.0, 99.0)]"
 /// ```
+///
+/// While an update or a query is running, the world can't be changed in other ways. To spawn,
+/// despawn or restructure entities from inside one, record the changes in ``Commands`` and
+/// ``apply(_:)`` them afterward.
+///
+/// ### Value Semantics
+///
+/// A world is a value, like an array or a dictionary: a copy is independent of the original.
+/// Copying is cheap, because each component type's storage is shared between copies until one of
+/// them writes to it, and then only that type's storage is copied. This makes it easy to keep an
+/// earlier state, for undo or for comparing two steps of a simulation:
+///
+/// ```swift
+/// var world = World()
+/// let hero = world.spawn(Health(current: 10))
+///
+/// let saved = world
+/// world[Health.self, of: hero].current = 0
+///
+/// print(saved[Health.self, of: hero].current)
+/// // Prints "10"
+/// ```
+///
+/// ### Stale Entities and Checked Spellings
+///
+/// Despawning an entity makes every copy of its handle *stale*. A world can reuse the slot the
+/// entity occupied, but a stale handle never names the new occupant. Use ``contains(_:)`` to test
+/// whether a handle is still live.
+///
+/// Operations that take an entity trap when it is stale, in the same way an array subscript traps
+/// when its index is out of range. Each has a `checked` spelling that throws instead, for entities
+/// whose liveness you can't be sure of:
+///
+/// ```swift
+/// var world = World()
+/// let spark = world.spawn(Position(x: 0, y: 0))
+/// world.despawn(spark)
+///
+/// do {
+///     try world.despawn(checked: spark)
+/// } catch {
+///     print(error)
+///     // Prints "StaleEntity()"
+/// }
+/// ```
+///
+/// ### Storage
+///
+/// The components of each type are stored in a sparse set: a dense array of components with a
+/// sparse array from entity slot to position. Reading, adding, replacing and removing one
+/// component are O(1), and visiting every component of a type walks contiguous memory.
 @frozen
 public struct World: Sendable {
     /// The generation of each slot's current or next entity.
@@ -56,34 +133,66 @@ public struct World: Sendable {
     @usableFromInline var queuedCommands: [Commands] = []
 
     /// The world's resources: values it holds once, outside any entity.
+    ///
+    /// Use resources for state that belongs to the whole world rather than to one entity, such as
+    /// the elapsed time or a score:
+    ///
+    /// ```swift
+    /// struct Score: Resource { var points: Int }
+    ///
+    /// var world = World()
+    /// world.resources.insert(Score(points: 0))
+    /// world.resources[Score.self].points += 10
+    ///
+    /// print(world.resources[Score.self].points)
+    /// // Prints "10"
+    /// ```
     public var resources = Resources()
 
     /// The tick the world stamps on every component it adds or changes.
     ///
-    /// It starts at 1 and moves only through ``advanceChangeTick()``, which a schedule calls
-    /// before each system it runs.
+    /// The tick starts at 1 and moves forward only through ``advanceChangeTick()``, which a
+    /// schedule calls before each system it runs. Filters such as
+    /// ``QueryFilter/changed(_:since:)-swift.type.method`` compare the ticks stamped on
+    /// components with an earlier tick to find what changed since then.
     public var changeTick: ChangeTick { storedChangeTick }
     @usableFromInline var storedChangeTick = ChangeTick(1)
 
-    /// The change tick at which the running system last ran, or ``ChangeTick/zero`` if it has not
-    /// run before or no schedule is running.
+    /// The change tick at which the running system last ran.
     ///
-    /// Filters such as ``QueryFilter/changed(_:since:)`` compare against it when given no tick, so
-    /// a system sees what changed since its previous run. A ``Schedule`` sets it around each
-    /// system; set it directly only when running systems without one.
+    /// Filters such as ``QueryFilter/changed(_:since:)-swift.type.method`` compare against this
+    /// tick when you give them none, so a system sees what changed since its previous run. A
+    /// schedule sets it around each system it runs; set it yourself only when you run systems
+    /// without one. It is ``ChangeTick/zero`` when the running system has not run before, or when
+    /// no schedule is running.
     public var lastRun = ChangeTick.zero
 
-    /// Starts a new change tick: components added or changed from now on are newer than every
+    /// Starts a new change tick, so components added or changed from now on are newer than every
     /// earlier tick.
     ///
+    /// Use this method to mark a point in the world's history. Afterward, a filter such as
+    /// ``QueryFilter/changed(_:since:)-swift.type.method`` with the earlier tick finds exactly
+    /// the components changed since that point. The following example changes one entity's
+    /// health after a checkpoint and then finds it:
+    ///
     /// ```swift
+    /// var world = World()
+    /// world.spawn(Health(current: 10))
+    /// let hero = world.spawn(Health(current: 10))
+    ///
     /// let checkpoint = world.changeTick
     /// world.advanceChangeTick()
     /// world[Health.self, of: hero].current -= 1
-    /// world.query(Health.self).changed(Health.self, since: checkpoint)  // hero
+    ///
+    /// let changed = world.query(Health.self).changed(Health.self, since: checkpoint)
+    /// print(changed.map(\.entity) == [hero])
+    /// // Prints "true"
     /// ```
     ///
+    /// A schedule calls this method before each system it runs.
+    ///
     /// - Returns: The new tick.
+    /// - Complexity: O(1), plus the cost of refreshing the world's value indexes, if it has any.
     @inlinable
     @discardableResult
     public mutating func advanceChangeTick() -> ChangeTick {
@@ -94,26 +203,57 @@ public struct World: Sendable {
         return storedChangeTick
     }
 
-    /// A world without entities or resources.
+    /// Creates an empty world, with no entities or resources.
     @inlinable
     public init() {}
 
     // MARK: Entities
 
-    /// The number of live entities.
+    /// The number of live entities in the world.
+    ///
+    /// - Complexity: O(1).
     @inlinable
     public var count: Int { generations.count - vacant.count }
 
-    /// Whether the world has no live entities.
+    /// A Boolean value indicating whether the world has no live entities.
+    ///
+    /// - Complexity: O(1).
     @inlinable
     public var isEmpty: Bool { count == 0 }
 
-    /// The live entities, lazily, in slot order.
+    /// The live entities in the world, in slot order.
+    ///
+    /// The view is computed lazily as you iterate it. It includes every live entity, even ones
+    /// that hold no components or that queries skip, such as ``Disabled`` entities:
+    ///
+    /// ```swift
+    /// var world = World()
+    /// let first = world.spawn(Position(x: 0, y: 0))
+    /// let second = world.spawn()
+    ///
+    /// print(Array(world.entities) == [first, second])
+    /// // Prints "true"
+    /// ```
     @inlinable
     public var entities: EntitiesView { EntitiesView(generations: generations, isLive: isLive) }
 
-    /// Whether `entity` is live in this world.
+    /// Returns a Boolean value indicating whether the given entity is live in this world.
     ///
+    /// An entity is live from the moment it is spawned until it is despawned:
+    ///
+    /// ```swift
+    /// var world = World()
+    /// let spark = world.spawn(Position(x: 0, y: 0))
+    /// print(world.contains(spark))
+    /// // Prints "true"
+    ///
+    /// world.despawn(spark)
+    /// print(world.contains(spark))
+    /// // Prints "false"
+    /// ```
+    ///
+    /// - Parameter entity: The entity to look for.
+    /// - Returns: `true` if `entity` is live in this world; otherwise, `false`.
     /// - Complexity: O(1).
     @inlinable
     public func contains(_ entity: Entity) -> Bool {
@@ -121,17 +261,33 @@ public struct World: Sendable {
         return slot < generations.count && isLive[slot] && generations[slot] == entity.generation
     }
 
-    /// Spawns an entity holding the components of `bundles` and returns its handle.
+    /// Creates an entity holding the given components and returns its handle.
     ///
-    /// Each component is a bundle of itself, so `spawn(Position(x: 0, y: 0), Velocity(dx: 1,
-    /// dy: 0))` spawns an entity holding both. Spawning one, two or three components has
-    /// overloads specialized for speed.
+    /// Pass any number of components, or ``Bundle`` values that group components together. Each
+    /// component is a bundle of itself, so the following example spawns an entity holding both a
+    /// position and a velocity:
     ///
-    /// A vacated slot is reused, the most recently vacated first, with a generation one higher
-    /// than its last entity's. When the bundles hold two components of one type, the later one
-    /// is kept.
+    /// ```swift
+    /// var world = World()
+    /// let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
     ///
-    /// - Complexity: O(*k*) amortized for *k* components.
+    /// print(world.contains(Velocity.self, in: ball))
+    /// // Prints "true"
+    /// ```
+    ///
+    /// When the bundles hold two components of the same type, the later one is kept. Components
+    /// that the spawned components require (``Component/required-u15k``) are added too, unless
+    /// the bundles already include one of the same type.
+    ///
+    /// The new entity may reuse the slot of a despawned entity, the most recently vacated first,
+    /// with a generation one higher than the slot's last entity, so handles to the despawned
+    /// entity stay stale.
+    ///
+    /// Spawning one, two or three components has overloads specialized for speed.
+    ///
+    /// - Parameter bundles: The components and bundles the new entity holds.
+    /// - Returns: The handle of the new entity.
+    /// - Complexity: O(*k*) amortized, where *k* is the number of components.
     /// - Precondition: Fewer than `UInt32.max` slots are in use.
     @inlinable
     @discardableResult
@@ -147,8 +303,13 @@ public struct World: Sendable {
         return entity
     }
 
-    /// Spawns an entity holding the components of `bundle` and returns its handle, as the
-    /// variadic `spawn` does.
+    /// Creates an entity holding the components of a bundle and returns its handle.
+    ///
+    /// This overload behaves like the variadic ``spawn(_:)-2slwa``.
+    ///
+    /// - Parameter bundle: The components the new entity holds.
+    /// - Returns: The handle of the new entity.
+    /// - Complexity: O(*k*) amortized, where *k* is the number of components.
     @inlinable
     @discardableResult
     public mutating func spawn<B: Bundle>(_ bundle: B) -> Entity {
@@ -159,7 +320,13 @@ public struct World: Sendable {
         return entity
     }
 
-    /// Spawns an entity holding `a` and returns its handle, as the variadic `spawn` does.
+    /// Creates an entity holding one component and returns its handle.
+    ///
+    /// This overload behaves like the variadic ``spawn(_:)-2slwa``.
+    ///
+    /// - Parameter a: The component the new entity holds.
+    /// - Returns: The handle of the new entity.
+    /// - Complexity: O(1) amortized.
     @inlinable
     @discardableResult
     public mutating func spawn<A: Component>(_ a: A) -> Entity {
@@ -170,7 +337,15 @@ public struct World: Sendable {
         return entity
     }
 
-    /// Spawns an entity holding `a` and `b` and returns its handle, as the variadic `spawn` does.
+    /// Creates an entity holding two components and returns its handle.
+    ///
+    /// This overload behaves like the variadic ``spawn(_:)-2slwa``.
+    ///
+    /// - Parameters:
+    ///   - a: The first component the new entity holds.
+    ///   - b: The second component the new entity holds.
+    /// - Returns: The handle of the new entity.
+    /// - Complexity: O(1) amortized.
     @inlinable
     @discardableResult
     public mutating func spawn<A: Component, B: Component>(_ a: A, _ b: B) -> Entity {
@@ -183,8 +358,16 @@ public struct World: Sendable {
         return entity
     }
 
-    /// Spawns an entity holding `a`, `b` and `c` and returns its handle, as the variadic `spawn`
-    /// does.
+    /// Creates an entity holding three components and returns its handle.
+    ///
+    /// This overload behaves like the variadic ``spawn(_:)-2slwa``.
+    ///
+    /// - Parameters:
+    ///   - a: The first component the new entity holds.
+    ///   - b: The second component the new entity holds.
+    ///   - c: The third component the new entity holds.
+    /// - Returns: The handle of the new entity.
+    /// - Complexity: O(1) amortized.
     @inlinable
     @discardableResult
     public mutating func spawn<A: Component, B: Component, C: Component>(_ a: A, _ b: B, _ c: C) -> Entity {
@@ -199,12 +382,28 @@ public struct World: Sendable {
         return entity
     }
 
-    /// Despawns `entity`, its descendants and every component they hold, and detaches it from
-    /// its parent. Every copy of their handles is stale from now on.
+    /// Removes an entity, its descendants, and every component they hold from the world.
     ///
-    /// - Complexity: O(*n*·*t*) for *n* entities despawned and *t* component types the world has
-    ///   stored.
-    /// - Precondition: `entity` is live. Use ``despawn(checked:)`` to throw instead.
+    /// Despawning an entity also detaches it from its parent, and despawns the entities whose
+    /// relations to it say to despawn with their target (``CleanupAction``). Every copy of the
+    /// handles of the despawned entities is stale afterward:
+    ///
+    /// ```swift
+    /// var world = World()
+    /// let ship = world.spawn(Position(x: 0, y: 0))
+    /// let turret = world.spawn(Position(x: 1, y: 0))
+    /// try world.addChild(turret, to: ship)
+    ///
+    /// world.despawn(ship)
+    /// print(world.contains(turret))
+    /// // Prints "false"
+    /// ```
+    ///
+    /// - Parameter entity: The entity to despawn.
+    /// - Complexity: O(*n*·*t*), where *n* is the number of entities despawned and *t* is the
+    ///   number of component types the world has stored.
+    /// - Precondition: `entity` is live. The checked spelling, ``despawn(checked:)``, throws
+    ///   instead.
     @inlinable
     public mutating func despawn(_ entity: Entity) {
         precondition(contains(entity), "Despawning stale entity \(entity)")
@@ -212,12 +411,26 @@ public struct World: Sendable {
         endOperation()
     }
 
-    /// Despawns `entity`, its descendants and every component they hold, and detaches it from
-    /// its parent.
+    /// Removes an entity, its descendants, and every component they hold from the world, throwing
+    /// an error if the entity isn't live.
     ///
-    /// - Complexity: O(*n*·*t*) for *n* entities despawned and *t* component types the world has
-    ///   stored.
-    /// - Throws: ``StaleEntity`` when `entity` is not live; the world is unchanged.
+    /// Use this method instead of ``despawn(_:)`` when the entity may already have been
+    /// despawned:
+    ///
+    /// ```swift
+    /// var world = World()
+    /// let spark = world.spawn(Position(x: 0, y: 0))
+    /// try world.despawn(checked: spark)
+    ///
+    /// let despawnedAgain = (try? world.despawn(checked: spark)) != nil
+    /// print(despawnedAgain)
+    /// // Prints "false"
+    /// ```
+    ///
+    /// - Parameter entity: The entity to despawn.
+    /// - Throws: ``StaleEntity`` if `entity` isn't live. The world is unchanged.
+    /// - Complexity: O(*n*·*t*), where *n* is the number of entities despawned and *t* is the
+    ///   number of component types the world has stored.
     @inlinable
     public mutating func despawn(checked entity: Entity) throws(StaleEntity) {
         guard contains(entity) else { throw StaleEntity() }
@@ -227,8 +440,23 @@ public struct World: Sendable {
 
     // MARK: Components
 
-    /// Whether `entity` is live and holds a `C`.
+    /// Returns a Boolean value indicating whether an entity holds a component of the given type.
     ///
+    /// ```swift
+    /// var world = World()
+    /// let ball = world.spawn(Position(x: 0, y: 0))
+    ///
+    /// print(world.contains(Position.self, in: ball))
+    /// // Prints "true"
+    /// print(world.contains(Velocity.self, in: ball))
+    /// // Prints "false"
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - type: The component type to look for.
+    ///   - entity: The entity to look in.
+    /// - Returns: `true` if `entity` is live and holds a component of type `type`; otherwise,
+    ///   `false`.
     /// - Complexity: O(1).
     @inlinable
     public func contains<C: Component>(_ type: C.Type, in entity: Entity) -> Bool {
@@ -236,15 +464,29 @@ public struct World: Sendable {
         return unretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef { $0.index.position(of: entity) != nil }
     }
 
-    /// The `C` that `entity` holds.
+    /// Accesses the component of the given type that an entity holds.
     ///
-    /// Writing through the subscript changes the component in place, and marks it changed at the
-    /// current ``changeTick``: `world[Health.self, of: hero].current -= 10`.
+    /// Use this subscript to read one component of one entity, or to change it in place:
     ///
-    /// - Complexity: O(1), plus a copy of the `C` storage on the first write after the world was
-    ///   copied.
-    /// - Precondition: `entity` is live and holds a `C`. Use ``subscript(checked:of:)`` to throw
-    ///   instead.
+    /// ```swift
+    /// var world = World()
+    /// let hero = world.spawn(Health(current: 100))
+    ///
+    /// world[Health.self, of: hero].current -= 10
+    /// print(world[Health.self, of: hero].current)
+    /// // Prints "90"
+    /// ```
+    ///
+    /// Writing through the subscript marks the component changed at the current ``changeTick``.
+    /// To give an entity a component it doesn't hold yet, use `insert(_:into:)`.
+    ///
+    /// - Parameters:
+    ///   - type: The type of the component to access.
+    ///   - entity: The entity that holds the component.
+    /// - Complexity: O(1), plus a copy of the storage of `type` on the first write after the
+    ///   world was copied.
+    /// - Precondition: `entity` is live and holds a component of type `type`. The checked
+    ///   spelling, ``subscript(checked:of:)``, throws instead.
     @inlinable
     public subscript<C: Component>(_ type: C.Type, of entity: Entity) -> C {
         get {
@@ -277,12 +519,26 @@ public struct World: Sendable {
         }
     }
 
-    /// The `C` that `entity` holds.
+    /// Reads the component of the given type that an entity holds, throwing an error if it holds
+    /// none.
     ///
-    /// `try?` gives `nil` when there is none.
+    /// Use this subscript when the entity may not hold the component, or may no longer be live.
+    /// Write `try?` to get `nil` instead of an error:
     ///
+    /// ```swift
+    /// var world = World()
+    /// let ball = world.spawn(Position(x: 0, y: 0))
+    ///
+    /// let velocity = try? world[checked: Velocity.self, of: ball]
+    /// print(velocity == nil)
+    /// // Prints "true"
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - type: The type of the component to read.
+    ///   - entity: The entity that holds the component.
+    /// - Throws: ``MissingComponent`` if `entity` is stale or holds no component of type `type`.
     /// - Complexity: O(1).
-    /// - Throws: ``MissingComponent`` when `entity` is stale or holds no `C`.
     @inlinable
     public subscript<C: Component>(checked type: C.Type, of entity: Entity) -> C {
         get throws(MissingComponent) {
@@ -295,13 +551,33 @@ public struct World: Sendable {
         }
     }
 
-    /// Gives `entity` the components of `bundles`, replacing any it holds of the same types.
+    /// Adds the given components to an entity, replacing any it holds of the same types.
     ///
-    /// Each component is a bundle of itself. A new component is marked added and changed at the
-    /// current ``changeTick``; a replaced one, changed.
+    /// Use this method to give an existing entity more components, or to replace a component
+    /// wholesale. Pass any number of components or ``Bundle`` values:
     ///
-    /// - Complexity: O(*k*) amortized for *k* components.
-    /// - Precondition: `entity` is live. Use ``insert(_:checkedInto:)`` to throw instead.
+    /// ```swift
+    /// var world = World()
+    /// let ball = world.spawn(Position(x: 0, y: 0))
+    ///
+    /// world.insert(Velocity(dx: 1, dy: 0), Position(x: 5, y: 5), into: ball)
+    /// print(world[Position.self, of: ball])
+    /// // Prints "Position(x: 5.0, y: 5.0)"
+    /// ```
+    ///
+    /// A component the entity didn't hold is marked added and changed at the current
+    /// ``changeTick``; a replaced one is marked changed. Components that the inserted components
+    /// require (``Component/required-u15k``) are added too, unless the entity already holds one of
+    /// the same type.
+    ///
+    /// Inserting one, two or three components has overloads specialized for speed.
+    ///
+    /// - Parameters:
+    ///   - bundles: The components and bundles to add.
+    ///   - entity: The entity to add them to.
+    /// - Complexity: O(*k*) amortized, where *k* is the number of components.
+    /// - Precondition: `entity` is live. The checked spelling, ``insert(_:checkedInto:)``, throws
+    ///   instead.
     @inlinable
     public mutating func insert<each B: Bundle>(_ bundles: repeat each B, into entity: Entity) {
         precondition(contains(entity), "Inserting into stale entity \(entity)")
@@ -314,11 +590,16 @@ public struct World: Sendable {
         endOperation()
     }
 
-    /// Gives `entity` the components of `bundle`, replacing any it holds of the same types, as
-    /// the variadic `insert` does.
+    /// Adds the components of a bundle to an entity, replacing any it holds of the same types.
     ///
-    /// - Complexity: O(*k*) amortized for *k* components.
-    /// - Precondition: `entity` is live. Use ``insert(_:checkedInto:)`` to throw instead.
+    /// This overload behaves like the variadic ``insert(_:into:)-70968``.
+    ///
+    /// - Parameters:
+    ///   - bundle: The components to add.
+    ///   - entity: The entity to add them to.
+    /// - Complexity: O(*k*) amortized, where *k* is the number of components.
+    /// - Precondition: `entity` is live. The checked spelling, ``insert(_:checkedInto:)``, throws
+    ///   instead.
     @inlinable
     public mutating func insert<B: Bundle>(_ bundle: B, into entity: Entity) {
         precondition(contains(entity), "Inserting into stale entity \(entity)")
@@ -327,10 +608,16 @@ public struct World: Sendable {
         endOperation()
     }
 
-    /// Gives `entity` the component `a`, replacing any it holds of its type.
+    /// Adds a component to an entity, replacing any it holds of the same type.
     ///
+    /// This overload behaves like the variadic ``insert(_:into:)-70968``.
+    ///
+    /// - Parameters:
+    ///   - a: The component to add.
+    ///   - entity: The entity to add it to.
     /// - Complexity: O(1) amortized.
-    /// - Precondition: `entity` is live. Use ``insert(_:checkedInto:)`` to throw instead.
+    /// - Precondition: `entity` is live. The checked spelling, ``insert(_:checkedInto:)``, throws
+    ///   instead.
     @inlinable
     public mutating func insert<A: Component>(_ a: A, into entity: Entity) {
         precondition(contains(entity), "Inserting into stale entity \(entity)")
@@ -339,10 +626,17 @@ public struct World: Sendable {
         endOperation()
     }
 
-    /// Gives `entity` the components `a` and `b`, replacing any it holds of their types.
+    /// Adds two components to an entity, replacing any it holds of the same types.
     ///
+    /// This overload behaves like the variadic ``insert(_:into:)-70968``.
+    ///
+    /// - Parameters:
+    ///   - a: The first component to add.
+    ///   - b: The second component to add.
+    ///   - entity: The entity to add them to.
     /// - Complexity: O(1) amortized.
-    /// - Precondition: `entity` is live. Use ``insert(_:checkedInto:)`` to throw instead.
+    /// - Precondition: `entity` is live. The checked spelling, ``insert(_:checkedInto:)``, throws
+    ///   instead.
     @inlinable
     public mutating func insert<A: Component, B: Component>(_ a: A, _ b: B, into entity: Entity) {
         precondition(contains(entity), "Inserting into stale entity \(entity)")
@@ -353,10 +647,18 @@ public struct World: Sendable {
         endOperation()
     }
 
-    /// Gives `entity` the components `a`, `b` and `c`, replacing any it holds of their types.
+    /// Adds three components to an entity, replacing any it holds of the same types.
     ///
+    /// This overload behaves like the variadic ``insert(_:into:)-70968``.
+    ///
+    /// - Parameters:
+    ///   - a: The first component to add.
+    ///   - b: The second component to add.
+    ///   - c: The third component to add.
+    ///   - entity: The entity to add them to.
     /// - Complexity: O(1) amortized.
-    /// - Precondition: `entity` is live. Use ``insert(_:checkedInto:)`` to throw instead.
+    /// - Precondition: `entity` is live. The checked spelling, ``insert(_:checkedInto:)``, throws
+    ///   instead.
     @inlinable
     public mutating func insert<A: Component, B: Component, C: Component>(_ a: A, _ b: B, _ c: C, into entity: Entity) {
         precondition(contains(entity), "Inserting into stale entity \(entity)")
@@ -369,10 +671,24 @@ public struct World: Sendable {
         endOperation()
     }
 
-    /// Gives `entity` the components of `bundles`, replacing any it holds of the same types.
+    /// Adds the given components to an entity, replacing any it holds of the same types, and
+    /// throws an error if the entity isn't live.
     ///
-    /// - Complexity: O(*k*) amortized for *k* components.
-    /// - Throws: ``StaleEntity`` when `entity` is not live; the world is unchanged.
+    /// ```swift
+    /// var world = World()
+    /// let spark = world.spawn(Position(x: 0, y: 0))
+    /// world.despawn(spark)
+    ///
+    /// let inserted = (try? world.insert(Velocity(dx: 1, dy: 0), checkedInto: spark)) != nil
+    /// print(inserted)
+    /// // Prints "false"
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - bundles: The components and bundles to add.
+    ///   - entity: The entity to add them to.
+    /// - Throws: ``StaleEntity`` if `entity` isn't live. The world is unchanged.
+    /// - Complexity: O(*k*) amortized, where *k* is the number of components.
     @inlinable
     public mutating func insert<each B: Bundle>(_ bundles: repeat each B, checkedInto entity: Entity) throws(StaleEntity) {
         guard contains(entity) else { throw StaleEntity() }
@@ -385,11 +701,33 @@ public struct World: Sendable {
         endOperation()
     }
 
-    /// Takes the `C` away from `entity`.
+    /// Removes and returns the component of the given type that an entity holds.
     ///
-    /// - Returns: The `C` it held, or `nil` if it held none.
-    /// - Complexity: O(1). Removal moves the last `C` into the vacated position.
-    /// - Precondition: `entity` is live. Use ``remove(_:checkedFrom:)`` to throw instead.
+    /// The entity stays live and keeps its other components:
+    ///
+    /// ```swift
+    /// var world = World()
+    /// let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
+    ///
+    /// if let velocity = world.remove(Velocity.self, from: ball) {
+    ///     print(velocity.dx)
+    ///     // Prints "1.0"
+    /// }
+    /// print(world.contains(Velocity.self, in: ball))
+    /// // Prints "false"
+    /// ```
+    ///
+    /// To remove every component of a ``Bundle`` at once, pass the bundle's type to
+    /// ``remove(_:from:)-9j0yg``.
+    ///
+    /// - Parameters:
+    ///   - type: The type of the component to remove.
+    ///   - entity: The entity to remove it from.
+    /// - Returns: The component the entity held, or `nil` if it held none of type `type`.
+    /// - Complexity: O(1). The last component of the type moves into the vacated position, so the
+    ///   storage order of the others changes.
+    /// - Precondition: `entity` is live. The checked spelling,
+    ///   ``remove(_:checkedFrom:)-2af30``, throws instead.
     @inlinable
     @discardableResult
     public mutating func remove<C: Component>(_ type: C.Type, from entity: Entity) -> C? {
@@ -398,11 +736,15 @@ public struct World: Sendable {
         return discard(C.self, from: entity)
     }
 
-    /// Takes the `C` away from `entity`.
+    /// Removes and returns the component of the given type that an entity holds, throwing an
+    /// error if the entity isn't live.
     ///
-    /// - Returns: The `C` it held, or `nil` if it held none.
+    /// - Parameters:
+    ///   - type: The type of the component to remove.
+    ///   - entity: The entity to remove it from.
+    /// - Returns: The component the entity held, or `nil` if it held none of type `type`.
+    /// - Throws: ``StaleEntity`` if `entity` isn't live. The world is unchanged.
     /// - Complexity: O(1).
-    /// - Throws: ``StaleEntity`` when `entity` is not live; the world is unchanged.
     @inlinable
     @discardableResult
     public mutating func remove<C: Component>(_ type: C.Type, checkedFrom entity: Entity) throws(StaleEntity) -> C? {
@@ -411,8 +753,23 @@ public struct World: Sendable {
         return discard(C.self, from: entity)
     }
 
-    /// The number of entities that hold a `C`.
+    /// Returns the number of entities that hold a component of the given type.
     ///
+    /// The count includes entities that queries skip, such as ``Disabled`` ones:
+    ///
+    /// ```swift
+    /// var world = World()
+    /// world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
+    /// world.spawn(Position(x: 5, y: 5))
+    ///
+    /// print(world.count(of: Position.self))
+    /// // Prints "2"
+    /// print(world.count(of: Velocity.self))
+    /// // Prints "1"
+    /// ```
+    ///
+    /// - Parameter type: The component type to count.
+    /// - Returns: The number of entities holding a component of type `type`.
     /// - Complexity: O(1).
     @inlinable
     public func count<C: Component>(of type: C.Type) -> Int {
@@ -638,7 +995,21 @@ public struct World: Sendable {
     }
 }
 
-/// The live entities of a world, lazily, in slot order.
+/// A sequence of the live entities of a world, in slot order.
+///
+/// You get an entities view from a world's ``World/entities`` property. The view holds a snapshot
+/// of which entities were live when you read the property, and produces their handles lazily as
+/// you iterate it:
+///
+/// ```swift
+/// var world = World()
+/// world.spawn(Position(x: 0, y: 0))
+/// world.spawn(Health(current: 10))
+///
+/// let handles = world.entities.map(\.description)
+/// print(handles)
+/// // Prints "["0:0", "1:0"]"
+/// ```
 @frozen
 public struct EntitiesView: Sequence, Sendable {
     @usableFromInline let generations: [UInt32]
@@ -650,7 +1021,7 @@ public struct EntitiesView: Sequence, Sendable {
         self.isLive = isLive
     }
 
-    /// Steps through the live slots.
+    /// An iterator over the live entities of a world, in slot order.
     @frozen
     public struct Iterator: IteratorProtocol {
         @usableFromInline let generations: [UInt32]
@@ -663,6 +1034,7 @@ public struct EntitiesView: Sequence, Sendable {
             self.isLive = isLive
         }
 
+        /// Advances to the next live entity and returns it, or `nil` if there are no more.
         @inlinable
         public mutating func next() -> Entity? {
             while slot < isLive.count {
@@ -673,6 +1045,7 @@ public struct EntitiesView: Sequence, Sendable {
         }
     }
 
+    /// Returns an iterator over the live entities.
     @inlinable
     public func makeIterator() -> Iterator { Iterator(generations: generations, isLive: isLive) }
 }

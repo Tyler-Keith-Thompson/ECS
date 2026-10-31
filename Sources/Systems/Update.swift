@@ -11,22 +11,50 @@ func filteredQuery<each T: QueryTerm>(_ terms: repeat (each T).Type, filter: Que
     Query(repeat each terms).filtered(by: filter)
 }
 
-/// Writes `A` of every entity holding them.
+/// A system parameter that changes a component of every entity that holds it.
+///
+/// Call an update like a function, passing a closure that receives each entity's component to
+/// change in place, and the entity. The update's type says which entities it visits and what
+/// else it reads, by nesting:
+///
+/// - `Update<A>` changes the `A` of every entity holding one.
+/// - `Update<A>.And<B>` and `Update<A>.And<B>.And<C>` change two or three components of every
+///   entity holding all of them.
+/// - `.Over<T...>` also reads the query terms `T`, components or ``/WorldModule/AnyOf`` groups,
+///   and visits only the entities that match them. The closure receives them as a
+///   ``/WorldModule/QueryRow``, as ``/WorldModule/World/update(_:over:body:)`` does.
+/// - `.Where<F...>` visits only the entities that pass the filter types `F`, such as
+///   ``/WorldModule/Without`` and ``/WorldModule/Changed``.
+///
+/// The following system bounces everything that has fallen below the ground, changing both its
+/// position and its velocity:
 ///
 /// ```swift
 /// @System
-/// struct Movement {
-///     func run(_ movers: Update<Position>.Over<Velocity>.Where<Without<Frozen>>) {
-///         movers { position, row in position.x += row.components.dx }
+/// struct Bounce {
+///     func run(_ bouncers: Update<Position>.And<Velocity>) {
+///         bouncers { position, velocity, _ in
+///             if position.y < 0 {
+///                 position.y = -position.y
+///                 velocity.dy = -velocity.dy
+///             }
+///         }
 ///     }
 /// }
+///
+/// var world = World()
+/// let ball = world.spawn(Position(x: 0, y: -2), Velocity(dx: 0, dy: -5))
+/// Schedule { Bounce() }.run(on: &world)
+/// print(world[Position.self, of: ball])
+/// // Prints "Position(x: 0.0, y: 2.0)"
+/// print(world[Velocity.self, of: ball])
+/// // Prints "Velocity(dx: 0.0, dy: 5.0)"
 /// ```
 ///
-/// `And<B>` and `And<B>.And<C>` write two and three types; `Over<…>` reads terms alongside, as
-/// ``WorldModule/World/update(_:over:body:)`` does; `Where<…>` filters the entities. Every
-/// written component visited is marked changed.
+/// Every written component an update visits is marked changed, whether or not the closure
+/// changes it.
 public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
-    /// What the visit calls for each entity.
+    /// The type of the closure the update calls for each entity.
     public typealias Body = (inout A, Entity) -> Void
 
     @usableFromInline var part: World
@@ -53,15 +81,17 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
         world.merge(writing: Self._access(in: Self.self), from: part)
     }
 
-    /// Visits every matching entity once, calling `body` with its written components.
+    /// Calls a closure once for each matching entity, passing its components to change.
+    ///
+    /// - Parameter body: A closure that changes one entity's components.
     @inlinable
     public func callAsFunction(_ body: Body) {
         part.update(A.self, where: QueryFilter()) { a, row in body(&a, row.entity) }
     }
 
-    /// Writes `A` of every entity holding them, and passing the filter types `F`.
+    /// An update of `A` that visits only the entities passing the filter types `F`.
     public final class Where<each F: FilterTerm>: SystemParameter, @unchecked Sendable {
-        /// What the visit calls for each entity.
+        /// The type of the closure the update calls for each entity.
         public typealias Body = (inout A, Entity) -> Void
 
         @usableFromInline var part: World
@@ -71,7 +101,7 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
             self.part = part
         }
 
-        /// The filter the filter types stand for, every one applied.
+        /// The filter the filter types `F` stand for, all of them applied.
         public static var filter: QueryFilter {
             var filter = QueryFilter()
             for type in repeat (each F).self {
@@ -101,16 +131,19 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
             world.merge(writing: Self._access(in: Self.self), from: part)
         }
 
-        /// Visits every matching entity once, calling `body` with its written components.
+        /// Calls a closure once for each matching entity, passing its components to change.
+        ///
+        /// - Parameter body: A closure that changes one entity's components.
         @inlinable
         public func callAsFunction(_ body: Body) {
             part.update(A.self, where: Self.filter) { a, row in body(&a, row.entity) }
         }
     }
 
-    /// Writes `A` of every entity holding them and matching the terms `T`, which it reads.
+    /// An update of `A` that also reads the query terms `T`, visiting only the entities that match
+    /// them.
     public final class Over<each T: QueryTerm>: SystemParameter, @unchecked Sendable {
-        /// What the visit calls for each entity.
+        /// The type of the closure the update calls for each entity.
         public typealias Body = (inout A, QueryRow<repeat (each T).Value>) -> Void
 
         @usableFromInline var part: World
@@ -153,15 +186,18 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
             world.merge(writing: Self._access(in: Self.self), from: part)
         }
 
-        /// Visits every matching entity once, calling `body` with its written components.
+        /// Calls a closure once for each matching entity, passing its components to change.
+        ///
+        /// - Parameter body: A closure that changes one entity's components.
         @inlinable
         public func callAsFunction(_ body: Body) {
             run(&part, Query(filter: QueryFilter()), body)
         }
 
-        /// Writes `A` of every entity holding them and matching the terms `T`, which it reads, and passing the filter types `F`.
+        /// An update of `A` that reads the query terms `T`, visiting only the entities that match
+        /// them and pass the filter types `F`.
         public final class Where<each F: FilterTerm>: SystemParameter, @unchecked Sendable {
-            /// What the visit calls for each entity.
+            /// The type of the closure the update calls for each entity.
             public typealias Body = (inout A, QueryRow<repeat (each T).Value>) -> Void
 
             @usableFromInline var part: World
@@ -173,7 +209,7 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
                 self.run = run
             }
 
-            /// The filter the filter types stand for, every one applied.
+            /// The filter the filter types `F` stand for, all of them applied.
             public static var filter: QueryFilter {
                 var filter = QueryFilter()
                 for type in repeat (each F).self {
@@ -216,7 +252,9 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
                 world.merge(writing: Self._access(in: Self.self), from: part)
             }
 
-            /// Visits every matching entity once, calling `body` with its written components.
+            /// Calls a closure once for each matching entity, passing its components to change.
+            ///
+            /// - Parameter body: A closure that changes one entity's components.
             @inlinable
             public func callAsFunction(_ body: Body) {
                 run(&part, Query(filter: Self.filter), body)
@@ -224,9 +262,9 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
         }
     }
 
-    /// Writes `A`, `B` of every entity holding them.
+    /// An update of `A` and `B` of every entity holding both.
     public final class And<B: Component>: SystemParameter, @unchecked Sendable {
-        /// What the visit calls for each entity.
+        /// The type of the closure the update calls for each entity.
         public typealias Body = (inout A, inout B, Entity) -> Void
 
         @usableFromInline var part: World
@@ -253,15 +291,17 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
             world.merge(writing: Self._access(in: Self.self), from: part)
         }
 
-        /// Visits every matching entity once, calling `body` with its written components.
+        /// Calls a closure once for each matching entity, passing its components to change.
+        ///
+        /// - Parameter body: A closure that changes one entity's components.
         @inlinable
         public func callAsFunction(_ body: Body) {
             part.update(A.self, B.self, where: QueryFilter()) { a, b, row in body(&a, &b, row.entity) }
         }
 
-        /// Writes `A`, `B` of every entity holding them, and passing the filter types `F`.
+        /// An update of `A` and `B` that visits only the entities passing the filter types `F`.
         public final class Where<each F: FilterTerm>: SystemParameter, @unchecked Sendable {
-            /// What the visit calls for each entity.
+            /// The type of the closure the update calls for each entity.
             public typealias Body = (inout A, inout B, Entity) -> Void
 
             @usableFromInline var part: World
@@ -271,7 +311,7 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
                 self.part = part
             }
 
-            /// The filter the filter types stand for, every one applied.
+            /// The filter the filter types `F` stand for, all of them applied.
             public static var filter: QueryFilter {
                 var filter = QueryFilter()
                 for type in repeat (each F).self {
@@ -301,16 +341,19 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
                 world.merge(writing: Self._access(in: Self.self), from: part)
             }
 
-            /// Visits every matching entity once, calling `body` with its written components.
+            /// Calls a closure once for each matching entity, passing its components to change.
+            ///
+            /// - Parameter body: A closure that changes one entity's components.
             @inlinable
             public func callAsFunction(_ body: Body) {
                 part.update(A.self, B.self, where: Self.filter) { a, b, row in body(&a, &b, row.entity) }
             }
         }
 
-        /// Writes `A`, `B` of every entity holding them and matching the terms `T`, which it reads.
+        /// An update of `A` and `B` that also reads the query terms `T`, visiting only the entities
+        /// that match them.
         public final class Over<each T: QueryTerm>: SystemParameter, @unchecked Sendable {
-            /// What the visit calls for each entity.
+            /// The type of the closure the update calls for each entity.
             public typealias Body = (inout A, inout B, QueryRow<repeat (each T).Value>) -> Void
 
             @usableFromInline var part: World
@@ -353,15 +396,18 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
                 world.merge(writing: Self._access(in: Self.self), from: part)
             }
 
-            /// Visits every matching entity once, calling `body` with its written components.
+            /// Calls a closure once for each matching entity, passing its components to change.
+            ///
+            /// - Parameter body: A closure that changes one entity's components.
             @inlinable
             public func callAsFunction(_ body: Body) {
                 run(&part, Query(filter: QueryFilter()), body)
             }
 
-            /// Writes `A`, `B` of every entity holding them and matching the terms `T`, which it reads, and passing the filter types `F`.
+            /// An update of `A` and `B` that reads the query terms `T`, visiting only the entities
+            /// that match them and pass the filter types `F`.
             public final class Where<each F: FilterTerm>: SystemParameter, @unchecked Sendable {
-                /// What the visit calls for each entity.
+                /// The type of the closure the update calls for each entity.
                 public typealias Body = (inout A, inout B, QueryRow<repeat (each T).Value>) -> Void
 
                 @usableFromInline var part: World
@@ -373,7 +419,7 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
                     self.run = run
                 }
 
-                /// The filter the filter types stand for, every one applied.
+                /// The filter the filter types `F` stand for, all of them applied.
                 public static var filter: QueryFilter {
                     var filter = QueryFilter()
                     for type in repeat (each F).self {
@@ -416,7 +462,9 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
                     world.merge(writing: Self._access(in: Self.self), from: part)
                 }
 
-                /// Visits every matching entity once, calling `body` with its written components.
+                /// Calls a closure once for each matching entity, passing its components to change.
+                ///
+                /// - Parameter body: A closure that changes one entity's components.
                 @inlinable
                 public func callAsFunction(_ body: Body) {
                     run(&part, Query(filter: Self.filter), body)
@@ -424,9 +472,9 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
             }
         }
 
-        /// Writes `A`, `B`, `C` of every entity holding them.
+        /// An update of `A`, `B` and `C` of every entity holding all three.
         public final class And<C: Component>: SystemParameter, @unchecked Sendable {
-            /// What the visit calls for each entity.
+            /// The type of the closure the update calls for each entity.
             public typealias Body = (inout A, inout B, inout C, Entity) -> Void
 
             @usableFromInline var part: World
@@ -453,15 +501,18 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
                 world.merge(writing: Self._access(in: Self.self), from: part)
             }
 
-            /// Visits every matching entity once, calling `body` with its written components.
+            /// Calls a closure once for each matching entity, passing its components to change.
+            ///
+            /// - Parameter body: A closure that changes one entity's components.
             @inlinable
             public func callAsFunction(_ body: Body) {
                 part.update(A.self, B.self, C.self, over: filteredQuery(filter: QueryFilter())) { a, b, c, row in body(&a, &b, &c, row.entity) }
             }
 
-            /// Writes `A`, `B`, `C` of every entity holding them, and passing the filter types `F`.
+            /// An update of `A`, `B` and `C` that visits only the entities passing the filter types
+            /// `F`.
             public final class Where<each F: FilterTerm>: SystemParameter, @unchecked Sendable {
-                /// What the visit calls for each entity.
+                /// The type of the closure the update calls for each entity.
                 public typealias Body = (inout A, inout B, inout C, Entity) -> Void
 
                 @usableFromInline var part: World
@@ -471,7 +522,7 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
                     self.part = part
                 }
 
-                /// The filter the filter types stand for, every one applied.
+                /// The filter the filter types `F` stand for, all of them applied.
                 public static var filter: QueryFilter {
                     var filter = QueryFilter()
                     for type in repeat (each F).self {
@@ -501,16 +552,19 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
                     world.merge(writing: Self._access(in: Self.self), from: part)
                 }
 
-                /// Visits every matching entity once, calling `body` with its written components.
+                /// Calls a closure once for each matching entity, passing its components to change.
+                ///
+                /// - Parameter body: A closure that changes one entity's components.
                 @inlinable
                 public func callAsFunction(_ body: Body) {
                     part.update(A.self, B.self, C.self, over: filteredQuery(filter: Self.filter)) { a, b, c, row in body(&a, &b, &c, row.entity) }
                 }
             }
 
-            /// Writes `A`, `B`, `C` of every entity holding them and matching the terms `T`, which it reads.
+            /// An update of `A`, `B` and `C` that also reads the query terms `T`, visiting only the
+            /// entities that match them.
             public final class Over<each T: QueryTerm>: SystemParameter, @unchecked Sendable {
-                /// What the visit calls for each entity.
+                /// The type of the closure the update calls for each entity.
                 public typealias Body = (inout A, inout B, inout C, QueryRow<repeat (each T).Value>) -> Void
 
                 @usableFromInline var part: World
@@ -553,15 +607,18 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
                     world.merge(writing: Self._access(in: Self.self), from: part)
                 }
 
-                /// Visits every matching entity once, calling `body` with its written components.
+                /// Calls a closure once for each matching entity, passing its components to change.
+                ///
+                /// - Parameter body: A closure that changes one entity's components.
                 @inlinable
                 public func callAsFunction(_ body: Body) {
                     run(&part, Query(filter: QueryFilter()), body)
                 }
 
-                /// Writes `A`, `B`, `C` of every entity holding them and matching the terms `T`, which it reads, and passing the filter types `F`.
+                /// An update of `A`, `B` and `C` that reads the query terms `T`, visiting only the
+                /// entities that match them and pass the filter types `F`.
                 public final class Where<each F: FilterTerm>: SystemParameter, @unchecked Sendable {
-                    /// What the visit calls for each entity.
+                    /// The type of the closure the update calls for each entity.
                     public typealias Body = (inout A, inout B, inout C, QueryRow<repeat (each T).Value>) -> Void
 
                     @usableFromInline var part: World
@@ -573,7 +630,7 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
                         self.run = run
                     }
 
-                    /// The filter the filter types stand for, every one applied.
+                    /// The filter the filter types `F` stand for, all of them applied.
                     public static var filter: QueryFilter {
                         var filter = QueryFilter()
                         for type in repeat (each F).self {
@@ -616,7 +673,9 @@ public final class Update<A: Component>: SystemParameter, @unchecked Sendable {
                         world.merge(writing: Self._access(in: Self.self), from: part)
                     }
 
-                    /// Visits every matching entity once, calling `body` with its written components.
+                    /// Calls a closure once for each matching entity, passing its components to change.
+                    ///
+                    /// - Parameter body: A closure that changes one entity's components.
                     @inlinable
                     public func callAsFunction(_ body: Body) {
                         run(&part, Query(filter: Self.filter), body)

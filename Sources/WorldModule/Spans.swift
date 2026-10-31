@@ -1,21 +1,36 @@
 extension World {
-    /// Calls `body` with every entity holding a `C` and their components, as spans in storage
-    /// order: the component at each position belongs to the entity at the same position.
+    /// Calls the given closure with the storage of a component type, as spans of entities and
+    /// their components.
     ///
-    /// The spans reach the storage directly, for loops the compiler can vectorize and for C
-    /// functions taking a pointer and a count. They include entities a query would skip, such as
-    /// ``Disabled`` ones.
+    /// The spans give direct access to the world's storage, in storage order: the component at
+    /// each position belongs to the entity at the same position. Use this method for loops the
+    /// compiler can vectorize, and for C functions that take a pointer and a count. The following
+    /// example adds up the health of every entity:
     ///
     /// ```swift
+    /// var world = World()
+    /// world.spawn(Health(current: 10))
+    /// world.spawn(Health(current: 25))
+    ///
     /// let total = world.withSpan(of: Health.self) { _, health in
     ///     var sum = 0
     ///     for position in health.indices { sum += health[position].current }
     ///     return sum
     /// }
+    /// print(total)
+    /// // Prints "35"
     /// ```
     ///
-    /// - Returns: What `body` returns.
-    /// - Complexity: O(1) besides `body`.
+    /// The spans include entities that a query would skip, such as ``Disabled`` ones. When the
+    /// world has never stored a component of the type, both spans are empty.
+    ///
+    /// - Parameters:
+    ///   - type: The component type whose storage to read.
+    ///   - body: A closure that takes the entities holding a component of type `type` and their
+    ///     components. The spans are valid only for the duration of the closure.
+    /// - Returns: The value `body` returns.
+    /// - Throws: The error `body` throws, if any.
+    /// - Complexity: O(1), besides the cost of `body`.
     @inlinable
     public func withSpan<C: Component, Result, Failure: Error>(
         of type: C.Type,
@@ -30,19 +45,36 @@ extension World {
         return try Self.withSpans(column.index.dense, column.values, body)
     }
 
-    /// Calls `body` with every entity holding a `C` and their components, the components as a
-    /// mutable span, and marks every `C` changed at the current ``changeTick``; see
-    /// ``withSpan(of:_:)``.
+    /// Calls the given closure with the storage of a component type, as a span of entities and a
+    /// mutable span of their components.
+    ///
+    /// Use this method to change every component of a type in a tight loop. As in
+    /// ``withSpan(of:_:)``, the component at each position belongs to the entity at the same
+    /// position, and the spans include entities that a query would skip:
     ///
     /// ```swift
+    /// var world = World()
+    /// let ball = world.spawn(Position(x: 0, y: 0))
+    ///
     /// world.withMutableSpan(of: Position.self) { _, positions in
     ///     for position in positions.indices { positions[position].x += 1 }
     /// }
+    /// print(world[Position.self, of: ball])
+    /// // Prints "Position(x: 1.0, y: 0.0)"
     /// ```
     ///
-    /// - Returns: What `body` returns.
-    /// - Complexity: O(*n*) for *n* entities holding a `C`, plus a copy of the `C` storage when
-    ///   another world shares it.
+    /// Every component of the type is marked changed at the current ``changeTick``, whether or not
+    /// the closure changes it.
+    ///
+    /// - Parameters:
+    ///   - type: The component type whose storage to change.
+    ///   - body: A closure that takes the entities holding a component of type `type` and a
+    ///     mutable span of their components. The spans are valid only for the duration of the
+    ///     closure.
+    /// - Returns: The value `body` returns.
+    /// - Throws: The error `body` throws, if any.
+    /// - Complexity: O(*n*), where *n* is the number of entities holding a component of type
+    ///   `type`, plus a copy of that storage when another world shares it.
     @inlinable
     public mutating func withMutableSpan<C: Component, Result, Failure: Error>(
         of type: C.Type,

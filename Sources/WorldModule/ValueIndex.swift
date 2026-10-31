@@ -64,21 +64,30 @@ extension ValueIndex: AnyValueIndex {
 extension World {
     // MARK: Indexes by value
 
-    /// Keeps a map from each value of `C` to the entities holding it, so ``lookup(_:)`` finds
-    /// them without walking the type's storage.
+    /// Keeps a map from each value of a component type to the entities holding it, so that
+    /// ``lookup(_:)`` finds them without walking the type's storage.
+    ///
+    /// Use an index when you often look entities up by a component's value, such as finding an
+    /// entity by its name:
     ///
     /// ```swift
+    /// var world = World()
+    /// let bob = world.spawn(Name(value: "bob"), Health(current: 3))
+    /// world.spawn(Name(value: "ada"), Health(current: 4))
     /// world.index(Name.self)
-    /// world.lookup(Name("bob"))  // the entities named bob
+    ///
+    /// print(world.lookup(Name(value: "bob")) == [bob])
+    /// // Prints "true"
     /// ```
     ///
-    /// Spawning, inserting, removing and despawning keep the index current. A change made in
-    /// place (the subscript, ``update(_:reading:where:body:)``, a span) leaves it out of date
-    /// until ``advanceChangeTick()``, which a schedule calls before each system, rebuilds it;
-    /// until then ``lookup(_:)`` walks the storage, so its answer is always current. Index a
-    /// type whose values change rarely. Indexing a type twice keeps one index. A copy of the
-    /// world keeps its indexes; a snapshot does not.
+    /// Spawning, inserting, removing and despawning keep the index current. A change made in place,
+    /// through the world's subscript, an update or a mutable span, leaves the index out of date
+    /// until the next ``advanceChangeTick()``, which a schedule calls before each system, rebuilds
+    /// it. Until then, ``lookup(_:)`` walks the storage, so its answer is always current. Index a
+    /// type whose values change rarely. Indexing a type twice keeps one index. A copy of the world
+    /// keeps its indexes; a snapshot doesn't.
     ///
+    /// - Parameter type: The component type to index.
     /// - Complexity: O(*n*) for *n* entities holding a `C`.
     @inlinable
     public mutating func index<C: Component & Hashable>(_ type: C.Type) {
@@ -91,8 +100,24 @@ extension World {
         valueIndexes[key] = index
     }
 
-    /// The entities holding a `C` equal to `value`, in no particular order.
+    /// Returns the entities holding a component equal to the given value.
     ///
+    /// The method answers from the type's index when you've indexed it with ``index(_:)`` and the
+    /// index is current, and walks the type's storage otherwise. Either way, the answer reflects
+    /// every change made so far.
+    ///
+    /// ```swift
+    /// var world = World()
+    /// world.spawn(Name(value: "guard"))
+    /// world.spawn(Name(value: "guard"))
+    /// world.spawn(Name(value: "king"))
+    ///
+    /// print(world.lookup(Name(value: "guard")).count)
+    /// // Prints "2"
+    /// ```
+    ///
+    /// - Parameter value: The value to look for.
+    /// - Returns: The entities holding a component equal to `value`, in no particular order.
     /// - Complexity: O(*k*) for *k* entities found when `C` is indexed (``index(_:)``) and its
     ///   index is current; otherwise O(*n*) for *n* entities holding a `C`.
     @inlinable

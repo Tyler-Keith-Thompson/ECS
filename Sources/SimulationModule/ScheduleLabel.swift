@@ -1,19 +1,40 @@
 import WorldModule
 
-/// The name of a schedule in a ``Simulation``: one it runs each frame, such as ``update``, or one
-/// a state change runs, such as ``onEnter(_:)``.
+/// The name of a schedule in a simulation.
+///
+/// A ``Simulation`` runs the schedules of its built-in labels on its own: ``startup``,
+/// ``fixedUpdate`` and ``update`` as part of each frame, and the labels of a state change, such
+/// as ``onEnter(_:)``, when its state changes. Declare a label of your own for a schedule you run
+/// yourself with ``Simulation/run(_:)``:
 ///
 /// ```swift
 /// extension ScheduleLabel {
-///     static let rendering = ScheduleLabel("Rendering")
+///     static let autosave = ScheduleLabel("Autosave")
 /// }
+///
+/// var world = World()
+/// world.resources.insert(FixedSteps())
+///
+/// var simulation = Simulation(world)
+/// simulation.add(to: .autosave) { CountSteps() }
+/// simulation.run(.autosave)
+/// print(simulation.world.resources[FixedSteps.self].count)
+/// // Prints "1"
 /// ```
+///
+/// Two labels are equal when they have the same name, or, for the labels of a state change, the
+/// same states.
 @frozen
 public struct ScheduleLabel: Hashable, Sendable, CustomStringConvertible {
     @usableFromInline let key: Key
+    /// The label's name.
     public let description: String
 
-    /// A label named `name`; two labels with the same name are the same label.
+    /// Creates a label with the given name.
+    ///
+    /// Two labels made with the same name are equal, so they name the same schedule.
+    ///
+    /// - Parameter name: The label's name.
     @inlinable
     public init(_ name: String) {
         key = Key(name)
@@ -29,28 +50,48 @@ public struct ScheduleLabel: Hashable, Sendable, CustomStringConvertible {
     public static func == (lhs: ScheduleLabel, rhs: ScheduleLabel) -> Bool { lhs.key == rhs.key }
     public func hash(into hasher: inout Hasher) { hasher.combine(key) }
 
-    /// Runs once, before the first frame.
+    /// The label of the schedule that runs once, before the first frame.
     public static let startup = ScheduleLabel("Startup")
-    /// Runs once per fixed timestep of elapsed time, zero or more times a frame, before
-    /// ``update``.
+    /// The label of the schedule that runs once for each fixed timestep of elapsed time.
+    ///
+    /// The schedule runs zero or more times a frame, before ``update``. Put systems here whose
+    /// result depends on how much time passes, such as physics, so each run advances by the
+    /// same ``FixedTime/timestep``.
     public static let fixedUpdate = ScheduleLabel("FixedUpdate")
-    /// Runs once a frame.
+    /// The label of the schedule that runs once a frame.
     public static let update = ScheduleLabel("Update")
 
-    /// Runs when the simulation enters `state`, including its initial state.
+    /// Returns the label of the schedule that runs when a simulation enters the given state.
+    ///
+    /// The schedule also runs on the first frame, for the state the simulation starts in.
+    ///
+    /// - Parameter state: The state entered.
+    /// - Returns: The label of the schedule that runs on entering `state`.
     @inlinable
     public static func onEnter<S: States>(_ state: S) -> ScheduleLabel {
         ScheduleLabel(key: StateLabel(kind: 0, from: nil, to: state), description: "OnEnter(\(state))")
     }
 
-    /// Runs when the simulation leaves `state`.
+    /// Returns the label of the schedule that runs when a simulation leaves the given state.
+    ///
+    /// - Parameter state: The state left.
+    /// - Returns: The label of the schedule that runs on leaving `state`.
     @inlinable
     public static func onExit<S: States>(_ state: S) -> ScheduleLabel {
         ScheduleLabel(key: StateLabel(kind: 1, from: state, to: nil), description: "OnExit(\(state))")
     }
 
-    /// Runs when the simulation changes from `source` to `destination`, after ``onExit(_:)`` of
-    /// `source` and before ``onEnter(_:)`` of `destination`.
+    /// Returns the label of the schedule that runs when a simulation changes from one given state
+    /// to another.
+    ///
+    /// The schedule runs after the ``onExit(_:)`` schedule of `source` and before the
+    /// ``onEnter(_:)`` schedule of `destination`.
+    ///
+    /// - Parameters:
+    ///   - source: The state left.
+    ///   - destination: The state entered.
+    /// - Returns: The label of the schedule that runs on changing from `source` to
+    ///   `destination`.
     @inlinable
     public static func onTransition<S: States>(from source: S, to destination: S) -> ScheduleLabel {
         ScheduleLabel(key: StateLabel(kind: 2, from: source, to: destination), description: "OnTransition(\(source) → \(destination))")

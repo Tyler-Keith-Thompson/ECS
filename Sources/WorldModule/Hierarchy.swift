@@ -1,59 +1,136 @@
-/// The relation of a child to its parent: exclusive, and despawning a parent despawns its
-/// children.
+/// The relation that links a child entity to its parent.
 ///
-/// ``World/addChild(_:to:)`` relates a child to its parent, refusing cycles; queries find
-/// children with `.related(ChildOf.self, to: parent)`, entities with a parent with
-/// `.with(Targets<ChildOf>.self)` and roots with `.without(Targets<ChildOf>.self)`.
+/// A hierarchy groups entities into trees: a ship and its turrets, a menu and its buttons. Each
+/// entity has at most one parent, and despawning a parent despawns its children, and theirs in
+/// turn. Build a hierarchy with ``World/addChild(_:to:)``, which refuses a link that would make
+/// an entity its own ancestor, and walk it with ``World/parent(of:)``,
+/// ``World/children(of:)``, ``World/ancestors(of:)`` and ``World/descendants(of:)``.
+///
+/// The following example attaches a turret and an engine to a ship, then despawns the ship,
+/// which takes its parts with it:
+///
+/// ```swift
+/// var world = World()
+/// let ship = world.spawn(Name(value: "Ship"))
+/// let turret = world.spawn(Name(value: "Turret"))
+/// let engine = world.spawn(Name(value: "Engine"))
+/// try world.addChild(turret, to: ship)
+/// try world.addChild(engine, to: ship)
+///
+/// let parts = world.children(of: ship).map { world[Name.self, of: $0].value }
+/// print(parts)
+/// // Prints "["Turret", "Engine"]"
+///
+/// world.despawn(ship)
+/// print(world.contains(engine))
+/// // Prints "false"
+/// ```
+///
+/// `ChildOf` is a ``Relation`` like any other, so an entity with a parent holds a
+/// `Targets<ChildOf>` component naming it. Queries use that to find the entities at each level
+/// of a tree:
+///
+/// - `.related(ChildOf.self, to: parent)` keeps the children of `parent`.
+/// - `.with(Targets<ChildOf>.self)` keeps entities that have a parent.
+/// - `.without(Targets<ChildOf>.self)` keeps the roots.
+///
+/// ```swift
+/// var world = World()
+/// let menu = world.spawn(Name(value: "Menu"))
+/// let play = world.spawn(Name(value: "Play"))
+/// let quit = world.spawn(Name(value: "Quit"))
+/// try world.addChild(play, to: menu)
+/// try world.addChild(quit, to: menu)
+///
+/// print(world.query(Name.self).related(ChildOf.self, to: menu).count)
+/// // Prints "2"
+/// print(world.query(Name.self).without(Targets<ChildOf>.self).count)
+/// // Prints "1"
+/// ```
 @frozen
 public struct ChildOf: Relation, Hashable, Codable {
-    /// Exclusive: an entity has at most one parent.
+    /// A Boolean value indicating whether an entity has at most one parent; always `true`.
     @inlinable
     public static var isExclusive: Bool { true }
 
-    /// ``CleanupAction/despawn``: despawning a parent despawns its children.
+    /// What despawning a parent does to its children: ``CleanupAction/despawn``, which despawns
+    /// them too.
     @inlinable
     public static var onTargetDespawn: CleanupAction { .despawn }
 
+    /// Creates the relation's value, which carries no data.
     @inlinable
     public init() {}
 }
 
-/// The error ``World/addChild(_:to:)`` throws when the parent is the child or one of its
-/// descendants, so the link would close a cycle.
+/// An error that indicates a link would make an entity its own ancestor.
+///
+/// ``World/addChild(_:to:)`` throws this error when the new parent is the child itself or one of
+/// the child's descendants, and leaves the world unchanged:
+///
+/// ```swift
+/// var world = World()
+/// let ship = world.spawn(Name(value: "Ship"))
+/// let turret = world.spawn(Name(value: "Turret"))
+/// try world.addChild(turret, to: ship)
+///
+/// do {
+///     try world.addChild(ship, to: turret)
+/// } catch {
+///     print(error)
+///     // Prints "CyclicHierarchy()"
+/// }
+/// ```
 @frozen
 public struct CyclicHierarchy: Error, Hashable, Sendable {
+    /// Creates the error.
     @inlinable
     public init() {}
 }
 
-/// The error ``World/addChild(_:checkedTo:)`` throws: one case per way the change can fail.
+/// An error that indicates why ``World/addChild(_:checkedTo:)`` could not link two entities.
 @frozen
 public enum HierarchyError: Error, Hashable, Sendable {
-    /// The child or the parent was despawned or never spawned by the world.
+    /// The child or the parent has been despawned, or was never spawned by the world.
     case staleEntity
-    /// The parent is the child or one of its descendants.
+    /// The parent is the child itself or one of its descendants.
     case cyclicHierarchy
 }
 
 extension World {
     // MARK: Hierarchy
 
-    /// Makes `child` the last child of `parent`, moving it from its current parent if it has
-    /// one.
+    /// Adds an entity to the end of another entity's children.
     ///
-    /// Despawning an entity despawns its descendants with it.
+    /// Use this method to build a hierarchy (see ``ChildOf``). If `child` already has a parent,
+    /// it moves to `parent`, taking its own descendants with it. Once linked, despawning
+    /// `parent` despawns `child` too.
+    ///
+    /// The following example attaches a turret to a ship, then moves it to a second ship:
     ///
     /// ```swift
-    /// let ship = world.spawn(Position(x: 0, y: 0))
-    /// let turret = world.spawn(Position(x: 1, y: 0))
-    /// try world.addChild(turret, to: ship)
+    /// var world = World()
+    /// let flagship = world.spawn(Name(value: "Flagship"))
+    /// let escort = world.spawn(Name(value: "Escort"))
+    /// let turret = world.spawn(Name(value: "Turret"))
+    ///
+    /// try world.addChild(turret, to: flagship)
+    /// try world.addChild(turret, to: escort)
+    /// print(world.children(of: flagship).isEmpty)
+    /// // Prints "true"
+    /// print(world.parent(of: turret) == escort)
+    /// // Prints "true"
     /// ```
     ///
-    /// - Complexity: O(*d* + *k*) for *d* ancestors of `parent` and *k* children of the child's
-    ///   current parent.
-    /// - Throws: ``CyclicHierarchy`` when `parent` is `child` or one of its descendants; the
-    ///   world is unchanged.
-    /// - Precondition: Both entities are live. Use ``addChild(_:checkedTo:)`` to throw instead.
+    /// - Parameters:
+    ///   - child: The entity to link.
+    ///   - parent: The entity to make its parent.
+    /// - Throws: ``CyclicHierarchy`` if `parent` is `child` or one of its descendants. The world
+    ///   is unchanged.
+    /// - Precondition: Both entities are live. The checked spelling,
+    ///   ``addChild(_:checkedTo:)``, throws instead.
+    /// - Complexity: O(*d* + *k*), where *d* is the number of ancestors of `parent` and *k* is
+    ///   the number of children of the child's current parent.
     @inlinable
     public mutating func addChild(_ child: Entity, to parent: Entity) throws(CyclicHierarchy) {
         precondition(contains(child), "Adding stale child \(child)")
@@ -63,14 +140,34 @@ extension World {
         endOperation()
     }
 
-    /// Makes `child` the last child of `parent`, moving it from its current parent if it has
-    /// one.
+    /// Adds an entity to the end of another entity's children, throwing if either entity is
+    /// stale.
     ///
-    /// - Complexity: O(*d* + *k*) for *d* ancestors of `parent` and *k* children of the child's
-    ///   current parent.
-    /// - Throws: ``HierarchyError/staleEntity`` when either entity is not live, and
-    ///   ``HierarchyError/cyclicHierarchy`` when `parent` is `child` or one of its descendants;
-    ///   the world is unchanged.
+    /// This method behaves like ``addChild(_:to:)``, but reports a stale entity as an error
+    /// rather than trapping:
+    ///
+    /// ```swift
+    /// var world = World()
+    /// let ship = world.spawn(Name(value: "Ship"))
+    /// let wreck = world.spawn(Name(value: "Wreck"))
+    /// world.despawn(wreck)
+    ///
+    /// do {
+    ///     try world.addChild(wreck, checkedTo: ship)
+    /// } catch {
+    ///     print(error)
+    ///     // Prints "staleEntity"
+    /// }
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - child: The entity to link.
+    ///   - parent: The entity to make its parent.
+    /// - Throws: ``HierarchyError/staleEntity`` if either entity isn't live, or
+    ///   ``HierarchyError/cyclicHierarchy`` if `parent` is `child` or one of its descendants.
+    ///   The world is unchanged.
+    /// - Complexity: O(*d* + *k*), where *d* is the number of ancestors of `parent` and *k* is
+    ///   the number of children of the child's current parent.
     @inlinable
     public mutating func addChild(_ child: Entity, checkedTo parent: Entity) throws(HierarchyError) {
         guard contains(child), contains(parent) else { throw .staleEntity }
@@ -79,11 +176,28 @@ extension World {
         endOperation()
     }
 
-    /// Detaches `child` from its parent, keeping both entities, and returns the parent, or nil
-    /// if it had none.
+    /// Detaches an entity from its parent and returns the parent.
     ///
-    /// - Complexity: O(*k*) for *k* children of the parent.
-    /// - Precondition: `child` is live. Use ``removeParent(checkedOf:)`` to throw instead.
+    /// Both entities stay in the world; `child` becomes a root and is no longer despawned with
+    /// its former parent.
+    ///
+    /// ```swift
+    /// var world = World()
+    /// let ship = world.spawn(Name(value: "Ship"))
+    /// let lifeboat = world.spawn(Name(value: "Lifeboat"))
+    /// try world.addChild(lifeboat, to: ship)
+    ///
+    /// world.removeParent(of: lifeboat)
+    /// world.despawn(ship)
+    /// print(world.contains(lifeboat))
+    /// // Prints "true"
+    /// ```
+    ///
+    /// - Parameter child: The entity to detach.
+    /// - Returns: The parent `child` had, or `nil` if it had none.
+    /// - Precondition: `child` is live. The checked spelling, ``removeParent(checkedOf:)``,
+    ///   throws instead.
+    /// - Complexity: O(*k*), where *k* is the number of children of the parent.
     @inlinable
     @discardableResult
     public mutating func removeParent(of child: Entity) -> Entity? {
@@ -93,11 +207,16 @@ extension World {
         return parent
     }
 
-    /// Detaches `child` from its parent, keeping both entities, and returns the parent, or nil
-    /// if it had none.
+    /// Detaches an entity from its parent and returns the parent, throwing if the entity is
+    /// stale.
     ///
-    /// - Complexity: O(*k*) for *k* children of the parent.
-    /// - Throws: ``StaleEntity`` when `child` is not live; the world is unchanged.
+    /// This method behaves like ``removeParent(of:)``, but reports a stale entity as an error
+    /// rather than trapping.
+    ///
+    /// - Parameter child: The entity to detach.
+    /// - Returns: The parent `child` had, or `nil` if it had none.
+    /// - Throws: ``StaleEntity`` if `child` isn't live. The world is unchanged.
+    /// - Complexity: O(*k*), where *k* is the number of children of the parent.
     @inlinable
     @discardableResult
     public mutating func removeParent(checkedOf child: Entity) throws(StaleEntity) -> Entity? {
@@ -107,42 +226,78 @@ extension World {
         return parent
     }
 
-    /// The parent of `entity`, or nil if it has none or is not live.
+    /// Returns the parent of an entity.
     ///
+    /// - Parameter entity: The entity whose parent to find.
+    /// - Returns: The parent of `entity`, or `nil` if it has none or isn't live.
     /// - Complexity: O(1).
     @inlinable
     public func parent(of entity: Entity) -> Entity? {
         (try? self[checked: Targets<ChildOf>.self, of: entity])?.entities.first
     }
 
-    /// The children of `entity` in the order they were added; empty if it has none or is not
-    /// live.
+    /// Returns the children of an entity, in the order they were added.
     ///
-    /// - Complexity: O(*r*) for *r* relations the world has stored.
+    /// - Parameter entity: The entity whose children to list.
+    /// - Returns: The children of `entity`, or an empty array if it has none or isn't live.
+    /// - Complexity: O(*r*), where *r* is the number of relation types the world has stored.
     @inlinable
     public func children(of entity: Entity) -> [Entity] {
         sources(ChildOf.self, of: entity)
     }
 
-    /// The ancestors of `entity`, its parent first and its root last; empty if it has no parent
-    /// or is not live.
+    /// Returns the ancestors of an entity, from its parent up to the root of its tree.
     ///
-    /// - Complexity: O(1); each step of the walk is O(1).
+    /// The view walks the hierarchy lazily as you iterate it. The following example finds the
+    /// root that a gun belongs to:
+    ///
+    /// ```swift
+    /// var world = World()
+    /// let ship = world.spawn(Name(value: "Ship"))
+    /// let turret = world.spawn(Name(value: "Turret"))
+    /// let gun = world.spawn(Name(value: "Gun"))
+    /// try world.addChild(turret, to: ship)
+    /// try world.addChild(gun, to: turret)
+    ///
+    /// let chain = world.ancestors(of: gun).map { world[Name.self, of: $0].value }
+    /// print(chain)
+    /// // Prints "["Turret", "Ship"]"
+    /// ```
+    ///
+    /// - Parameter entity: The entity whose ancestors to walk.
+    /// - Returns: A view of the ancestors of `entity`, its parent first and its root last; empty
+    ///   if it has no parent or isn't live.
+    /// - Complexity: O(1). Each step of the walk is O(1).
     @inlinable
     public func ancestors(of entity: Entity) -> AncestorsView {
         AncestorsView(index: childOfIndex, first: parent(of: entity))
     }
 
-    /// The descendants of `entity`, depth-first, each before its own children and children in
-    /// the order they were added; empty if it has no children or is not live.
+    /// Returns the descendants of an entity, depth-first.
+    ///
+    /// The view visits each descendant before its own children, and siblings in the order they
+    /// were added. It reads the world as it was when you called this method, so you can change
+    /// the world while iterating. The following example moves a ship's parts along with it:
     ///
     /// ```swift
+    /// var world = World()
+    /// let ship = world.spawn(Position(x: 0, y: 0))
+    /// let turret = world.spawn(Position(x: 1, y: 0))
+    /// let gun = world.spawn(Position(x: 2, y: 0))
+    /// try world.addChild(turret, to: ship)
+    /// try world.addChild(gun, to: turret)
+    ///
     /// for part in world.descendants(of: ship) {
-    ///     world[Position.self, of: part].x += 1
+    ///     world[Position.self, of: part].x += 10
     /// }
+    /// print(world[Position.self, of: gun])
+    /// // Prints "Position(x: 12.0, y: 0.0)"
     /// ```
     ///
-    /// - Complexity: O(1); the walk is O(*n*) for *n* descendants.
+    /// - Parameter entity: The entity whose descendants to walk.
+    /// - Returns: A view of the descendants of `entity`; empty if it has no children or isn't
+    ///   live.
+    /// - Complexity: O(1). Walking the view is O(*n*), where *n* is the number of descendants.
     @inlinable
     public func descendants(of entity: Entity) -> DescendantsView {
         DescendantsView(index: childOfIndex, roots: children(of: entity))
@@ -185,7 +340,9 @@ extension World {
     }
 }
 
-/// The ancestors of an entity, its parent first, lazily.
+/// A lazy sequence of an entity's ancestors, from its parent up to the root of its tree.
+///
+/// You get a view of ancestors from ``World/ancestors(of:)``.
 @frozen
 public struct AncestorsView: Sequence, Sendable {
     @usableFromInline let index: RelationIndex
@@ -202,7 +359,7 @@ public struct AncestorsView: Sequence, Sendable {
         Iterator(index: index, next: first)
     }
 
-    /// Walks from an entity's parent to its root.
+    /// An iterator over an entity's ancestors, from its parent up to its root.
     @frozen
     public struct Iterator: IteratorProtocol {
         @usableFromInline let index: RelationIndex
@@ -223,7 +380,10 @@ public struct AncestorsView: Sequence, Sendable {
     }
 }
 
-/// The descendants of an entity, depth-first with each before its own children, lazily.
+/// A lazy sequence of an entity's descendants, depth-first.
+///
+/// You get a view of descendants from ``World/descendants(of:)``. It visits each descendant
+/// before its own children, and siblings in the order they were added.
 @frozen
 public struct DescendantsView: Sequence, Sendable {
     @usableFromInline let index: RelationIndex
@@ -240,7 +400,7 @@ public struct DescendantsView: Sequence, Sendable {
         Iterator(index: index, stack: roots.reversed())
     }
 
-    /// Walks a subtree depth-first.
+    /// An iterator over an entity's descendants, depth-first.
     @frozen
     public struct Iterator: IteratorProtocol {
         @usableFromInline let index: RelationIndex

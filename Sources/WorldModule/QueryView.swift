@@ -1,14 +1,33 @@
-/// An entity and what an update reads of it, in the order the update listed its terms.
+/// An entity an update visits, with the components the update reads from it.
 ///
-/// An update reading one term has that term's value itself as `components`, not a one-element
-/// tuple; reading none, `components` is `()`. An ``AnyOf`` term's value is a tuple of optionals.
+/// An update's closure receives the components it writes as `inout` arguments and everything else
+/// it reads in a row. The row's ``components`` hold the read values in the order the update lists
+/// them. An update that reads one type holds that type's value itself, not a one-element tuple, and
+/// an update that reads nothing holds `()`. An ``AnyOf`` term's value is a tuple of optionals.
+///
+/// ```swift
+/// var world = World()
+/// let comet = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 2), Health(current: 3))
+///
+/// world.update(Position.self, reading: Velocity.self, Health.self) { position, row in
+///     let (velocity, health) = row.components
+///     position.x += velocity.dx * Double(health.current)
+/// }
+/// print(world[Position.self, of: comet])
+/// // Prints "Position(x: 3.0, y: 0.0)"
+/// ```
 @frozen
 public struct QueryRow<each C> {
-    /// The entity.
+    /// The entity the row describes.
     public let entity: Entity
-    /// Its terms' values, in the order the query listed them.
+    /// The values the update reads from the entity, in the order the update lists them.
     public let components: (repeat each C)
 
+    /// Creates a row of the given entity and values.
+    ///
+    /// - Parameters:
+    ///   - entity: The entity the row describes.
+    ///   - components: The values read from the entity.
     @inlinable
     public init(entity: Entity, components: (repeat each C)) {
         self.entity = entity
@@ -18,28 +37,38 @@ public struct QueryRow<each C> {
 
 extension QueryRow: Sendable where repeat each C: Sendable {}
 
-/// The entities holding every component type of a query and passing its filter, with those
-/// components, lazily.
+/// A lazy sequence of the entities that match a query, with the components the query reads.
 ///
-/// Each row is a tuple of the entity, labeled `entity`, and its terms' values in the order the
-/// query listed them, so a loop can name them all:
+/// You get a view from a world's `query(_:)` methods. Each row is a tuple of the entity, labeled
+/// `entity`, followed by the values of the query's terms in the order the query lists them, so a
+/// loop can name them all:
 ///
 /// ```swift
-/// for (entity, position, velocity) in world.query(Position.self, Velocity.self).without(Frozen.self) {
-///     print(entity, position, velocity)
+/// var world = World()
+/// world.spawn(Name(value: "comet"), Velocity(dx: 3, dy: 4))
+/// world.spawn(Name(value: "statue"), Velocity(dx: 1, dy: 1), Frozen())
+///
+/// for (_, name, velocity) in world.query(Name.self, Velocity.self).without(Frozen.self) {
+///     print(name.value, velocity.dx)
+///     // Prints "comet 3.0"
 /// }
 /// ```
 ///
-/// A view is a snapshot of the world it came from: writing to the world while iterating does not
+/// A view is a snapshot of the world it came from: changing the world while you iterate doesn't
 /// change what the view shows, though the first write to each component type copies that type's
-/// storage. To change components while visiting them, use ``World/update(_:reading:where:body:)``.
+/// storage. To change components while you visit them, use one of the world's `update` methods
+/// instead.
 ///
-/// Rows come in the storage order of the queried or required type held by the fewest entities,
-/// which depends only on the history of insertions and removals.
+/// Narrow a view with the same methods a ``Query`` offers, such as ``with(_:)`` and
+/// ``without(_:)``. Each returns a new view.
+///
+/// Rows come in the storage order of the type that the fewest matching candidates hold, among the
+/// queried and required types. That order depends only on the history of insertions and removals,
+/// so it's the same every time you run the same steps.
 @frozen
 public struct QueryView<each C>: Sequence, Sendable {
     @usableFromInline let world: World
-    /// The types the rows must hold and must not hold, beyond the components they carry.
+    /// The conditions an entity must meet, beyond holding the components the rows carry.
     public let filter: QueryFilter
     @usableFromInline let makeReader: @Sendable (World) -> Reader<(entity: Entity, repeat each C)>
 
@@ -50,58 +79,92 @@ public struct QueryView<each C>: Sequence, Sendable {
         self.makeReader = makeReader
     }
 
-    /// This view, keeping only entities that also hold every one of `types`.
+    /// Returns a view that also requires every one of the given component types.
+    ///
+    /// - Parameter types: The component types an entity must hold.
+    /// - Returns: A view of the entities that also hold every one of `types`.
     @inlinable
     public func with<each F: Component>(_ types: repeat (each F).Type) -> QueryView {
         QueryView(world: world, filter: filter.with(repeat each types), makeReader: makeReader)
     }
 
-    /// This view, keeping only entities that hold none of `types`.
+    /// Returns a view that also excludes entities holding any of the given component types.
+    ///
+    /// - Parameter types: The component types an entity must not hold.
+    /// - Returns: A view of the entities that also hold none of `types`.
     @inlinable
     public func without<each F: Component>(_ types: repeat (each F).Type) -> QueryView {
         QueryView(world: world, filter: filter.without(repeat each types), makeReader: makeReader)
     }
 
-    /// This view, also keeping entities holding any of `types`, disabling components it skips by
-    /// default (``World/registerDisablingComponent(_:)``).
+    /// Returns a view that also includes the entities holding the given disabling components.
+    ///
+    /// A view skips entities that hold a disabling component, such as ``Disabled``, unless it
+    /// names the type. Use this method to include them.
+    ///
+    /// - Parameter types: The disabling component types whose entities the view includes.
+    /// - Returns: A view that also includes entities holding any of `types`.
     @inlinable
     public func allowing<each F: Component>(_ types: repeat (each F).Type) -> QueryView {
         QueryView(world: world, filter: filter.allowing(repeat each types), makeReader: makeReader)
     }
 
-    /// This view, keeping only entities related to `target` by `R`.
+    /// Returns a view that also requires a relation to the given target.
+    ///
+    /// - Parameters:
+    ///   - type: The relation type.
+    ///   - target: The entity a matching entity must relate to by `type`.
+    /// - Returns: A view of the entities that also relate to `target` by `type`.
     @inlinable
     public func related<R: Relation>(_ type: R.Type, to target: Entity) -> QueryView {
         QueryView(world: world, filter: filter.related(R.self, to: target), makeReader: makeReader)
     }
 
-    /// This view, keeping only entities whose `F` was added after `since` (nil for the world's
-    /// ``World/lastRun``).
+    /// Returns a view that also requires a component added after the given tick.
+    ///
+    /// - Parameters:
+    ///   - type: The component type an entity must have gained.
+    ///   - since: The tick the component must be newer than, or `nil`, the default, for the
+    ///     world's ``World/lastRun``.
+    /// - Returns: A view of the entities whose `type` was also added after `since`.
     @inlinable
     public func added<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> QueryView {
         QueryView(world: world, filter: filter.added(F.self, since: since), makeReader: makeReader)
     }
 
-    /// This view, keeping only entities whose `F` was added or changed after `since` (nil for the
-    /// world's ``World/lastRun``).
+    /// Returns a view that also requires a component added or changed after the given tick.
+    ///
+    /// - Parameters:
+    ///   - type: The component type that must have been added or changed.
+    ///   - since: The tick the change must be newer than, or `nil`, the default, for the world's
+    ///     ``World/lastRun``.
+    /// - Returns: A view of the entities whose `type` was also added or changed after `since`.
     @inlinable
     public func changed<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> QueryView {
         QueryView(world: world, filter: filter.changed(F.self, since: since), makeReader: makeReader)
     }
 
-    /// This view, keeping only entities that at least one of `filters` passes.
+    /// Returns a view that also requires an entity to pass at least one of the given filters.
+    ///
+    /// - Parameter filters: The alternatives. With none, the view is empty.
+    /// - Returns: A view of the entities that also pass at least one of `filters`.
     @inlinable
     public func anyOf(_ filters: QueryFilter...) -> QueryView {
         QueryView(world: world, filter: filter.anyOf(filters), makeReader: makeReader)
     }
 
-    /// This view, keeping only entities that `filter` passes as well.
+    /// Returns a view that also requires every condition of the given filter.
+    ///
+    /// - Parameter filter: The conditions to add.
+    /// - Returns: A view of the entities that also pass `filter`.
     @inlinable
     public func filtered(by filter: QueryFilter) -> QueryView {
         QueryView(world: world, filter: self.filter.merging(filter), makeReader: makeReader)
     }
 
-    /// The number of rows.
+    /// The number of rows in the view.
+    ///
+    /// The view counts its rows by visiting them.
     ///
     /// - Complexity: O(*n*) for *n* entities in the smallest queried or required type.
     @inlinable
@@ -112,7 +175,7 @@ public struct QueryView<each C>: Sequence, Sendable {
         return count
     }
 
-    /// Steps through a query's rows.
+    /// An iterator over the rows of a query view.
     @frozen
     public struct Iterator: IteratorProtocol {
         @usableFromInline let reader: Reader<(entity: Entity, repeat each C)>
@@ -160,6 +223,7 @@ public struct QueryView<each C>: Sequence, Sendable {
             self.end = end
         }
 
+        /// Advances to the next row and returns it, or `nil` if no next row exists.
         @inlinable
         public mutating func next() -> Optional<(entity: Entity, repeat each C)> {
             let checksFilter = !filter.isEmpty
@@ -174,6 +238,7 @@ public struct QueryView<each C>: Sequence, Sendable {
         }
     }
 
+    /// Returns an iterator over the rows of the view.
     @inlinable
     public func makeIterator() -> Iterator {
         Iterator(world: world, filter: filter, reader: makeReader(world))
@@ -181,18 +246,31 @@ public struct QueryView<each C>: Sequence, Sendable {
 }
 
 extension World {
-    /// The entities holding every one of `types`, with those components, lazily.
+    /// Returns the entities that hold every one of the given component types, with those
+    /// components.
+    ///
+    /// Use this method to read the components of every entity that holds a set of types. Each row
+    /// is a tuple of the entity, labeled `entity`, followed by one component per type:
     ///
     /// ```swift
-    /// for (entity, position, velocity, health) in world.query(Position.self, Velocity.self, Health.self) {
-    ///     print(entity, position, velocity, health)
+    /// var world = World()
+    /// world.spawn(Name(value: "comet"), Position(x: 1, y: 2), Velocity(dx: 3, dy: 4), Health(current: 5))
+    /// world.spawn(Name(value: "rock"), Position(x: 0, y: 0))
+    ///
+    /// for (_, name, position, velocity, health) in world.query(Name.self, Position.self, Velocity.self, Health.self) {
+    ///     print(name.value, position.x + velocity.dx, health.current)
+    ///     // Prints "comet 4.0 5"
     /// }
     /// ```
     ///
-    /// Queries of one, two or three types have overloads specialized for speed.
+    /// Narrow the view with methods such as ``QueryView/without(_:)``, or build a ``Query`` to
+    /// keep the description and use it with `query(_:)`. Queries of one, two or three types run
+    /// through code specialized for that number of types.
     ///
-    /// - Complexity: O(*t*) to create. Iterating is O(*n*) for *n* entities in the smallest
-    ///   queried or required type.
+    /// - Parameter types: The component types an entity must hold, in the order rows list them.
+    /// - Returns: A view of the matching entities, as of this moment.
+    /// - Complexity: O(*t*) for *t* types to create. Iterating is O(*n*) for *n* entities in the
+    ///   smallest queried or required type.
     @inlinable
     public func query<each C: Component>(_ types: repeat (each C).Type) -> QueryView<repeat each C> {
         QueryView(world: self, filter: QueryFilter()) { world in
@@ -200,8 +278,23 @@ extension World {
         }
     }
 
-    /// The entities holding an `A`, with it, lazily.
+    /// Returns the entities that hold a component of the given type, with that component.
     ///
+    /// ```swift
+    /// var world = World()
+    /// world.spawn(Health(current: 3))
+    /// world.spawn(Health(current: 4))
+    ///
+    /// var total = 0
+    /// for (_, health) in world.query(Health.self) {
+    ///     total += health.current
+    /// }
+    /// print(total)
+    /// // Prints "7"
+    /// ```
+    ///
+    /// - Parameter a: The component type to read.
+    /// - Returns: A view of the entities holding an `A`, as of this moment.
     /// - Complexity: O(1) to create. Iterating is O(*n*) for *n* entities in the smallest
     ///   queried or required type.
     @inlinable
@@ -211,8 +304,12 @@ extension World {
         }
     }
 
-    /// The entities holding an `A` and a `B`, with them, lazily.
+    /// Returns the entities that hold components of both given types, with those components.
     ///
+    /// - Parameters:
+    ///   - a: The first component type to read.
+    ///   - b: The second component type to read.
+    /// - Returns: A view of the entities holding an `A` and a `B`, as of this moment.
     /// - Complexity: O(1) to create. Iterating is O(*n*) for *n* entities in the smallest
     ///   queried or required type.
     @inlinable
@@ -222,8 +319,13 @@ extension World {
         }
     }
 
-    /// The entities holding an `A`, a `B` and a `C`, with them, lazily.
+    /// Returns the entities that hold components of all three given types, with those components.
     ///
+    /// - Parameters:
+    ///   - a: The first component type to read.
+    ///   - b: The second component type to read.
+    ///   - c: The third component type to read.
+    /// - Returns: A view of the entities holding an `A`, a `B` and a `C`, as of this moment.
     /// - Complexity: O(1) to create. Iterating is O(*n*) for *n* entities in the smallest
     ///   queried or required type.
     @inlinable
@@ -234,19 +336,31 @@ extension World {
     }
 }
 
-/// The live entities passing a filter, lazily: a query of no component types.
+/// A lazy sequence of the entities that pass a filter, without reading any of their components.
 ///
-/// Like ``QueryView``, a view is a snapshot of the world it came from.
+/// You get a view from a world's `query()` method, which lists every live entity, and narrow it
+/// with methods such as ``with(_:)`` and ``without(_:)``. Use it when you need the entities
+/// themselves, for example to despawn them or pass them to commands:
 ///
 /// ```swift
-/// for entity in world.query().with(Player.self).without(Dead.self) {
-///     print(entity)
+/// var world = World()
+/// world.spawn(Position(x: 0, y: 0), Frozen())
+/// world.spawn(Position(x: 1, y: 1))
+/// world.spawn(Frozen())
+///
+/// for entity in world.query().with(Frozen.self, Position.self) {
+///     world.despawn(entity)
 /// }
+/// print(world.query().count)
+/// // Prints "2"
 /// ```
+///
+/// Like ``QueryView``, a view is a snapshot of the world it came from, so the loop above can
+/// change the world while it iterates.
 @frozen
 public struct EntityQueryView: Sequence, Sendable {
     @usableFromInline let world: World
-    /// The types the entities must hold and must not hold.
+    /// The conditions an entity must meet.
     public let filter: QueryFilter
 
     @inlinable
@@ -255,58 +369,92 @@ public struct EntityQueryView: Sequence, Sendable {
         self.filter = filter
     }
 
-    /// This view, keeping only entities that also hold every one of `types`.
+    /// Returns a view that also requires every one of the given component types.
+    ///
+    /// - Parameter types: The component types an entity must hold.
+    /// - Returns: A view of the entities that also hold every one of `types`.
     @inlinable
     public func with<each F: Component>(_ types: repeat (each F).Type) -> EntityQueryView {
         EntityQueryView(world: world, filter: filter.with(repeat each types))
     }
 
-    /// This view, keeping only entities that hold none of `types`.
+    /// Returns a view that also excludes entities holding any of the given component types.
+    ///
+    /// - Parameter types: The component types an entity must not hold.
+    /// - Returns: A view of the entities that also hold none of `types`.
     @inlinable
     public func without<each F: Component>(_ types: repeat (each F).Type) -> EntityQueryView {
         EntityQueryView(world: world, filter: filter.without(repeat each types))
     }
 
-    /// This view, also keeping entities holding any of `types`, disabling components it skips by
-    /// default (``World/registerDisablingComponent(_:)``).
+    /// Returns a view that also includes the entities holding the given disabling components.
+    ///
+    /// A view skips entities that hold a disabling component, such as ``Disabled``, unless it
+    /// names the type. Use this method to include them.
+    ///
+    /// - Parameter types: The disabling component types whose entities the view includes.
+    /// - Returns: A view that also includes entities holding any of `types`.
     @inlinable
     public func allowing<each F: Component>(_ types: repeat (each F).Type) -> EntityQueryView {
         EntityQueryView(world: world, filter: filter.allowing(repeat each types))
     }
 
-    /// This view, keeping only entities related to `target` by `R`.
+    /// Returns a view that also requires a relation to the given target.
+    ///
+    /// - Parameters:
+    ///   - type: The relation type.
+    ///   - target: The entity a matching entity must relate to by `type`.
+    /// - Returns: A view of the entities that also relate to `target` by `type`.
     @inlinable
     public func related<R: Relation>(_ type: R.Type, to target: Entity) -> EntityQueryView {
         EntityQueryView(world: world, filter: filter.related(R.self, to: target))
     }
 
-    /// This view, keeping only entities whose `F` was added after `since` (nil for the world's
-    /// ``World/lastRun``).
+    /// Returns a view that also requires a component added after the given tick.
+    ///
+    /// - Parameters:
+    ///   - type: The component type an entity must have gained.
+    ///   - since: The tick the component must be newer than, or `nil`, the default, for the
+    ///     world's ``World/lastRun``.
+    /// - Returns: A view of the entities whose `type` was also added after `since`.
     @inlinable
     public func added<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> EntityQueryView {
         EntityQueryView(world: world, filter: filter.added(F.self, since: since))
     }
 
-    /// This view, keeping only entities whose `F` was added or changed after `since` (nil for the
-    /// world's ``World/lastRun``).
+    /// Returns a view that also requires a component added or changed after the given tick.
+    ///
+    /// - Parameters:
+    ///   - type: The component type that must have been added or changed.
+    ///   - since: The tick the change must be newer than, or `nil`, the default, for the world's
+    ///     ``World/lastRun``.
+    /// - Returns: A view of the entities whose `type` was also added or changed after `since`.
     @inlinable
     public func changed<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> EntityQueryView {
         EntityQueryView(world: world, filter: filter.changed(F.self, since: since))
     }
 
-    /// This view, keeping only entities that at least one of `filters` passes.
+    /// Returns a view that also requires an entity to pass at least one of the given filters.
+    ///
+    /// - Parameter filters: The alternatives. With none, the view is empty.
+    /// - Returns: A view of the entities that also pass at least one of `filters`.
     @inlinable
     public func anyOf(_ filters: QueryFilter...) -> EntityQueryView {
         EntityQueryView(world: world, filter: filter.anyOf(filters))
     }
 
-    /// This view, keeping only entities that `filter` passes as well.
+    /// Returns a view that also requires every condition of the given filter.
+    ///
+    /// - Parameter filter: The conditions to add.
+    /// - Returns: A view of the entities that also pass `filter`.
     @inlinable
     public func filtered(by filter: QueryFilter) -> EntityQueryView {
         EntityQueryView(world: world, filter: self.filter.merging(filter))
     }
 
-    /// The number of entities.
+    /// The number of entities in the view.
+    ///
+    /// The view counts its entities by visiting them.
     ///
     /// - Complexity: O(*n*) for *n* entities in the smallest required type, or the world's slots
     ///   when no type is required.
@@ -318,7 +466,7 @@ public struct EntityQueryView: Sequence, Sendable {
         return count
     }
 
-    /// Steps through the entities.
+    /// An iterator over the entities of an entity query view.
     @frozen
     public struct Iterator: IteratorProtocol {
         @usableFromInline let filter: ResolvedFilter
@@ -336,6 +484,7 @@ public struct EntityQueryView: Sequence, Sendable {
             self.driver = resolved.isUnsatisfiable ? [] : driver ?? Array(world.entities)
         }
 
+        /// Advances to the next entity and returns it, or `nil` if no next entity exists.
         @inlinable
         public mutating func next() -> Entity? {
             let checksFilter = !filter.isEmpty
@@ -348,14 +497,19 @@ public struct EntityQueryView: Sequence, Sendable {
         }
     }
 
+    /// Returns an iterator over the entities of the view.
     @inlinable
     public func makeIterator() -> Iterator { Iterator(world: world, filter: filter) }
 }
 
 extension World {
-    /// The live entities, lazily, to be narrowed with ``EntityQueryView/with(_:)`` and
-    /// ``EntityQueryView/without(_:)``.
+    /// Returns every live entity, to narrow with a filter.
     ///
+    /// Narrow the view with methods such as ``EntityQueryView/with(_:)`` and
+    /// ``EntityQueryView/without(_:)``. Like other queries, it skips entities holding a disabling
+    /// component, such as ``Disabled``, unless the filter names the type.
+    ///
+    /// - Returns: A view of the live entities, as of this moment.
     /// - Complexity: O(1) to create.
     @inlinable
     public func query() -> EntityQueryView {

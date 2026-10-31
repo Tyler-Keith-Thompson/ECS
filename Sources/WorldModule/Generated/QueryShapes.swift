@@ -2239,6 +2239,10 @@ extension World {
 }
 
 extension World {
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component>(_ query: Query<T0>) -> QueryView<T0> {
@@ -2247,6 +2251,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, Failure: Error>(
@@ -2260,6 +2268,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, Failure: Error>(
@@ -2273,6 +2285,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, Failure: Error>(
@@ -2286,6 +2302,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component>(_ query: Query<AnyOf<T0_0, T0_1>>) -> QueryView<(T0_0?, T0_1?)> {
@@ -2294,6 +2314,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, Failure: Error>(
@@ -2307,6 +2331,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, Failure: Error>(
@@ -2320,6 +2348,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, Failure: Error>(
@@ -2333,6 +2365,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>>) -> QueryView<(T0_0?, T0_1?, T0_2?)> {
@@ -2341,6 +2377,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, Failure: Error>(
@@ -2354,6 +2394,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, Failure: Error>(
@@ -2367,6 +2411,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, Failure: Error>(
@@ -2380,6 +2428,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?)> {
@@ -2388,6 +2440,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, Failure: Error>(
@@ -2401,6 +2457,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, Failure: Error>(
@@ -2414,6 +2474,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, Failure: Error>(
@@ -2427,6 +2491,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1: Component>(_ query: Query<T0, T1>) -> QueryView<T0, T1> {
@@ -2435,6 +2503,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1: Component, Failure: Error>(
@@ -2448,6 +2520,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1: Component, Failure: Error>(
@@ -2461,6 +2537,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1: Component, Failure: Error>(
@@ -2474,6 +2554,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1_0: Component, T1_1: Component>(_ query: Query<T0, AnyOf<T1_0, T1_1>>) -> QueryView<T0, (T1_0?, T1_1?)> {
@@ -2482,6 +2566,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1_0: Component, T1_1: Component, Failure: Error>(
@@ -2495,6 +2583,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1_0: Component, T1_1: Component, Failure: Error>(
@@ -2508,6 +2600,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1_0: Component, T1_1: Component, Failure: Error>(
@@ -2521,6 +2617,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1_0: Component, T1_1: Component, T1_2: Component>(_ query: Query<T0, AnyOf<T1_0, T1_1, T1_2>>) -> QueryView<T0, (T1_0?, T1_1?, T1_2?)> {
@@ -2529,6 +2629,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, Failure: Error>(
@@ -2542,6 +2646,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, Failure: Error>(
@@ -2555,6 +2663,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, Failure: Error>(
@@ -2568,6 +2680,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component>(_ query: Query<T0, AnyOf<T1_0, T1_1, T1_2, T1_3>>) -> QueryView<T0, (T1_0?, T1_1?, T1_2?, T1_3?)> {
@@ -2576,6 +2692,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, Failure: Error>(
@@ -2589,6 +2709,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, Failure: Error>(
@@ -2602,6 +2726,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, Failure: Error>(
@@ -2615,6 +2743,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1: Component>(_ query: Query<AnyOf<T0_0, T0_1>, T1>) -> QueryView<(T0_0?, T0_1?), T1> {
@@ -2623,6 +2755,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1: Component, Failure: Error>(
@@ -2636,6 +2772,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1: Component, Failure: Error>(
@@ -2649,6 +2789,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1: Component, Failure: Error>(
@@ -2662,6 +2806,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component>(_ query: Query<AnyOf<T0_0, T0_1>, AnyOf<T1_0, T1_1>>) -> QueryView<(T0_0?, T0_1?), (T1_0?, T1_1?)> {
@@ -2670,6 +2818,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, Failure: Error>(
@@ -2683,6 +2835,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, Failure: Error>(
@@ -2696,6 +2852,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, Failure: Error>(
@@ -2709,6 +2869,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component>(_ query: Query<AnyOf<T0_0, T0_1>, AnyOf<T1_0, T1_1, T1_2>>) -> QueryView<(T0_0?, T0_1?), (T1_0?, T1_1?, T1_2?)> {
@@ -2717,6 +2881,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, Failure: Error>(
@@ -2730,6 +2898,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, Failure: Error>(
@@ -2743,6 +2915,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, Failure: Error>(
@@ -2756,6 +2932,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component>(_ query: Query<AnyOf<T0_0, T0_1>, AnyOf<T1_0, T1_1, T1_2, T1_3>>) -> QueryView<(T0_0?, T0_1?), (T1_0?, T1_1?, T1_2?, T1_3?)> {
@@ -2764,6 +2944,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, Failure: Error>(
@@ -2777,6 +2961,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, Failure: Error>(
@@ -2790,6 +2978,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, Failure: Error>(
@@ -2803,6 +2995,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, T1>) -> QueryView<(T0_0?, T0_1?, T0_2?), T1> {
@@ -2811,6 +3007,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, Failure: Error>(
@@ -2824,6 +3024,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, Failure: Error>(
@@ -2837,6 +3041,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, Failure: Error>(
@@ -2850,6 +3058,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, AnyOf<T1_0, T1_1>>) -> QueryView<(T0_0?, T0_1?, T0_2?), (T1_0?, T1_1?)> {
@@ -2858,6 +3070,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, Failure: Error>(
@@ -2871,6 +3087,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, Failure: Error>(
@@ -2884,6 +3104,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, Failure: Error>(
@@ -2897,6 +3121,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, AnyOf<T1_0, T1_1, T1_2>>) -> QueryView<(T0_0?, T0_1?, T0_2?), (T1_0?, T1_1?, T1_2?)> {
@@ -2905,6 +3133,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, Failure: Error>(
@@ -2918,6 +3150,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, Failure: Error>(
@@ -2931,6 +3167,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, Failure: Error>(
@@ -2944,6 +3184,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, AnyOf<T1_0, T1_1, T1_2, T1_3>>) -> QueryView<(T0_0?, T0_1?, T0_2?), (T1_0?, T1_1?, T1_2?, T1_3?)> {
@@ -2952,6 +3196,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, Failure: Error>(
@@ -2965,6 +3213,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, Failure: Error>(
@@ -2978,6 +3230,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, Failure: Error>(
@@ -2991,6 +3247,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, T1>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), T1> {
@@ -2999,6 +3259,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, Failure: Error>(
@@ -3012,6 +3276,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, Failure: Error>(
@@ -3025,6 +3293,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, Failure: Error>(
@@ -3038,6 +3310,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, AnyOf<T1_0, T1_1>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), (T1_0?, T1_1?)> {
@@ -3046,6 +3322,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, Failure: Error>(
@@ -3059,6 +3339,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, Failure: Error>(
@@ -3072,6 +3356,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, Failure: Error>(
@@ -3085,6 +3373,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, AnyOf<T1_0, T1_1, T1_2>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), (T1_0?, T1_1?, T1_2?)> {
@@ -3093,6 +3385,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, Failure: Error>(
@@ -3106,6 +3402,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, Failure: Error>(
@@ -3119,6 +3419,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, Failure: Error>(
@@ -3132,6 +3436,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, AnyOf<T1_0, T1_1, T1_2, T1_3>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), (T1_0?, T1_1?, T1_2?, T1_3?)> {
@@ -3140,6 +3448,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, Failure: Error>(
@@ -3153,6 +3465,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, Failure: Error>(
@@ -3166,6 +3482,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, Failure: Error>(
@@ -3179,6 +3499,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1: Component, T2: Component>(_ query: Query<T0, T1, T2>) -> QueryView<T0, T1, T2> {
@@ -3187,6 +3511,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1: Component, T2: Component, Failure: Error>(
@@ -3200,6 +3528,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1: Component, T2: Component, Failure: Error>(
@@ -3213,6 +3545,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1: Component, T2: Component, Failure: Error>(
@@ -3226,6 +3562,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1: Component, T2_0: Component, T2_1: Component>(_ query: Query<T0, T1, AnyOf<T2_0, T2_1>>) -> QueryView<T0, T1, (T2_0?, T2_1?)> {
@@ -3234,6 +3574,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -3247,6 +3591,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -3260,6 +3608,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -3273,6 +3625,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<T0, T1, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<T0, T1, (T2_0?, T2_1?, T2_2?)> {
@@ -3281,6 +3637,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -3294,6 +3654,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -3307,6 +3671,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -3320,6 +3688,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<T0, T1, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<T0, T1, (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -3328,6 +3700,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -3341,6 +3717,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -3354,6 +3734,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -3367,6 +3751,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1_0: Component, T1_1: Component, T2: Component>(_ query: Query<T0, AnyOf<T1_0, T1_1>, T2>) -> QueryView<T0, (T1_0?, T1_1?), T2> {
@@ -3375,6 +3763,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1_0: Component, T1_1: Component, T2: Component, Failure: Error>(
@@ -3388,6 +3780,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1_0: Component, T1_1: Component, T2: Component, Failure: Error>(
@@ -3401,6 +3797,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1_0: Component, T1_1: Component, T2: Component, Failure: Error>(
@@ -3414,6 +3814,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component>(_ query: Query<T0, AnyOf<T1_0, T1_1>, AnyOf<T2_0, T2_1>>) -> QueryView<T0, (T1_0?, T1_1?), (T2_0?, T2_1?)> {
@@ -3422,6 +3826,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -3435,6 +3843,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -3448,6 +3860,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -3461,6 +3877,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<T0, AnyOf<T1_0, T1_1>, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<T0, (T1_0?, T1_1?), (T2_0?, T2_1?, T2_2?)> {
@@ -3469,6 +3889,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -3482,6 +3906,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -3495,6 +3923,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -3508,6 +3940,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<T0, AnyOf<T1_0, T1_1>, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<T0, (T1_0?, T1_1?), (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -3516,6 +3952,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -3529,6 +3969,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -3542,6 +3986,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -3555,6 +4003,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component>(_ query: Query<T0, AnyOf<T1_0, T1_1, T1_2>, T2>) -> QueryView<T0, (T1_0?, T1_1?, T1_2?), T2> {
@@ -3563,6 +4015,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component, Failure: Error>(
@@ -3576,6 +4032,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component, Failure: Error>(
@@ -3589,6 +4049,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component, Failure: Error>(
@@ -3602,6 +4066,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component>(_ query: Query<T0, AnyOf<T1_0, T1_1, T1_2>, AnyOf<T2_0, T2_1>>) -> QueryView<T0, (T1_0?, T1_1?, T1_2?), (T2_0?, T2_1?)> {
@@ -3610,6 +4078,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -3623,6 +4095,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -3636,6 +4112,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -3649,6 +4129,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<T0, AnyOf<T1_0, T1_1, T1_2>, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<T0, (T1_0?, T1_1?, T1_2?), (T2_0?, T2_1?, T2_2?)> {
@@ -3657,6 +4141,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -3670,6 +4158,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -3683,6 +4175,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -3696,6 +4192,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<T0, AnyOf<T1_0, T1_1, T1_2>, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<T0, (T1_0?, T1_1?, T1_2?), (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -3704,6 +4204,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -3717,6 +4221,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -3730,6 +4238,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -3743,6 +4255,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component>(_ query: Query<T0, AnyOf<T1_0, T1_1, T1_2, T1_3>, T2>) -> QueryView<T0, (T1_0?, T1_1?, T1_2?, T1_3?), T2> {
@@ -3751,6 +4267,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component, Failure: Error>(
@@ -3764,6 +4284,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component, Failure: Error>(
@@ -3777,6 +4301,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component, Failure: Error>(
@@ -3790,6 +4318,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component>(_ query: Query<T0, AnyOf<T1_0, T1_1, T1_2, T1_3>, AnyOf<T2_0, T2_1>>) -> QueryView<T0, (T1_0?, T1_1?, T1_2?, T1_3?), (T2_0?, T2_1?)> {
@@ -3798,6 +4330,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -3811,6 +4347,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -3824,6 +4364,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -3837,6 +4381,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<T0, AnyOf<T1_0, T1_1, T1_2, T1_3>, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<T0, (T1_0?, T1_1?, T1_2?, T1_3?), (T2_0?, T2_1?, T2_2?)> {
@@ -3845,6 +4393,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -3858,6 +4410,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -3871,6 +4427,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -3884,6 +4444,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<T0, AnyOf<T1_0, T1_1, T1_2, T1_3>, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<T0, (T1_0?, T1_1?, T1_2?, T1_3?), (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -3892,6 +4456,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -3905,6 +4473,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -3918,6 +4490,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -3931,6 +4507,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1: Component, T2: Component>(_ query: Query<AnyOf<T0_0, T0_1>, T1, T2>) -> QueryView<(T0_0?, T0_1?), T1, T2> {
@@ -3939,6 +4519,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1: Component, T2: Component, Failure: Error>(
@@ -3952,6 +4536,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1: Component, T2: Component, Failure: Error>(
@@ -3965,6 +4553,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1: Component, T2: Component, Failure: Error>(
@@ -3978,6 +4570,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1: Component, T2_0: Component, T2_1: Component>(_ query: Query<AnyOf<T0_0, T0_1>, T1, AnyOf<T2_0, T2_1>>) -> QueryView<(T0_0?, T0_1?), T1, (T2_0?, T2_1?)> {
@@ -3986,6 +4582,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -3999,6 +4599,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4012,6 +4616,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4025,6 +4633,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<AnyOf<T0_0, T0_1>, T1, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<(T0_0?, T0_1?), T1, (T2_0?, T2_1?, T2_2?)> {
@@ -4033,6 +4645,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4046,6 +4662,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4059,6 +4679,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4072,6 +4696,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<AnyOf<T0_0, T0_1>, T1, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<(T0_0?, T0_1?), T1, (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -4080,6 +4708,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -4093,6 +4725,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -4106,6 +4742,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -4119,6 +4759,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2: Component>(_ query: Query<AnyOf<T0_0, T0_1>, AnyOf<T1_0, T1_1>, T2>) -> QueryView<(T0_0?, T0_1?), (T1_0?, T1_1?), T2> {
@@ -4127,6 +4771,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2: Component, Failure: Error>(
@@ -4140,6 +4788,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2: Component, Failure: Error>(
@@ -4153,6 +4805,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2: Component, Failure: Error>(
@@ -4166,6 +4822,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component>(_ query: Query<AnyOf<T0_0, T0_1>, AnyOf<T1_0, T1_1>, AnyOf<T2_0, T2_1>>) -> QueryView<(T0_0?, T0_1?), (T1_0?, T1_1?), (T2_0?, T2_1?)> {
@@ -4174,6 +4834,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4187,6 +4851,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4200,6 +4868,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4213,6 +4885,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<AnyOf<T0_0, T0_1>, AnyOf<T1_0, T1_1>, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<(T0_0?, T0_1?), (T1_0?, T1_1?), (T2_0?, T2_1?, T2_2?)> {
@@ -4221,6 +4897,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4234,6 +4914,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4247,6 +4931,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4260,6 +4948,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<AnyOf<T0_0, T0_1>, AnyOf<T1_0, T1_1>, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<(T0_0?, T0_1?), (T1_0?, T1_1?), (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -4268,6 +4960,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -4281,6 +4977,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -4294,6 +4994,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -4307,6 +5011,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component>(_ query: Query<AnyOf<T0_0, T0_1>, AnyOf<T1_0, T1_1, T1_2>, T2>) -> QueryView<(T0_0?, T0_1?), (T1_0?, T1_1?, T1_2?), T2> {
@@ -4315,6 +5023,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component, Failure: Error>(
@@ -4328,6 +5040,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component, Failure: Error>(
@@ -4341,6 +5057,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component, Failure: Error>(
@@ -4354,6 +5074,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component>(_ query: Query<AnyOf<T0_0, T0_1>, AnyOf<T1_0, T1_1, T1_2>, AnyOf<T2_0, T2_1>>) -> QueryView<(T0_0?, T0_1?), (T1_0?, T1_1?, T1_2?), (T2_0?, T2_1?)> {
@@ -4362,6 +5086,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4375,6 +5103,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4388,6 +5120,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4401,6 +5137,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<AnyOf<T0_0, T0_1>, AnyOf<T1_0, T1_1, T1_2>, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<(T0_0?, T0_1?), (T1_0?, T1_1?, T1_2?), (T2_0?, T2_1?, T2_2?)> {
@@ -4409,6 +5149,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4422,6 +5166,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4435,6 +5183,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4448,6 +5200,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<AnyOf<T0_0, T0_1>, AnyOf<T1_0, T1_1, T1_2>, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<(T0_0?, T0_1?), (T1_0?, T1_1?, T1_2?), (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -4456,6 +5212,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -4469,6 +5229,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -4482,6 +5246,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -4495,6 +5263,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component>(_ query: Query<AnyOf<T0_0, T0_1>, AnyOf<T1_0, T1_1, T1_2, T1_3>, T2>) -> QueryView<(T0_0?, T0_1?), (T1_0?, T1_1?, T1_2?, T1_3?), T2> {
@@ -4503,6 +5275,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component, Failure: Error>(
@@ -4516,6 +5292,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component, Failure: Error>(
@@ -4529,6 +5309,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component, Failure: Error>(
@@ -4542,6 +5326,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component>(_ query: Query<AnyOf<T0_0, T0_1>, AnyOf<T1_0, T1_1, T1_2, T1_3>, AnyOf<T2_0, T2_1>>) -> QueryView<(T0_0?, T0_1?), (T1_0?, T1_1?, T1_2?, T1_3?), (T2_0?, T2_1?)> {
@@ -4550,6 +5338,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4563,6 +5355,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4576,6 +5372,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4589,6 +5389,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<AnyOf<T0_0, T0_1>, AnyOf<T1_0, T1_1, T1_2, T1_3>, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<(T0_0?, T0_1?), (T1_0?, T1_1?, T1_2?, T1_3?), (T2_0?, T2_1?, T2_2?)> {
@@ -4597,6 +5401,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4610,6 +5418,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4623,6 +5435,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4636,6 +5452,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<AnyOf<T0_0, T0_1>, AnyOf<T1_0, T1_1, T1_2, T1_3>, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<(T0_0?, T0_1?), (T1_0?, T1_1?, T1_2?, T1_3?), (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -4644,6 +5464,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -4657,6 +5481,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -4670,6 +5498,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -4683,6 +5515,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, T1, T2>) -> QueryView<(T0_0?, T0_1?, T0_2?), T1, T2> {
@@ -4691,6 +5527,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2: Component, Failure: Error>(
@@ -4704,6 +5544,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2: Component, Failure: Error>(
@@ -4717,6 +5561,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2: Component, Failure: Error>(
@@ -4730,6 +5578,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2_0: Component, T2_1: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, T1, AnyOf<T2_0, T2_1>>) -> QueryView<(T0_0?, T0_1?, T0_2?), T1, (T2_0?, T2_1?)> {
@@ -4738,6 +5590,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4751,6 +5607,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4764,6 +5624,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4777,6 +5641,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, T1, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<(T0_0?, T0_1?, T0_2?), T1, (T2_0?, T2_1?, T2_2?)> {
@@ -4785,6 +5653,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4798,6 +5670,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4811,6 +5687,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4824,6 +5704,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, T1, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<(T0_0?, T0_1?, T0_2?), T1, (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -4832,6 +5716,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -4845,6 +5733,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -4858,6 +5750,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -4871,6 +5767,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, AnyOf<T1_0, T1_1>, T2>) -> QueryView<(T0_0?, T0_1?, T0_2?), (T1_0?, T1_1?), T2> {
@@ -4879,6 +5779,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2: Component, Failure: Error>(
@@ -4892,6 +5796,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2: Component, Failure: Error>(
@@ -4905,6 +5813,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2: Component, Failure: Error>(
@@ -4918,6 +5830,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, AnyOf<T1_0, T1_1>, AnyOf<T2_0, T2_1>>) -> QueryView<(T0_0?, T0_1?, T0_2?), (T1_0?, T1_1?), (T2_0?, T2_1?)> {
@@ -4926,6 +5842,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4939,6 +5859,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4952,6 +5876,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -4965,6 +5893,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, AnyOf<T1_0, T1_1>, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<(T0_0?, T0_1?, T0_2?), (T1_0?, T1_1?), (T2_0?, T2_1?, T2_2?)> {
@@ -4973,6 +5905,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4986,6 +5922,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -4999,6 +5939,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5012,6 +5956,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, AnyOf<T1_0, T1_1>, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<(T0_0?, T0_1?, T0_2?), (T1_0?, T1_1?), (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -5020,6 +5968,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5033,6 +5985,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5046,6 +6002,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5059,6 +6019,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, AnyOf<T1_0, T1_1, T1_2>, T2>) -> QueryView<(T0_0?, T0_1?, T0_2?), (T1_0?, T1_1?, T1_2?), T2> {
@@ -5067,6 +6031,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component, Failure: Error>(
@@ -5080,6 +6048,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component, Failure: Error>(
@@ -5093,6 +6065,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component, Failure: Error>(
@@ -5106,6 +6082,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, AnyOf<T1_0, T1_1, T1_2>, AnyOf<T2_0, T2_1>>) -> QueryView<(T0_0?, T0_1?, T0_2?), (T1_0?, T1_1?, T1_2?), (T2_0?, T2_1?)> {
@@ -5114,6 +6094,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -5127,6 +6111,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -5140,6 +6128,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -5153,6 +6145,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, AnyOf<T1_0, T1_1, T1_2>, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<(T0_0?, T0_1?, T0_2?), (T1_0?, T1_1?, T1_2?), (T2_0?, T2_1?, T2_2?)> {
@@ -5161,6 +6157,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5174,6 +6174,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5187,6 +6191,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5200,6 +6208,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, AnyOf<T1_0, T1_1, T1_2>, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<(T0_0?, T0_1?, T0_2?), (T1_0?, T1_1?, T1_2?), (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -5208,6 +6220,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5221,6 +6237,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5234,6 +6254,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5247,6 +6271,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, AnyOf<T1_0, T1_1, T1_2, T1_3>, T2>) -> QueryView<(T0_0?, T0_1?, T0_2?), (T1_0?, T1_1?, T1_2?, T1_3?), T2> {
@@ -5255,6 +6283,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component, Failure: Error>(
@@ -5268,6 +6300,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component, Failure: Error>(
@@ -5281,6 +6317,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component, Failure: Error>(
@@ -5294,6 +6334,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, AnyOf<T1_0, T1_1, T1_2, T1_3>, AnyOf<T2_0, T2_1>>) -> QueryView<(T0_0?, T0_1?, T0_2?), (T1_0?, T1_1?, T1_2?, T1_3?), (T2_0?, T2_1?)> {
@@ -5302,6 +6346,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -5315,6 +6363,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -5328,6 +6380,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -5341,6 +6397,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, AnyOf<T1_0, T1_1, T1_2, T1_3>, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<(T0_0?, T0_1?, T0_2?), (T1_0?, T1_1?, T1_2?, T1_3?), (T2_0?, T2_1?, T2_2?)> {
@@ -5349,6 +6409,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5362,6 +6426,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5375,6 +6443,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5388,6 +6460,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2>, AnyOf<T1_0, T1_1, T1_2, T1_3>, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<(T0_0?, T0_1?, T0_2?), (T1_0?, T1_1?, T1_2?, T1_3?), (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -5396,6 +6472,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5409,6 +6489,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5422,6 +6506,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5435,6 +6523,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, T1, T2>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), T1, T2> {
@@ -5443,6 +6535,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2: Component, Failure: Error>(
@@ -5456,6 +6552,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2: Component, Failure: Error>(
@@ -5469,6 +6569,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2: Component, Failure: Error>(
@@ -5482,6 +6586,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2_0: Component, T2_1: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, T1, AnyOf<T2_0, T2_1>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), T1, (T2_0?, T2_1?)> {
@@ -5490,6 +6598,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -5503,6 +6615,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -5516,6 +6632,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -5529,6 +6649,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, T1, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), T1, (T2_0?, T2_1?, T2_2?)> {
@@ -5537,6 +6661,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5550,6 +6678,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5563,6 +6695,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5576,6 +6712,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, T1, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), T1, (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -5584,6 +6724,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5597,6 +6741,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5610,6 +6758,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5623,6 +6775,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, AnyOf<T1_0, T1_1>, T2>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), (T1_0?, T1_1?), T2> {
@@ -5631,6 +6787,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2: Component, Failure: Error>(
@@ -5644,6 +6804,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2: Component, Failure: Error>(
@@ -5657,6 +6821,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2: Component, Failure: Error>(
@@ -5670,6 +6838,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, AnyOf<T1_0, T1_1>, AnyOf<T2_0, T2_1>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), (T1_0?, T1_1?), (T2_0?, T2_1?)> {
@@ -5678,6 +6850,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -5691,6 +6867,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -5704,6 +6884,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -5717,6 +6901,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, AnyOf<T1_0, T1_1>, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), (T1_0?, T1_1?), (T2_0?, T2_1?, T2_2?)> {
@@ -5725,6 +6913,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5738,6 +6930,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5751,6 +6947,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5764,6 +6964,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, AnyOf<T1_0, T1_1>, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), (T1_0?, T1_1?), (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -5772,6 +6976,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5785,6 +6993,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5798,6 +7010,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5811,6 +7027,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, AnyOf<T1_0, T1_1, T1_2>, T2>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), (T1_0?, T1_1?, T1_2?), T2> {
@@ -5819,6 +7039,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component, Failure: Error>(
@@ -5832,6 +7056,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component, Failure: Error>(
@@ -5845,6 +7073,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2: Component, Failure: Error>(
@@ -5858,6 +7090,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, AnyOf<T1_0, T1_1, T1_2>, AnyOf<T2_0, T2_1>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), (T1_0?, T1_1?, T1_2?), (T2_0?, T2_1?)> {
@@ -5866,6 +7102,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -5879,6 +7119,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -5892,6 +7136,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -5905,6 +7153,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, AnyOf<T1_0, T1_1, T1_2>, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), (T1_0?, T1_1?, T1_2?), (T2_0?, T2_1?, T2_2?)> {
@@ -5913,6 +7165,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5926,6 +7182,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5939,6 +7199,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -5952,6 +7216,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, AnyOf<T1_0, T1_1, T1_2>, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), (T1_0?, T1_1?, T1_2?), (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -5960,6 +7228,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5973,6 +7245,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5986,6 +7262,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -5999,6 +7279,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, AnyOf<T1_0, T1_1, T1_2, T1_3>, T2>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), (T1_0?, T1_1?, T1_2?, T1_3?), T2> {
@@ -6007,6 +7291,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component, Failure: Error>(
@@ -6020,6 +7308,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component, Failure: Error>(
@@ -6033,6 +7325,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2: Component, Failure: Error>(
@@ -6046,6 +7342,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, AnyOf<T1_0, T1_1, T1_2, T1_3>, AnyOf<T2_0, T2_1>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), (T1_0?, T1_1?, T1_2?, T1_3?), (T2_0?, T2_1?)> {
@@ -6054,6 +7354,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -6067,6 +7371,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -6080,6 +7388,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, Failure: Error>(
@@ -6093,6 +7405,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, AnyOf<T1_0, T1_1, T1_2, T1_3>, AnyOf<T2_0, T2_1, T2_2>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), (T1_0?, T1_1?, T1_2?, T1_3?), (T2_0?, T2_1?, T2_2?)> {
@@ -6101,6 +7417,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -6114,6 +7434,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -6127,6 +7451,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, Failure: Error>(
@@ -6140,6 +7468,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Returns the entities that match a query of this shape, with the values of its terms.
+    ///
+    /// A specialization of `query(_:)` for this exact shape of query, chosen by overload
+    /// resolution; it lists the same rows.
     @_documentation(visibility: internal)
     @inlinable
     public func query<T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component>(_ query: Query<AnyOf<T0_0, T0_1, T0_2, T0_3>, AnyOf<T1_0, T1_1, T1_2, T1_3>, AnyOf<T2_0, T2_1, T2_2, T2_3>>) -> QueryView<(T0_0?, T0_1?, T0_2?, T0_3?), (T1_0?, T1_1?, T1_2?, T1_3?), (T2_0?, T2_1?, T2_2?, T2_3?)> {
@@ -6148,6 +7480,10 @@ extension World {
         }
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -6161,6 +7497,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(
@@ -6174,6 +7514,10 @@ extension World {
             filter: query.filter, body: body)
     }
 
+    /// Changes components of every entity that matches a query of this shape, in place.
+    ///
+    /// A specialization of `update(_:over:body:)` for this exact shape of query and number of
+    /// changed types, chosen by overload resolution; it visits the same entities.
     @_documentation(visibility: internal)
     @inlinable
     public mutating func update<W0: Component, W1: Component, W2: Component, T0_0: Component, T0_1: Component, T0_2: Component, T0_3: Component, T1_0: Component, T1_1: Component, T1_2: Component, T1_3: Component, T2_0: Component, T2_1: Component, T2_2: Component, T2_3: Component, Failure: Error>(

@@ -69,12 +69,15 @@ sources:
     #!/usr/bin/env bash
     set -euo pipefail
     cd {{PROJECT_ROOT}}
-    targets=$({{BAZEL}} query 'attr(generator_function, generated_swift_source, kind(genrule, //Sources/...))')
+    targets=$({{BAZEL}} query 'attr(generator_function, generated_swift_source, kind(genrule, //Sources/... + //Tests/...))')
     {{BAZEL}} build $targets
     for target in $targets; do
-        package="${target#//}"; package="${package%%:*}"; name="${target##*:}"
-        mkdir -p "$package/Generated"
-        install -m 644 "bazel-bin/$package/$name.swift" "$package/Generated/$name.swift"
+        package="${target#//}"; package="${package%%:*}"
+        for output in $({{BAZEL}} cquery "$target" --output=files 2>/dev/null); do
+            copy="$package/Generated/${output#*/bin/$package/}"
+            mkdir -p "$(dirname "$copy")"
+            install -m 644 "$output" "$copy"
+        done
     done
 
 [doc('Build the combined DocC site for every library module into .build/docs (what the DocC workflow publishes)')]

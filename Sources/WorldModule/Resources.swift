@@ -1,9 +1,21 @@
-/// The values a world holds once, outside any entity, keyed by their type.
+/// A collection of resources, holding at most one value of each type.
+///
+/// Every world has a resources collection, its ``World/resources`` property. You add a resource
+/// with ``insert(_:)``, then read and change it in place through its type:
 ///
 /// ```swift
-/// world.resources.insert(Time(elapsed: .zero))
-/// world.resources[Time.self].elapsed += .milliseconds(16)
+/// struct Gravity: Resource { var acceleration: Double }
+///
+/// var world = World()
+/// world.resources.insert(Gravity(acceleration: -9.8))
+/// world.resources[Gravity.self].acceleration *= 0.5
+///
+/// print(world.resources[Gravity.self].acceleration)
+/// // Prints "-4.9"
 /// ```
+///
+/// Reading a resource the collection doesn't hold traps, in the same way that reading an array
+/// out of bounds does. Use ``subscript(checked:)`` when the resource may be missing.
 @frozen
 public struct Resources: Sendable {
     @usableFromInline var storage: [ObjectIdentifier: any Resource] = [:]
@@ -13,19 +25,24 @@ public struct Resources: Sendable {
     @usableFromInline var permitted: PermittedResources?
     #endif
 
-    /// No resources.
+    /// Creates an empty collection of resources.
     @inlinable
     public init() {}
 
-    /// The number of resources.
+    /// The number of resources in the collection.
     @inlinable
     public var count: Int { storage.count }
 
-    /// Whether there are no resources.
+    /// A Boolean value indicating whether the collection holds no resources.
     @inlinable
     public var isEmpty: Bool { storage.isEmpty }
 
-    /// Whether there is an `R`.
+    /// Returns a Boolean value indicating whether the collection holds a resource of the given
+    /// type.
+    ///
+    /// - Parameter type: The resource type to look for.
+    /// - Returns: `true` if the collection holds a resource of type `type`; otherwise, `false`.
+    /// - Complexity: O(1).
     @inlinable
     public func contains<R: Resource>(_ type: R.Type) -> Bool {
         #if DEBUG
@@ -34,7 +51,10 @@ public struct Resources: Sendable {
         return storage[ObjectIdentifier(R.self)] != nil
     }
 
-    /// Stores `resource`, replacing any `R`.
+    /// Adds a resource to the collection, replacing any of the same type.
+    ///
+    /// - Parameter resource: The resource to add.
+    /// - Complexity: O(1) amortized.
     @inlinable
     public mutating func insert<R: Resource>(_ resource: R) {
         #if DEBUG
@@ -43,9 +63,21 @@ public struct Resources: Sendable {
         storage[ObjectIdentifier(R.self)] = resource
     }
 
-    /// Takes the `R` away.
+    /// Removes and returns the resource of the given type.
     ///
-    /// - Returns: The `R` there was, or `nil` if there was none.
+    /// ```swift
+    /// var world = World()
+    /// world.resources.insert(Gravity(acceleration: -9.8))
+    ///
+    /// let removed = world.resources.remove(Gravity.self)
+    /// print(removed?.acceleration ?? 0, world.resources.isEmpty)
+    /// // Prints "-9.8 true"
+    /// ```
+    ///
+    /// - Parameter type: The type of the resource to remove.
+    /// - Returns: The resource that was removed, or `nil` if the collection held none of type
+    ///   `type`.
+    /// - Complexity: O(1).
     @inlinable
     @discardableResult
     public mutating func remove<R: Resource>(_ type: R.Type) -> R? {
@@ -55,9 +87,15 @@ public struct Resources: Sendable {
         return storage.removeValue(forKey: ObjectIdentifier(R.self)).map { $0 as! R }
     }
 
-    /// The `R`, which can be changed in place.
+    /// Accesses the resource of the given type.
     ///
-    /// - Precondition: There is an `R`. Use ``subscript(checked:)`` to throw instead.
+    /// Use this subscript to read a resource, or to change it in place:
+    /// `world.resources[Gravity.self].acceleration = -1.6`.
+    ///
+    /// - Parameter type: The type of the resource to access.
+    /// - Complexity: O(1).
+    /// - Precondition: The collection holds a resource of type `type`. The checked spelling,
+    ///   ``subscript(checked:)``, throws instead.
     @inlinable
     public subscript<R: Resource>(_ type: R.Type) -> R {
         get {
@@ -83,9 +121,20 @@ public struct Resources: Sendable {
         }
     }
 
-    /// The `R`.
+    /// Reads the resource of the given type, throwing an error if the collection holds none.
     ///
-    /// - Throws: ``MissingResource`` when there is no `R`.
+    /// Write `try?` to get `nil` instead of an error:
+    ///
+    /// ```swift
+    /// let world = World()
+    /// let gravity = try? world.resources[checked: Gravity.self]
+    /// print(gravity == nil)
+    /// // Prints "true"
+    /// ```
+    ///
+    /// - Parameter type: The type of the resource to read.
+    /// - Throws: ``MissingResource`` if the collection holds no resource of type `type`.
+    /// - Complexity: O(1).
     @inlinable
     public subscript<R: Resource>(checked type: R.Type) -> R {
         get throws(MissingResource) {

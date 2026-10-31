@@ -78,30 +78,51 @@ extension QueryFilter {
 extension World {
     // MARK: Cached queries
 
-    /// Keeps the entities `query` matches from now on, so queries and updates whose conditions
-    /// imply it visit only those entities rather than walking a whole column.
+    /// Keeps a list of the entities that match a query's structure, so that queries and updates
+    /// with the same conditions visit only those entities.
     ///
-    /// The cache holds the entities with every component term of `query` and every type its
-    /// filter requires, none it excludes or skips by default (``Disabled``), and passing its
-    /// groups of alternatives that name no change ticks. Spawning, inserting, removing and
-    /// despawning keep it current. A visit uses the cache when it requires every type the cache
-    /// requires, excludes every type the cache excludes and has the same groups of
-    /// alternatives, and the cache is smaller than the columns it would otherwise walk; what it
-    /// lists does not change.
+    /// A query normally walks the storage of one of its types and checks every entity there
+    /// against the rest of its conditions. When few of those entities match, most of that walk is
+    /// wasted. A cached query keeps the matching entities in a list of their own, kept current as
+    /// you spawn, insert, remove and despawn, so a visit can walk that list instead.
+    ///
+    /// Use a cache for a query you run often whose conditions exclude most of the entities it
+    /// would otherwise walk, such as the few entities that are awake among many asleep:
     ///
     /// ```swift
-    /// let awake = Query(Position.self, Velocity.self).without(Sleeping.self)
-    /// world.cache(awake)
-    /// world.update(Position.self, reading: Velocity.self, where: .without(Sleeping.self)) { … }
+    /// struct Asleep: Component {}
     /// ```
     ///
-    /// ``AnyOf`` terms, change-tick filters and relation filters do not narrow the cache; the visit still checks
-    /// them for each cached entity. Caching the same conditions twice keeps one cache. A copy of
-    /// the world keeps its caches; a snapshot does not.
+    /// ```swift
+    /// var world = World()
+    /// let awake = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0))
+    /// let sleeper = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 0), Asleep())
     ///
+    /// world.cache(Query(Position.self, Velocity.self).without(Asleep.self))
+    ///
+    /// world.update(Position.self, reading: Velocity.self, where: .without(Asleep.self)) { position, row in
+    ///     position.x += row.components.dx
+    /// }
+    /// print(world[Position.self, of: awake].x, world[Position.self, of: sleeper].x)
+    /// // Prints "1.0 0.0"
+    /// ```
+    ///
+    /// The cache holds the entities that hold every component term of `query` and every type its
+    /// filter requires, hold none of the types it excludes or skips by default (such as
+    /// ``Disabled``), and pass its groups of alternatives that name no change ticks. A query or
+    /// update uses the cache when its own conditions imply the cache's: it requires every type the
+    /// cache requires, excludes every type the cache excludes, and has the same groups of
+    /// alternatives. It walks the cache only when the cache is smaller than the storage it would
+    /// otherwise walk. A cache never changes which entities a visit finds, only how it finds them.
+    ///
+    /// ``AnyOf`` terms, change-tick filters and relation filters don't narrow the cache; a visit
+    /// still checks them for each cached entity. Caching the same conditions twice keeps one
+    /// cache. A copy of the world keeps its caches; a snapshot doesn't.
+    ///
+    /// - Parameter query: The query whose matching entities to keep.
     /// - Complexity: O(*n*·*t*) for *n* entities in the smallest required type, or every live
-    ///   entity when the query requires none, and *t* conditions. Each cache adds O(*t*) to
-    ///   adding or removing a component of a type it names.
+    ///   entity when the query requires none, and *t* conditions. Each cache adds O(*t*) to adding
+    ///   or removing a component of a type it names.
     @inlinable
     public mutating func cache<each T: QueryTerm>(_ query: Query<repeat each T>) {
         _ = cachePosition(of: query)

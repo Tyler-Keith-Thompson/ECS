@@ -14,9 +14,16 @@ generated_swift_source(
 # World: entities, their components and resources, with queries, in-place updates and deferred commands.
 swift_library(
     name = "WorldModule",
-    srcs = glob(["**/*.swift"], exclude = ["Generated/**"]) + [":QueryShapes"],
+    srcs = glob(["**/*.swift"], exclude = ["Generated/**"], allow_empty = True) + [":QueryShapes"],
     module_name = "WorldModule",
     visibility = ["//visibility:public"],
+)
+
+# The sources and articles whose ```swift blocks //Tests/ECSTests compiles and runs.
+filegroup(
+    name = "documentation",
+    srcs = glob(["**/*.swift", "*.docc/**/*.md"], exclude = ["Generated/**"]),
+    visibility = ["//Tests:__subpackages__"],
 )
 
 # The module's DocC archive, merged into //:docs. `manual` keeps it out of `bazel build //...`.
