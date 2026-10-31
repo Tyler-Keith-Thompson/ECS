@@ -42,6 +42,20 @@ struct Projectile: Component {
     }
 }
 
+/// A resource read once per entity by the class-held world benchmarks.
+struct Clock: Resource { var ticks: Int }
+
+/// A world held by a final class, as an app's model object holds one.
+final class WorldModel {
+    var world: World
+    init(world: World) { self.world = world }
+
+    /// The world, returned by a getter the optimizer can't see through: each access copies it.
+    var opaqueWorld: World {
+        @inline(never) get { world }
+    }
+}
+
 /// Entities in each benchmark's world.
 let entityCount = 1_000_000
 
@@ -436,6 +450,36 @@ let benchmarks: @Sendable () -> Void = {
         for (index, entity) in entities.enumerated() { world.insert(Team(number: index % 1000), into: entity) }
         benchmark.stopMeasurement()
         blackHole(world)
+    }
+
+    Benchmark("read a resource and a component of a world held by a final class") { benchmark in
+        var world = populatedWorld()
+        world.resources.insert(Clock(ticks: 1))
+        let entity = world.query(Position.self).first!.entity
+        let model = WorldModel(world: world)
+        world = World()
+        benchmark.startMeasurement()
+        var total = 0.0
+        for _ in benchmark.scaledIterations {
+            total += Double(model.world.resources[Clock.self].ticks) + model.world[Position.self, of: entity].x
+        }
+        benchmark.stopMeasurement()
+        blackHole(total)
+    }
+
+    Benchmark("read a resource and a component of a world returned by a getter") { benchmark in
+        var world = populatedWorld()
+        world.resources.insert(Clock(ticks: 1))
+        let entity = world.query(Position.self).first!.entity
+        let model = WorldModel(world: world)
+        world = World()
+        benchmark.startMeasurement()
+        var total = 0.0
+        for _ in benchmark.scaledIterations {
+            total += Double(model.opaqueWorld.resources[Clock.self].ticks) + model.opaqueWorld[Position.self, of: entity].x
+        }
+        benchmark.stopMeasurement()
+        blackHole(total)
     }
 
     Benchmark("despawn every entity") { benchmark in

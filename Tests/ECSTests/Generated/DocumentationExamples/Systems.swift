@@ -141,6 +141,68 @@ fileprivate struct RemoveDefeated {
     }
 }
 
+// Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:19
+@System
+fileprivate struct Integrate {
+    func run(_ movers: Update<Position>.Over<Velocity>, _ step: ResourceReader<TimeStep>) {
+        movers { position, row in
+            position.x += row.components.dx * step.value.seconds
+            position.y += row.components.dy * step.value.seconds
+        }
+    }
+}
+
+// Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:52
+@MainActor
+fileprivate final class Game {
+    var world = World()
+    let frame = Schedule { Integrate() }
+
+    func advance(by seconds: Double) {
+        world.resources.insert(TimeStep(seconds: seconds))
+        frame.run(on: &world)
+    }
+}
+
+// Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:88
+@MainActor
+fileprivate final class Sprite {
+    let entity: Entity
+    var x = 0.0
+
+    init(entity: Entity) { self.entity = entity }
+
+    func step(in world: inout World) {
+        x = world[Position.self, of: entity].x
+    }
+}
+
+fileprivate struct SyncSprites: MainActorSystem {
+    let sprites: [Sprite]
+    var access: Access? { .reads(Position.self) }
+
+    @MainActor func run(in world: inout World) {
+        for sprite in sprites { sprite.step(in: &world) }
+    }
+}
+
+// Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:135
+@MainActor
+fileprivate final class MessageLog {
+    var lines: [String] = []
+}
+
+fileprivate struct AnnounceDefeats: MainActorSystem {
+    let log: MessageLog
+    var access: Access? { .reads(Health.self) }
+
+    @MainActor func run(in world: inout World) {
+        for (_, health) in world.query(Health.self) where health.current <= 0 {
+            log.lines.append("A fighter falls")
+        }
+    }
+}
+
 // Sources/Systems/Systems.docc/Systems.md:14
 fileprivate struct Position: Component { var x: Double, y: Double }
 
@@ -552,18 +614,71 @@ struct SystemsDocumentationExamples {
         #expect(printed(world.count) == #"1"#)
     }
 
-    @Test("Sources/Systems/Systems.docc/Systems.md:14")
+    @Test("Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:19")
     func example30() async throws {
+        var world = World()
+        let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 2, dy: 0))
+        let frame = Schedule { Integrate() }
+
+        for delta in [0.5, 0.25] {
+            world.resources.insert(TimeStep(seconds: delta))
+            frame.run(on: &world)
+        }
+        #expect(printed(world[Position.self, of: ball].x) == #"1.5"#)
+    }
+
+    @Test("Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:52")
+    func example31() async throws {
+        let game = Game()
+        let rocket = game.world.spawn(Position(x: 0, y: 0), Velocity(dx: 0, dy: 4))
+        game.advance(by: 0.5)
+        #expect(printed(game.world[Position.self, of: rocket].y) == #"2.0"#)
+    }
+
+    @Test("Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:88")
+    func example32() async throws {
+        var world = World()
+        let ship = world.spawn(Position(x: 0, y: 0), Velocity(dx: 3, dy: 0))
+        let sprite = Sprite(entity: ship)
+        world.resources.insert(TimeStep(seconds: 1))
+
+        let frame = Schedule {
+            Integrate()
+            SyncSprites(sprites: [sprite]).after(Integrate.self)
+        }
+        frame.run(on: &world)
+        #expect(printed(sprite.x) == #"3.0"#)
+    }
+
+    @Test("Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:135")
+    func example33() async throws {
+        var world = World()
+        let knight = world.spawn(Health(current: 10))
+        world.send(Damage(target: knight, amount: 12))
+
+        let log = MessageLog()
+        let turn = Schedule {
+            ApplyDamage()
+            AnnounceDefeats(log: log).after(ApplyDamage.self)
+            RemoveDefeated().after(AnnounceDefeats.self)
+        }
+        turn.run(on: &world)
+        #expect(printed(log.lines) == #"["A fighter falls"]"#)
+        #expect(printed(world.contains(knight)) == #"false"#)
+    }
+
+    @Test("Sources/Systems/Systems.docc/Systems.md:14")
+    func example34() async throws {
 
     }
 
     @Test("Sources/Systems/Systems.docc/Systems.md:35")
-    func example31() async throws {
+    func example35() async throws {
 
     }
 
     @Test("Sources/Systems/Systems.docc/Systems.md:66")
-    func example32() async throws {
+    func example36() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: 100), Velocity(dx: 1, dy: 0))
 
@@ -577,7 +692,7 @@ struct SystemsDocumentationExamples {
     }
 
     @Test("Sources/Systems/Update.swift:32")
-    func example33() async throws {
+    func example37() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: -2), Velocity(dx: 0, dy: -5))
         Schedule { Bounce() }.run(on: &world)

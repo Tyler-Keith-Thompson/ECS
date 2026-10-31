@@ -94,6 +94,7 @@ test can keep a schedule free of them.
 ### Essentials
 
 - <doc:DeclaringSystems>
+- <doc:DrivingAWorldFromAnApp>
 - ``System()``
 - ``System``
 
