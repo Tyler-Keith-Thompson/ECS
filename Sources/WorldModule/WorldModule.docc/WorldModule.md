@@ -71,6 +71,10 @@ Registered with `onAdd`, `onInsert` and `onRemove` on ``World``.
 - ``Disabled``
 - ``Prefab``
 
+### Column spans
+
+Lent by `withSpan(of:_:)` and `withMutableSpan(of:_:)` on ``World``.
+
 ### Removal detection
 
 - ``RemovedComponent``

@@ -138,6 +138,9 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
 - **Cloning and prefabs**: `world.clone(entity)` spawns a copy of every component;
   `world.spawn(from: goblin)` copies an entity marked `Prefab`, a template queries skip, without
   the mark. `Commands` records both.
+- **Column spans**: `world.withSpan(of: Health.self) { entities, health in … }` lends a
+  component type's storage as `Span`s for vectorized loops and C calls; `withMutableSpan` writes
+  in place and marks every component changed.
 - **Removal detection**: `world.removed(Health.self, by: Healthbars.self)` lists the entities
   that lost a `Health` since that reader last asked, by removal or despawn; a system takes
   `RemovedComponents<Health>`.

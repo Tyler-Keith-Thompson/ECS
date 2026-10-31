@@ -27,3 +27,6 @@ upstream. Each names the workaround in place; recheck them when the toolchain ch
 - **A one-element pack given a tuple is ambiguous** (`QueryRow(entity:components: v0)` with
   `v0: (A?, B?)` could be one element or two). Workaround: name the type,
   `QueryRow<(A?, B?)>(…)`.
+- **A named function taking `inout MutableSpan` cannot be passed as a closure** (Swift 6.3 on
+  Linux): "argument type 'MutableSpan<…>' does not conform to expected type 'Escapable'". Swift
+  6.4 accepts it. Workaround: the span tests pass closure literals to `withMutableSpan(of:_:)`.

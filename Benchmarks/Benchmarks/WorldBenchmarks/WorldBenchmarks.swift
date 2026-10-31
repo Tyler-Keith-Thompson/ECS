@@ -102,6 +102,16 @@ let benchmarks: @Sendable () -> Void = {
         blackHole(world)
     }
 
+    Benchmark("update one type through a mutable span") { benchmark in
+        var world = populatedWorld()
+        benchmark.startMeasurement()
+        world.withMutableSpan(of: Position.self) { _, positions in
+            for position in positions.indices { positions[position].x += 1 }
+        }
+        benchmark.stopMeasurement()
+        blackHole(world)
+    }
+
     Benchmark("update one type reading one") { benchmark in
         var world = populatedWorld()
         benchmark.startMeasurement()
