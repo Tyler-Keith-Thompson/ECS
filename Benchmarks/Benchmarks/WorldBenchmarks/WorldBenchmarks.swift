@@ -85,6 +85,17 @@ let benchmarks: @Sendable () -> Void = {
         blackHole(world)
     }
 
+    Benchmark("parallel update one type reading one") { benchmark in
+        var world = populatedWorld()
+        benchmark.startMeasurement()
+        world.parallelUpdate(Position.self, reading: Velocity.self) { position, row in
+            position.x += row.components.dx
+            position.y += row.components.dy
+        }
+        benchmark.stopMeasurement()
+        blackHole(world)
+    }
+
     Benchmark("update one type reading two, a fifth matching") { benchmark in
         var world = populatedWorld()
         benchmark.startMeasurement()

@@ -103,7 +103,8 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   `without`. Each row is a tuple, `(entity, component, …)`. A view is a snapshot; writing to the
   world while iterating is safe.
 - **`update`**: changes one or two component types in place across every matching entity,
-  reading any others. This is the fast path for systems.
+  reading any others. This is the fast path for systems. `parallelUpdate` spreads one across cores, with
+  the same result.
 - **Change detection**: every component remembers when it was added and last changed.
   `query(…).changed(Position.self)` inside a system lists what changed since that system last
   ran; `.added(…)` lists what is new. Outside a schedule, pass a tick: `since: checkpoint`.

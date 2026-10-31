@@ -181,4 +181,22 @@ struct PreconditionTests {
             world.remove(Pair.self, from: entity)
         }
     }
+
+    @Test("A parallel update that reads the type it writes traps", .tags(.precondition))
+    func parallelReadsWritten() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            world.spawn(Health(1))
+            world.parallelUpdate(Health.self, reading: Health.self) { _, _ in }
+        }
+    }
+
+    @Test("A parallel update with a minimum chunk below one traps", .tags(.precondition))
+    func parallelChunk() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            world.spawn(Health(1))
+            world.parallelUpdate(Health.self, minimumChunk: 0) { _, _ in }
+        }
+    }
 }

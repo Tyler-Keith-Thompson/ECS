@@ -5,11 +5,9 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Parallel updates.** `update` split across cores for large worlds, with a deterministic
-   result.
-2. **Parallel schedules.** Systems that declare what they read and write, and a schedule that
+1. **Parallel schedules.** Systems that declare what they read and write, and a schedule that
    runs systems with disjoint access concurrently.
-3. **Groups.** EnTT-style owning groups that keep several component types packed in the same
+2. **Groups.** EnTT-style owning groups that keep several component types packed in the same
    order, for multi-type iteration with no lookups.
 
 ## Done
@@ -31,3 +29,5 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
   operation. In-place changes are left to change detection.
 - Snapshots: `WorldSnapshot<each C>` is `Codable`; `World(restoring:)` keeps every handle.
 - World equality: `==` on snapshots of `Equatable` components, independent of storage order.
+- Parallel updates: `parallelUpdate` chunks entities across cores; `@Sendable` bodies keep it
+  deterministic.
