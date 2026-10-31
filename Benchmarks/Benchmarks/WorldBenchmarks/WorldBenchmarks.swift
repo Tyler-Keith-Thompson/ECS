@@ -30,6 +30,14 @@ struct Movement {
     }
 }
 
+/// A component requiring a Position and a Velocity.
+struct Projectile: Component {
+    static var required: some Bundle {
+        Position(x: 0, y: 0)
+        Velocity(dx: 1, dy: 1)
+    }
+}
+
 /// Entities in each benchmark's world.
 let entityCount = 1_000_000
 
@@ -58,6 +66,14 @@ let benchmarks: @Sendable () -> Void = {
         for value in benchmark.scaledIterations {
             let entity = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 1))
             if value.isMultiple(of: 3) { world.insert(Health(current: 1), into: entity) }
+        }
+        blackHole(world.count)
+    }
+
+    Benchmark("spawn one component requiring two") { benchmark in
+        var world = World()
+        for _ in benchmark.scaledIterations {
+            world.spawn(Projectile())
         }
         blackHole(world.count)
     }

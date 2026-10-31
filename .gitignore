@@ -32,3 +32,4 @@ __pycache__/
 Benchmarks/.build/
 Benchmarks/.swiftpm/
 Benchmarks/Package.resolved
+Benchmarks/.benchmarkBaselines/

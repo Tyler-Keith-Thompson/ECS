@@ -124,6 +124,21 @@ public struct World: Sendable {
         for bundle in repeat each bundles {
             bundle.insert(into: entity, in: &self)
         }
+        for bundle in repeat each bundles {
+            bundle._insertRequired(into: entity, in: &self)
+        }
+        endOperation()
+        return entity
+    }
+
+    /// Spawns an entity holding the components of `bundle` and returns its handle, as the
+    /// variadic `spawn` does.
+    @inlinable
+    @discardableResult
+    public mutating func spawn<B: Bundle>(_ bundle: B) -> Entity {
+        let entity = makeEntity()
+        bundle.insert(into: entity, in: &self)
+        bundle._insertRequired(into: entity, in: &self)
         endOperation()
         return entity
     }
@@ -134,6 +149,7 @@ public struct World: Sendable {
     public mutating func spawn<A: Component>(_ a: A) -> Entity {
         let entity = makeEntity()
         store(a, for: entity)
+        a._insertRequired(into: entity, in: &self)
         endOperation()
         return entity
     }
@@ -145,6 +161,8 @@ public struct World: Sendable {
         let entity = makeEntity()
         store(a, for: entity)
         store(b, for: entity)
+        a._insertRequired(into: entity, in: &self)
+        b._insertRequired(into: entity, in: &self)
         endOperation()
         return entity
     }
@@ -158,6 +176,9 @@ public struct World: Sendable {
         store(a, for: entity)
         store(b, for: entity)
         store(c, for: entity)
+        a._insertRequired(into: entity, in: &self)
+        b._insertRequired(into: entity, in: &self)
+        c._insertRequired(into: entity, in: &self)
         endOperation()
         return entity
     }
@@ -279,6 +300,22 @@ public struct World: Sendable {
         for bundle in repeat each bundles {
             bundle.insert(into: entity, in: &self)
         }
+        for bundle in repeat each bundles {
+            bundle._insertRequired(into: entity, in: &self)
+        }
+        endOperation()
+    }
+
+    /// Gives `entity` the components of `bundle`, replacing any it holds of the same types, as
+    /// the variadic `insert` does.
+    ///
+    /// - Complexity: O(*k*) amortized for *k* components.
+    /// - Precondition: `entity` is live. Use ``insert(_:checkedInto:)`` to throw instead.
+    @inlinable
+    public mutating func insert<B: Bundle>(_ bundle: B, into entity: Entity) {
+        precondition(contains(entity), "Inserting into stale entity \(entity)")
+        bundle.insert(into: entity, in: &self)
+        bundle._insertRequired(into: entity, in: &self)
         endOperation()
     }
 
@@ -290,6 +327,7 @@ public struct World: Sendable {
     public mutating func insert<A: Component>(_ a: A, into entity: Entity) {
         precondition(contains(entity), "Inserting into stale entity \(entity)")
         store(a, for: entity)
+        a._insertRequired(into: entity, in: &self)
         endOperation()
     }
 
@@ -302,6 +340,8 @@ public struct World: Sendable {
         precondition(contains(entity), "Inserting into stale entity \(entity)")
         store(a, for: entity)
         store(b, for: entity)
+        a._insertRequired(into: entity, in: &self)
+        b._insertRequired(into: entity, in: &self)
         endOperation()
     }
 
@@ -315,6 +355,9 @@ public struct World: Sendable {
         store(a, for: entity)
         store(b, for: entity)
         store(c, for: entity)
+        a._insertRequired(into: entity, in: &self)
+        b._insertRequired(into: entity, in: &self)
+        c._insertRequired(into: entity, in: &self)
         endOperation()
     }
 
@@ -327,6 +370,9 @@ public struct World: Sendable {
         guard contains(entity) else { throw StaleEntity() }
         for bundle in repeat each bundles {
             bundle.insert(into: entity, in: &self)
+        }
+        for bundle in repeat each bundles {
+            bundle._insertRequired(into: entity, in: &self)
         }
         endOperation()
     }

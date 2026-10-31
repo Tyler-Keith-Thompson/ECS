@@ -39,6 +39,20 @@ public protocol Bundle: Sendable {
     ///
     /// - Precondition: `entity` is live.
     static func remove(from entity: Entity, in world: inout World)
+
+    /// Whether a component this bundle can hold requires others.
+    @_documentation(visibility: internal)
+    static var _hasRequirements: Bool { get }
+
+    /// Gives `entity` the components its components in this bundle require, of the types it
+    /// does not hold; called after every bundle of a spawn or insertion is inserted.
+    @_documentation(visibility: internal)
+    func _insertRequired(into entity: Entity, in world: inout World)
+
+    /// Gives `entity` this bundle's components of the types it does not hold, and what they
+    /// require.
+    @_documentation(visibility: internal)
+    func _insertMissing(into entity: Entity, in world: inout World)
 }
 
 extension Bundle {
@@ -50,6 +64,23 @@ extension Bundle {
     @inlinable
     public static func remove(from entity: Entity, in world: inout World) {
         Body.remove(from: entity, in: &world)
+    }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public static var _hasRequirements: Bool { Body._hasRequirements }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public func _insertRequired(into entity: Entity, in world: inout World) {
+        guard Self._hasRequirements else { return }
+        body._insertRequired(into: entity, in: &world)
+    }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public func _insertMissing(into entity: Entity, in world: inout World) {
+        body._insertMissing(into: entity, in: &world)
     }
 }
 
@@ -70,6 +101,27 @@ extension Component {
         precondition(world.contains(entity), "Removing a \(Self.self) from stale entity \(entity)")
         _ = world.discard(Self.self, from: entity)
     }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public static var _hasRequirements: Bool { true }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public func _insertRequired(into entity: Entity, in world: inout World) {
+        guard Self._hasRequirements else { return }
+        Self.required._insertMissing(into: entity, in: &world)
+    }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public func _insertMissing(into entity: Entity, in world: inout World) {
+        guard !world.contains(Self.self, in: entity) else { return }
+        world.store(self, for: entity)
+        if Self._hasRequirements {
+            Self.required._insertMissing(into: entity, in: &world)
+        }
+    }
 }
 
 extension Never: Bundle {
@@ -80,6 +132,15 @@ extension Never: Bundle {
     public func insert(into entity: Entity, in world: inout World) {}
 
     public static func remove(from entity: Entity, in world: inout World) {}
+
+    @_documentation(visibility: internal)
+    public static var _hasRequirements: Bool { false }
+
+    @_documentation(visibility: internal)
+    public func _insertRequired(into entity: Entity, in world: inout World) {}
+
+    @_documentation(visibility: internal)
+    public func _insertMissing(into entity: Entity, in world: inout World) {}
 }
 
 /// Builds a bundle from the components and bundles written in a block.
@@ -135,6 +196,32 @@ public struct TupleBundle<each B: Bundle>: Bundle {
             type.remove(from: entity, in: &world)
         }
     }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public static var _hasRequirements: Bool {
+        for type in repeat (each B).self {
+            if type._hasRequirements { return true }
+        }
+        return false
+    }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public func _insertRequired(into entity: Entity, in world: inout World) {
+        guard Self._hasRequirements else { return }
+        for bundle in repeat each bundles {
+            bundle._insertRequired(into: entity, in: &world)
+        }
+    }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public func _insertMissing(into entity: Entity, in world: inout World) {
+        for bundle in repeat each bundles {
+            bundle._insertMissing(into: entity, in: &world)
+        }
+    }
 }
 
 /// One of two bundles, from an `if`–`else` or a `switch`; removing it removes the types of both.
@@ -160,6 +247,28 @@ public enum EitherBundle<First: Bundle, Second: Bundle>: Bundle {
         First.remove(from: entity, in: &world)
         Second.remove(from: entity, in: &world)
     }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public static var _hasRequirements: Bool { First._hasRequirements || Second._hasRequirements }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public func _insertRequired(into entity: Entity, in world: inout World) {
+        switch self {
+        case let .first(bundle): bundle._insertRequired(into: entity, in: &world)
+        case let .second(bundle): bundle._insertRequired(into: entity, in: &world)
+        }
+    }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public func _insertMissing(into entity: Entity, in world: inout World) {
+        switch self {
+        case let .first(bundle): bundle._insertMissing(into: entity, in: &world)
+        case let .second(bundle): bundle._insertMissing(into: entity, in: &world)
+        }
+    }
 }
 
 extension Optional: Bundle where Wrapped: Bundle {
@@ -178,6 +287,22 @@ extension Optional: Bundle where Wrapped: Bundle {
     @inlinable
     public static func remove(from entity: Entity, in world: inout World) {
         Wrapped.remove(from: entity, in: &world)
+    }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public static var _hasRequirements: Bool { Wrapped._hasRequirements }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public func _insertRequired(into entity: Entity, in world: inout World) {
+        self?._insertRequired(into: entity, in: &world)
+    }
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public func _insertMissing(into entity: Entity, in world: inout World) {
+        self?._insertMissing(into: entity, in: &world)
     }
 }
 

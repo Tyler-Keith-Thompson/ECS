@@ -5,38 +5,36 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Required components.** A component names components it needs (`static var required`), and
-   inserting it inserts the missing ones' defaults, transitively, in both the world and commands.
-2. **Removal detection.** A per-reader list of entities that lost a component or were despawned
+1. **Removal detection.** A per-reader list of entities that lost a component or were despawned
    since that reader last looked (`world.removed(Health.self, by: Reader.self)`), built on hooks
    and event places.
-3. **Named schedules and states.** Schedules by label (`Startup`, `Update`, `FixedUpdate`) in an
+2. **Named schedules and states.** Schedules by label (`Startup`, `Update`, `FixedUpdate`) in an
    app-level runner, `FixedUpdate` on a fixed timestep with an accumulator, and a `State` value
    with `onEnter` / `onExit` / `onTransition` schedules and `inState` run conditions.
-4. **System sets.** A named group of systems ordered and conditioned together with one `after`,
+3. **System sets.** A named group of systems ordered and conditioned together with one `after`,
    `before` or `runIf`.
-5. **Disabled entities and default filters.** A `Disabled` marker every query and update skips
+4. **Disabled entities and default filters.** A `Disabled` marker every query and update skips
    unless it asks for it (`.including(Disabled.self)`).
-6. **Entity cloning and prefabs.** `world.clone(entity)` copies every component; a prefab entity
+5. **Entity cloning and prefabs.** `world.clone(entity)` copies every component; a prefab entity
    is a template that queries skip and `spawn(from:)` copies.
-7. **Column spans.** `Span` / `MutableSpan` access to a whole column for SIMD loops and C
+6. **Column spans.** `Span` / `MutableSpan` access to a whole column for SIMD loops and C
    interop, marking every component changed once.
-8. **Cached queries.** A query state that remembers a `Query`'s matching entities and keeps them
+7. **Cached queries.** A query state that remembers a `Query`'s matching entities and keeps them
    current from structural changes, so a narrow query stops walking a large column.
-9. **Relationships as pairs.** `(Relation, target)` components with queries over a relation's
+8. **Relationships as pairs.** `(Relation, target)` components with queries over a relation's
    target or any target (`Pair<Targets, Wildcard>`), exclusive relations, and cleanup when a
    target despawns; the hierarchy becomes one relation.
-10. **Observers on custom triggers.** `world.trigger(Explode(), on: entity)` with handlers that can
-    propagate up the hierarchy, and observers for an entity starting or stopping to match a
-    query.
-11. **Indexes by value.** `world.index(Name.self)` keeps a map from a `Hashable` component's value
+9. **Observers on custom triggers.** `world.trigger(Explode(), on: entity)` with handlers that can
+   propagate up the hierarchy, and observers for an entity starting or stopping to match a
+   query.
+10. **Indexes by value.** `world.index(Name.self)` keeps a map from a `Hashable` component's value
     to its entities, current through hooks.
-12. **Scenes and a type registry.** Register component types once; save and load whole worlds
+11. **Scenes and a type registry.** Register component types once; save and load whole worlds
     without listing types per snapshot.
-13. **Swift concurrency bridges.** Events and changes as an `AsyncSequence` (Afluent), and
+12. **Swift concurrency bridges.** Events and changes as an `AsyncSequence` (Afluent), and
     `@MainActor` systems run on the main actor by a schedule.
-14. **Profiling.** Time per system per run, and the schedule's dependency graph as DOT.
-15. **Checked accesses.** A debug-build record of the columns and resources a system with a
+13. **Profiling.** Time per system per run, and the schedule's dependency graph as DOT.
+14. **Checked accesses.** A debug-build record of the columns and resources a system with a
     hand-written `access` touches while it runs concurrently, trapping on undeclared reads as
     undeclared writes already trap. Systems declared by their parameters cannot reach anything
     else, so this covers hand-written conformances only; it needs a lookup check that costs
@@ -75,3 +73,5 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
   `runSerially(on:)` one system at a time, applying queued commands after each wave.
 - Ambiguity detection: `Schedule.ambiguities()` lists conflicting systems no constraint orders;
   `ambiguous(with:)` marks pairs whose order does not matter.
+- Required components: `static var required` on a component, inserted when missing, transitively,
+  after the explicit components, from the world and from commands.
