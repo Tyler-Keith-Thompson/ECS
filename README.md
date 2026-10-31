@@ -112,7 +112,8 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   start of a frame drops events older than the previous frame.
 - **`Commands`**: spawns, despawns and insertions recorded during an update and applied after it.
 - **`Resources`**: values the world holds once, such as a clock or the frame's input.
-- **`Schedule`**: systems in the order written, adjusted by `after` and `before` constraints.
+- **`Schedule`**: systems in the order written, adjusted by `after` and `before` constraints,
+  and skipped when a `runIf { world in … }` condition does not hold.
 
 Queries and updates of up to three types have overloads the compiler fully specializes; more types
 go through a parameter pack.

@@ -5,27 +5,25 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Run conditions.** `system.runIf { world in … }` and conditions on a whole schedule, so
-   pausing, menus and debug-only systems need no checks inside the systems.
-2. **Relationships.** `Parent` and `Children` kept consistent by the world: setting a parent
+1. **Relationships.** `Parent` and `Children` kept consistent by the world: setting a parent
    updates the children, despawning a parent despawns its descendants, and queries can walk the
    hierarchy.
-3. **Entity reservation.** `Commands.spawn` returns the entity it will create, so later commands
+2. **Entity reservation.** `Commands.spawn` returns the entity it will create, so later commands
    in the same buffer can refer to it.
-4. **Bundles.** A `Bundle` protocol for a named group of components spawned and inserted
+3. **Bundles.** A `Bundle` protocol for a named group of components spawned and inserted
    together, with a result builder for composing them.
-5. **Observers.** Hooks run when a component of a type is added, changed or removed, for
+4. **Observers.** Hooks run when a component of a type is added, changed or removed, for
    maintaining indexes and reacting to state without polling.
-6. **Snapshots.** Saving a world to `Codable` data and loading it back, for components that are
+5. **Snapshots.** Saving a world to `Codable` data and loading it back, for components that are
    `Codable`, with entity handles preserved.
-7. **World equality.** `==` on worlds whose components are `Equatable`, for determinism tests,
+6. **World equality.** `==` on worlds whose components are `Equatable`, for determinism tests,
    replays and rollback checks.
-8. **Parallel updates.** `update` split across cores for large worlds, with a deterministic
+7. **Parallel updates.** `update` split across cores for large worlds, with a deterministic
    result.
-9. **Parallel schedules.** Systems that declare what they read and write, and a schedule that
+8. **Parallel schedules.** Systems that declare what they read and write, and a schedule that
    runs systems with disjoint access concurrently.
-10. **Groups.** EnTT-style owning groups that keep several component types packed in the same
-    order, for multi-type iteration with no lookups.
+9. **Groups.** EnTT-style owning groups that keep several component types packed in the same
+   order, for multi-type iteration with no lookups.
 
 ## Done
 
@@ -37,3 +35,4 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 - Change detection: added and changed ticks per component, `.added` / `.changed` filters, and
   each system's previous run tracked by its schedule.
 - Events: typed, double-buffered `Events<E>` resources, per-reader places, `UpdateEvents`.
+- Run conditions: `runIf` on systems and schedules.

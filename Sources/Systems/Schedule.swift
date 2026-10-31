@@ -69,16 +69,45 @@ public struct Schedule: Sendable {
         self.systems = ordered
     }
 
+    /// This schedule, each of its systems run only when `condition` holds for the world just
+    /// before that system would run.
+    ///
+    /// The condition is checked once per system, so a system that changes what it depends on
+    /// stops the systems after it.
+    ///
+    /// ```swift
+    /// let frame = Schedule {
+    ///     Input()
+    ///     Schedule {
+    ///         Movement()
+    ///         Collisions()
+    ///     }
+    ///     .runIf { world in !world.resources.contains(Paused.self) }
+    /// }
+    /// ```
+    ///
+    /// - Complexity: O(*s*) for *s* systems.
+    public func runIf(_ condition: @escaping @Sendable (World) -> Bool) -> Schedule {
+        Schedule(ordered: systems.map { $0.runIf(condition) })
+    }
+
+    /// `systems`, already in an order that satisfies their constraints.
+    init(ordered systems: [ScheduledSystem]) {
+        self.systems = systems
+    }
+
     /// The names of the systems, in the order they run.
     public var names: [String] { systems.map(\.name) }
 
-    /// Runs every system once on `world`, in order.
+    /// Runs every system once on `world`, in order, skipping those whose conditions do not hold
+    /// for the world just before their turn.
     ///
     /// Before each system, the world's change tick advances and its ``WorldModule/World/lastRun``
     /// is set to the tick of that system's previous run, so filters such as
     /// `.changed(Position.self)` show the system what changed since then: changes made by the
     /// systems after it on the previous run and before it on this one, but not its own. A system
-    /// that has not run on this world before sees every component as added and changed.
+    /// that has not run on this world before sees every component as added and changed. A
+    /// skipped system has not run: the next time it runs, it sees everything since it last did.
     ///
     /// The tick advances once more after the last system, so changes made to the world between
     /// runs are newer than every system's previous run.
@@ -88,7 +117,7 @@ public struct Schedule: Sendable {
             world.lastRun = outerLastRun
             world.advanceChangeTick()
         }
-        for system in systems {
+        for system in systems where system.shouldRun(in: world) {
             let hasRuns = world.resources.contains(SystemRuns.self)
             world.lastRun = hasRuns ? world.resources[SystemRuns.self].ticks[system.id] ?? .zero : .zero
             let tick = world.advanceChangeTick()
