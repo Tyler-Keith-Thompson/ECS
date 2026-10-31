@@ -36,17 +36,17 @@ public struct Frozen: Component, Hashable {
 }
 
 /// Three interchangeable integer components for randomized tests.
-public struct First: Component, Hashable {
+public struct First: Component, Hashable, Codable {
     public var value: Int
     public init(_ value: Int) { self.value = value }
 }
 
-public struct Second: Component, Hashable {
+public struct Second: Component, Hashable, Codable {
     public var value: Int
     public init(_ value: Int) { self.value = value }
 }
 
-public struct Third: Component, Hashable {
+public struct Third: Component, Hashable, Codable {
     public var value: Int
     public init(_ value: Int) { self.value = value }
 }

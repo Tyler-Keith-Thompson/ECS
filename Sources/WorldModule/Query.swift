@@ -100,8 +100,11 @@ public struct QueryView<each C: Component>: Sequence, Sendable {
         @usableFromInline let filter: ResolvedFilter
         /// The entities visited, in order.
         @usableFromInline let driver: [Entity]
-        /// Which read column `driver` is, or -1 for a filter type or the live entities.
+        /// Which read column `driver` is, -1 for a filter type or the live entities, or
+        /// `alignedDriver` for the front of an owning group's columns.
         @usableFromInline let driverColumn: Int
+        /// The end of the visited part of `driver`.
+        @usableFromInline let end: Int
         @usableFromInline var cursor = 0
 
         @inlinable
@@ -125,16 +128,23 @@ public struct QueryView<each C: Component>: Sequence, Sendable {
             } else if !hasDriver {
                 driver = Array(world.entities)
             }
+            var end = driver.count
+            if !resolved.isUnsatisfiable, let aligned = world.alignedCount(of: reader.types) {
+                driver = reader.columns[0]
+                driverColumn = alignedDriver
+                end = aligned
+            }
             self.reader = reader
             self.filter = resolved
             self.driver = driver
             self.driverColumn = driverColumn
+            self.end = end
         }
 
         @inlinable
         public mutating func next() -> Optional<(entity: Entity, repeat each C)> {
             let checksFilter = !filter.isEmpty
-            while cursor < driver.count {
+            while cursor < end {
                 let position = cursor
                 let entity = driver[position]
                 cursor += 1

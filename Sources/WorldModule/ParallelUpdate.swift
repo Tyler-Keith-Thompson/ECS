@@ -119,8 +119,14 @@ extension World {
             driver = required.dense
             driverColumn = -1
         }
+        var visitedCount = driver.count
+        if let aligned = alignedCount(of: [ObjectIdentifier(W.self)] + reads) {
+            driver = index.dense
+            driverColumn = alignedDriver
+            visitedCount = aligned
+        }
+        let entityCount = visitedCount
         let checksFilter = !resolved.isEmpty
-        let entityCount = driver.count
         let chunkCount = max(1, entityCount / minimumChunk)
         let chunkSize = (entityCount + chunkCount - 1) / chunkCount
 
@@ -186,7 +192,7 @@ struct ParallelVisit<W: Component, Row>: @unchecked Sendable {
         for cursor in cursors {
             let entity = driver[cursor]
             var position = cursor
-            if driverColumn != -2 {
+            if driverColumn != -2, driverColumn != alignedDriver {
                 guard let found = index.position(of: entity) else { continue }
                 position = found
             }

@@ -5,8 +5,14 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Groups.** EnTT-style owning groups that keep several component types packed in the same
-   order, for multi-type iteration with no lookups.
+1. **Inferred system access.** A `@System` macro (swift-syntax) that reads `run(in:)` and
+   derives its `Access` from the calls it can see: `update` and `query` type arguments,
+   subscripts read or assigned, `resources[…]`, `send` and `readEvents`. Macros see syntax, not
+   types, so anything it cannot classify (the world passed to another function, a generic type,
+   a stored closure) makes it fall back to exclusive (`nil`) with a warning naming the call; an
+   explicit `access` always wins. Pair it with a debug-build check that records the columns and
+   resources a concurrent change actually touched and traps on undeclared reads, as writes
+   already do. Needs swift-syntax in both build systems (`swift_compiler_plugin` in Bazel).
 
 ## Done
 
@@ -30,3 +36,5 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 - Parallel updates: `parallelUpdate` chunks entities across cores; `@Sendable` bodies keep it
   deterministic.
 - Parallel schedules: `Access` declarations, `World.runConcurrently`, `Schedule.parallelRun`.
+- Groups: EnTT-style owning groups; queries and updates over exactly the grouped types walk
+  the packed front with no lookups.

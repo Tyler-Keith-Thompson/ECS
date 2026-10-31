@@ -199,4 +199,21 @@ struct PreconditionTests {
             world.parallelUpdate(Health.self, minimumChunk: 0) { _, _ in }
         }
     }
+
+    @Test("Grouping fewer than two types traps", .tags(.precondition))
+    func groupOneType() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            world.group(Health.self)
+        }
+    }
+
+    @Test("Grouping a type another group owns traps", .tags(.precondition))
+    func groupOwned() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            world.group(Health.self, Name.self)
+            world.group(Name.self, Frozen.self)
+        }
+    }
 }

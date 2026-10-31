@@ -41,6 +41,16 @@ struct SparseIndex: Sendable {
         return dense.count - 1
     }
 
+    /// Swaps the entities, and their ticks, at positions `first` and `second`.
+    @inlinable
+    mutating func swapAt(_ first: Int, _ second: Int) {
+        guard first != second else { return }
+        dense.swapAt(first, second)
+        ticks.swapAt(first, second)
+        sparse[Int(dense[first].index)] = UInt32(first + 1)
+        sparse[Int(dense[second].index)] = UInt32(second + 1)
+    }
+
     /// Removes the entity at `position`, moving the last entity into its place.
     @inlinable
     mutating func swapRemove(at position: Int) {
@@ -85,11 +95,20 @@ class AnyColumn: @unchecked Sendable {
     /// it knows only as `AnyColumn` (when despawning) runs code specialized for the type rather
     /// than the generic class's unspecialized methods.
     @usableFromInline final let swapRemove: @Sendable (AnyColumn, Int) -> Void
+    /// Swaps the entities and components at two positions; a closure for the same reason.
+    @usableFromInline final let swapAt: @Sendable (AnyColumn, Int, Int) -> Void
+    /// The position in its world's groups of the group that owns the column, or -1 for none.
+    @usableFromInline final var group = -1
 
     @inlinable
-    init(index: SparseIndex, swapRemove: @escaping @Sendable (AnyColumn, Int) -> Void) {
+    init(
+        index: SparseIndex,
+        swapRemove: @escaping @Sendable (AnyColumn, Int) -> Void,
+        swapAt: @escaping @Sendable (AnyColumn, Int, Int) -> Void
+    ) {
         self.index = index
         self.swapRemove = swapRemove
+        self.swapAt = swapAt
     }
 
     /// A column holding the same entities and components.
@@ -109,15 +128,25 @@ final class Column<C: Component>: AnyColumn, @unchecked Sendable {
     @inlinable
     init() {
         values = []
-        super.init(index: SparseIndex()) { column, position in
-            unsafeDowncast(column, to: Column<C>.self).swapRemove(at: position)
-        }
+        super.init(
+            index: SparseIndex(),
+            swapRemove: { column, position in unsafeDowncast(column, to: Column<C>.self).swapRemove(at: position) },
+            swapAt: { column, first, second in unsafeDowncast(column, to: Column<C>.self).swapAt(first, second) }
+        )
     }
 
     @inlinable
     init(copying column: Column<C>) {
         values = column.values
-        super.init(index: column.index, swapRemove: column.swapRemove)
+        super.init(index: column.index, swapRemove: column.swapRemove, swapAt: column.swapAt)
+        group = column.group
+    }
+
+    /// Swaps the entities and components at `first` and `second`.
+    @inlinable
+    func swapAt(_ first: Int, _ second: Int) {
+        index.swapAt(first, second)
+        values.swapAt(first, second)
     }
 
     @inlinable
@@ -159,6 +188,6 @@ struct ColumnSnapshot<C: Component>: Sendable {
     @inline(__always)
     func value(of entity: Entity, cursor: Int, driverColumn: Int, column: inout Int) -> C {
         defer { column += 1 }
-        return column == driverColumn ? values[cursor] : values[index.position(of: entity)!]
+        return column == driverColumn || driverColumn == alignedDriver ? values[cursor] : values[index.position(of: entity)!]
     }
 }

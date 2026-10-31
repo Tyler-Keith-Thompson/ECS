@@ -128,6 +128,41 @@ let benchmarks: @Sendable () -> Void = {
         blackHole(world)
     }
 
+    Benchmark("update one type reading one, grouped with it") { benchmark in
+        var world = populatedWorld()
+        world.group(Position.self, Velocity.self)
+        benchmark.startMeasurement()
+        world.update(Position.self, reading: Velocity.self) { position, row in
+            position.x += row.components.dx
+            position.y += row.components.dy
+        }
+        benchmark.stopMeasurement()
+        blackHole(world)
+    }
+
+    Benchmark("query health and mass, a fifteenth matching, grouped") { benchmark in
+        var world = populatedWorld()
+        world.group(Health.self, Mass.self)
+        benchmark.startMeasurement()
+        var total = 0.0
+        for (_, health, mass) in world.query(Health.self, Mass.self) {
+            total += Double(health.current) + mass.kilograms
+        }
+        benchmark.stopMeasurement()
+        blackHole(total)
+    }
+
+    Benchmark("query health and mass, a fifteenth matching") { benchmark in
+        let world = populatedWorld()
+        benchmark.startMeasurement()
+        var total = 0.0
+        for (_, health, mass) in world.query(Health.self, Mass.self) {
+            total += Double(health.current) + mass.kilograms
+        }
+        benchmark.stopMeasurement()
+        blackHole(total)
+    }
+
     Benchmark("query one type") { benchmark in
         let world = populatedWorld()
         benchmark.startMeasurement()

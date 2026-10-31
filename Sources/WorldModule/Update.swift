@@ -191,15 +191,21 @@ extension World {
             driver = required.dense
             driverColumn = -1
         }
+        var end = driver.count
+        if let aligned = alignedCount(of: [ObjectIdentifier(W.self)] + reads) {
+            driver = index.dense
+            driverColumn = alignedDriver
+            end = aligned
+        }
         let checksFilter = !resolved.isEmpty
 
         // Through buffer pointers, so the loop pays no uniqueness or bounds check per write.
         try ticks.withUnsafeMutableBufferPointer { ticks throws(Failure) in
             try values.withUnsafeMutableBufferPointer { values throws(Failure) in
-                for cursor in driver.indices {
+                for cursor in 0 ..< end {
                     let entity = driver[cursor]
                     var position = cursor
-                    if driverColumn != -2 {
+                    if driverColumn != -2, driverColumn != alignedDriver {
                         guard let found = index.position(of: entity) else { continue }
                         position = found
                     }
@@ -267,6 +273,12 @@ extension World {
             driver = required.dense
             driverColumn = -1
         }
+        var end = driver.count
+        if let aligned = alignedCount(of: [ObjectIdentifier(A.self), ObjectIdentifier(B.self)] + reads) {
+            driver = firstIndex.dense
+            driverColumn = alignedDriver
+            end = aligned
+        }
         let checksFilter = !resolved.isEmpty
 
         // Through buffer pointers, so the loop pays no uniqueness or bounds check per write.
@@ -274,15 +286,15 @@ extension World {
             try secondTicks.withUnsafeMutableBufferPointer { secondTicks throws(Failure) in
                 try firstValues.withUnsafeMutableBufferPointer { firstValues throws(Failure) in
                     try secondValues.withUnsafeMutableBufferPointer { secondValues throws(Failure) in
-                        for cursor in driver.indices {
+                        for cursor in 0 ..< end {
                             let entity = driver[cursor]
                             var firstPosition = cursor
                             var secondPosition = cursor
-                            if driverColumn != -2 {
+                            if driverColumn != -2, driverColumn != alignedDriver {
                                 guard let found = firstIndex.position(of: entity) else { continue }
                                 firstPosition = found
                             }
-                            if driverColumn != -3 {
+                            if driverColumn != -3, driverColumn != alignedDriver {
                                 guard let found = secondIndex.position(of: entity) else { continue }
                                 secondPosition = found
                             }

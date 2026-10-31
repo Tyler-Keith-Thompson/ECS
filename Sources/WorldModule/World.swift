@@ -35,6 +35,8 @@ public struct World: Sendable {
     @usableFromInline var hierarchy = Hierarchy()
     /// The component hooks and the hook calls waiting to run.
     @usableFromInline var hooks = Hooks()
+    /// The owning groups, each column knowing its group by position here.
+    @usableFromInline var groups: [OwningGroup] = []
     /// Counts changes to which entities are live and to the hierarchy.
     @usableFromInline var structureVersion: UInt64 = 0
 
@@ -423,16 +425,20 @@ public struct World: Sendable {
     @inlinable
     mutating func store<C: Component>(_ component: C, for entity: Entity) {
         let tick = changeTick
-        let added = uniqueUnretainedColumn(at: columnSlot(of: C.self), of: C.self)._withUnsafeGuaranteedRef { column in
+        let group = uniqueUnretainedColumn(at: columnSlot(of: C.self), of: C.self)._withUnsafeGuaranteedRef { column in
             if let position = column.index.position(of: entity) {
                 column.values[position] = component
                 column.index.ticks[position].changed = tick
-                return false
+                return -2
             } else {
                 _ = column.index.append(entity, at: tick)
                 column.values.append(component)
-                return true
+                return column.group
             }
+        }
+        let added = group != -2
+        if group >= 0 {
+            joinGroup(group, entity)
         }
         if !hooks.isEmpty {
             fireInsertHooks(C.self, for: entity, added: added)
@@ -449,9 +455,14 @@ public struct World: Sendable {
 
     @inlinable
     mutating func discard<C: Component>(_ type: C.Type, from entity: Entity) -> C? {
-        guard let slot = columnPositions.position(of: ObjectIdentifier(C.self)),
-              let position = unretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef({ $0.index.position(of: entity) })
-        else { return nil }
+        guard let slot = columnPositions.position(of: ObjectIdentifier(C.self)) else { return nil }
+        let group = unretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef { $0.group }
+        if group >= 0 {
+            leaveGroup(group, entity)
+        }
+        guard let position = unretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef({ $0.index.position(of: entity) }) else {
+            return nil
+        }
         let component = uniqueUnretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef { column in
             let component = column.values[position]
             column.swapRemove(at: position)
@@ -479,6 +490,9 @@ public struct World: Sendable {
     @usableFromInline
     mutating func destroy(_ entity: Entity) {
         structureVersion &+= 1
+        if !groups.isEmpty {
+            leaveGroups(entity)
+        }
         if !hooks.isEmpty {
             fireDespawnHooks(for: entity)
         }

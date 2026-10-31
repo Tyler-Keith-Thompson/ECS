@@ -32,6 +32,10 @@ type the fewest entities hold and looks the others up.
 - ``QueryRow``
 - ``QueryFilter``
 
+### Groups
+
+- ``GroupError``
+
 ### Change detection
 
 - ``ChangeTick``

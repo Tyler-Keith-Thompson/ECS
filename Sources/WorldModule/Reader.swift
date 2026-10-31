@@ -6,17 +6,26 @@
 /// overloads of ``World/query(_:)`` and ``World/update(_:reading:where:body:)`` keeps the
 /// per-entity work free of pack expansion. `Row` is what a visit receives: a tuple for a query, a
 /// ``QueryRow`` for an update.
+/// The driver of a visit over an owning group's entities: every column holds the entity at the
+/// cursor.
+@usableFromInline
+let alignedDriver = Int.max
+
 @frozen
 @usableFromInline
 struct Reader<Row> {
+    /// The read types, in the order they were listed.
+    @usableFromInline let types: [ObjectIdentifier]
     /// The entities of each read column, in the order the types were listed.
     @usableFromInline let columns: [[Entity]]
     /// The row of `entity`, or nil if it lacks a read type. When `entity` was found at `cursor`
-    /// in read column `driver` (pass -1 for none), that column is read at `cursor` directly.
+    /// in read column `driver` (pass -1 for none), that column is read at `cursor` directly;
+    /// with `alignedDriver`, every column is.
     @usableFromInline let row: (_ entity: Entity, _ cursor: Int, _ driver: Int) -> Row?
 
     @inlinable
-    init(columns: [[Entity]], row: @escaping (Entity, Int, Int) -> Row?) {
+    init(types: [ObjectIdentifier], columns: [[Entity]], row: @escaping (Entity, Int, Int) -> Row?) {
+        self.types = types
         self.columns = columns
         self.row = row
     }
@@ -33,10 +42,14 @@ extension World {
         for snapshot in repeat each snapshots {
             columns.append(snapshot.index.dense)
         }
-        return Reader(columns: columns) { entity, cursor, driver in
+        var types: [ObjectIdentifier] = []
+        for type in repeat (each R).self {
+            types.append(ObjectIdentifier(type))
+        }
+        return Reader(types: types, columns: columns) { entity, cursor, driver in
             var column = 0
             for snapshot in repeat each snapshots {
-                if column != driver, snapshot.index.position(of: entity) == nil { return nil }
+                if column != driver, driver != alignedDriver, snapshot.index.position(of: entity) == nil { return nil }
                 column += 1
             }
             column = 0
@@ -49,9 +62,9 @@ extension World {
     @inlinable
     func reader<A: Component, Row>(_ a: A.Type, make: @escaping (Entity, A) -> Row) -> Reader<Row> {
         let a = snapshot(of: A.self)
-        return Reader(columns: [a.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(A.self)], columns: [a.index.dense]) { entity, cursor, driver in
             let first: Int
-            if driver == 0 { first = cursor } else {
+            if driver == 0 || driver == alignedDriver { first = cursor } else {
                 guard let found = a.index.position(of: entity) else { return nil }
                 first = found
             }
@@ -66,14 +79,14 @@ extension World {
     ) -> Reader<Row> {
         let a = snapshot(of: A.self)
         let b = snapshot(of: B.self)
-        return Reader(columns: [a.index.dense, b.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(A.self), ObjectIdentifier(B.self)], columns: [a.index.dense, b.index.dense]) { entity, cursor, driver in
             let first: Int
             let second: Int
-            if driver == 0 { first = cursor } else {
+            if driver == 0 || driver == alignedDriver { first = cursor } else {
                 guard let found = a.index.position(of: entity) else { return nil }
                 first = found
             }
-            if driver == 1 { second = cursor } else {
+            if driver == 1 || driver == alignedDriver { second = cursor } else {
                 guard let found = b.index.position(of: entity) else { return nil }
                 second = found
             }
@@ -89,19 +102,19 @@ extension World {
         let a = snapshot(of: A.self)
         let b = snapshot(of: B.self)
         let c = snapshot(of: C.self)
-        return Reader(columns: [a.index.dense, b.index.dense, c.index.dense]) { entity, cursor, driver in
+        return Reader(types: [ObjectIdentifier(A.self), ObjectIdentifier(B.self), ObjectIdentifier(C.self)], columns: [a.index.dense, b.index.dense, c.index.dense]) { entity, cursor, driver in
             let first: Int
             let second: Int
             let third: Int
-            if driver == 0 { first = cursor } else {
+            if driver == 0 || driver == alignedDriver { first = cursor } else {
                 guard let found = a.index.position(of: entity) else { return nil }
                 first = found
             }
-            if driver == 1 { second = cursor } else {
+            if driver == 1 || driver == alignedDriver { second = cursor } else {
                 guard let found = b.index.position(of: entity) else { return nil }
                 second = found
             }
-            if driver == 2 { third = cursor } else {
+            if driver == 2 || driver == alignedDriver { third = cursor } else {
                 guard let found = c.index.position(of: entity) else { return nil }
                 third = found
             }
