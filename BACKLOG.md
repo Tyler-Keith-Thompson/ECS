@@ -62,6 +62,42 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
    parameter lists, and a variable number of `inout` closure parameters; the design avoids all
    three. Needs swift-syntax in both build systems (`swift_compiler_plugin` in Bazel).
 
+2. **Ambiguity detection.** Report pairs of systems in a schedule whose declared access conflicts
+   but which no `after` / `before` orders, since their order then rests on how they were written.
+   A schedule check returning a witness (`ambiguities() -> [Ambiguity]`), plus a debug-build
+   warning when a schedule first runs.
+3. **Required components.** A component names components it needs (`static var required`), and
+   inserting it inserts the missing ones' defaults, transitively, in both the world and commands.
+4. **Removal detection.** A per-reader list of entities that lost a component or were despawned
+   since that reader last looked (`world.removed(Health.self, by: Reader.self)`), built on hooks
+   and event places.
+5. **Named schedules and states.** Schedules by label (`Startup`, `Update`, `FixedUpdate`) in an
+   app-level runner, `FixedUpdate` on a fixed timestep with an accumulator, and a `State` value
+   with `onEnter` / `onExit` / `onTransition` schedules and `inState` run conditions.
+6. **System sets.** A named group of systems ordered and conditioned together with one `after`,
+   `before` or `runIf`.
+7. **Disabled entities and default filters.** A `Disabled` marker every query and update skips
+   unless it asks for it (`.including(Disabled.self)`).
+8. **Entity cloning and prefabs.** `world.clone(entity)` copies every component; a prefab entity
+   is a template that queries skip and `spawn(from:)` copies.
+9. **Column spans.** `Span` / `MutableSpan` access to a whole column for SIMD loops and C
+   interop, marking every component changed once.
+10. **Cached queries.** A query state that remembers a `Query`'s matching entities and keeps them
+    current from structural changes, so a narrow query stops walking a large column.
+11. **Relationships as pairs.** `(Relation, target)` components with queries over a relation's
+    target or any target (`Pair<Targets, Wildcard>`), exclusive relations, and cleanup when a
+    target despawns; the hierarchy becomes one relation.
+12. **Observers on custom triggers.** `world.trigger(Explode(), on: entity)` with handlers that can
+    propagate up the hierarchy, and observers for an entity starting or stopping to match a
+    query.
+13. **Indexes by value.** `world.index(Name.self)` keeps a map from a `Hashable` component's value
+    to its entities, current through hooks.
+14. **Scenes and a type registry.** Register component types once; save and load whole worlds
+    without listing types per snapshot.
+15. **Swift concurrency bridges.** Events and changes as an `AsyncSequence` (Afluent), and
+    `@MainActor` systems run on the main actor by a schedule.
+16. **Profiling.** Time per system per run, and the schedule's dependency graph as DOT.
+
 ## Done
 
 - Sparse-set world with copy-on-write, queries with filters, in-place updates, commands,
