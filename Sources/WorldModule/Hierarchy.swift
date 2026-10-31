@@ -134,6 +134,7 @@ extension World {
         precondition(contains(parent), "Adding a child to stale parent \(parent)")
         guard !hierarchy.isAncestor(child, ofOrIs: parent) else { throw CyclicHierarchy() }
         hierarchy.link(child, to: parent)
+        structureVersion &+= 1
     }
 
     /// Makes `child` the last child of `parent`, moving it from its current parent if it has
@@ -149,6 +150,7 @@ extension World {
         guard contains(child), contains(parent) else { throw .staleEntity }
         guard !hierarchy.isAncestor(child, ofOrIs: parent) else { throw .cyclicHierarchy }
         hierarchy.link(child, to: parent)
+        structureVersion &+= 1
     }
 
     /// Detaches `child` from its parent, keeping both entities, and returns the parent, or nil
@@ -160,6 +162,7 @@ extension World {
     @discardableResult
     public mutating func removeParent(of child: Entity) -> Entity? {
         precondition(contains(child), "Removing the parent of stale entity \(child)")
+        structureVersion &+= 1
         return hierarchy.unlink(child)
     }
 
@@ -172,6 +175,7 @@ extension World {
     @discardableResult
     public mutating func removeParent(checkedOf child: Entity) throws(StaleEntity) -> Entity? {
         guard contains(child) else { throw StaleEntity() }
+        structureVersion &+= 1
         return hierarchy.unlink(child)
     }
 

@@ -9,6 +9,10 @@ the order they are written, except that `after` and `before` constraints move a 
 just before the one that must follow it. Constraints that form a cycle trap, or throw
 ``CyclicOrdering`` from ``Schedule/init(checked:)``.
 
+A system that declares its ``System/access`` can run alongside the systems next to it that it
+does not conflict with: ``Schedule/parallelRun(on:)`` gives the same world as
+``Schedule/run(on:)``, using more cores.
+
 ## Topics
 
 ### Systems

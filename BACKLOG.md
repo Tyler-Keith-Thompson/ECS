@@ -5,9 +5,7 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Parallel schedules.** Systems that declare what they read and write, and a schedule that
-   runs systems with disjoint access concurrently.
-2. **Groups.** EnTT-style owning groups that keep several component types packed in the same
+1. **Groups.** EnTT-style owning groups that keep several component types packed in the same
    order, for multi-type iteration with no lookups.
 
 ## Done
@@ -31,3 +29,4 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 - World equality: `==` on snapshots of `Equatable` components, independent of storage order.
 - Parallel updates: `parallelUpdate` chunks entities across cores; `@Sendable` bodies keep it
   deterministic.
+- Parallel schedules: `Access` declarations, `World.runConcurrently`, `Schedule.parallelRun`.

@@ -125,7 +125,9 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   `commands.spawn(…)` returns a handle later commands in the buffer can name.
 - **`Resources`**: values the world holds once, such as a clock or the frame's input.
 - **`Schedule`**: systems in the order written, adjusted by `after` and `before` constraints,
-  and skipped when a `runIf { world in … }` condition does not hold.
+  and skipped when a `runIf { world in … }` condition does not hold. Systems that declare an `Access` (what
+  they read and write) run side by side under `parallelRun(on:)`, with the result `run(on:)`
+  gives.
 
 Queries and updates of up to three types have overloads the compiler fully specializes; more types
 go through a parameter pack.

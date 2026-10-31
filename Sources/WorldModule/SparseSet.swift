@@ -95,6 +95,10 @@ class AnyColumn: @unchecked Sendable {
     /// A column holding the same entities and components.
     @usableFromInline
     func copy() -> AnyColumn { preconditionFailure("abstract") }
+
+    /// An empty column of the same component type.
+    @usableFromInline
+    func makeEmpty() -> AnyColumn { preconditionFailure("abstract") }
 }
 
 /// The `C` components of a world, densely packed, in the order of their column's index.
@@ -118,6 +122,9 @@ final class Column<C: Component>: AnyColumn, @unchecked Sendable {
 
     @inlinable
     override func copy() -> AnyColumn { Column(copying: self) }
+
+    @inlinable
+    override func makeEmpty() -> AnyColumn { Column() }
 
     /// Removes the entity and component at `position`, moving the last ones into its place.
     @inlinable

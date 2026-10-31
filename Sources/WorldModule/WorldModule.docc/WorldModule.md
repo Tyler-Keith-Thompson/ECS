@@ -57,6 +57,11 @@ Registered with `onAdd`, `onInsert` and `onRemove` on ``World``.
 
 - ``WorldSnapshot``
 
+### Concurrent changes
+
+- ``Access``
+- ``ConcurrentChange``
+
 ### Deferred changes
 
 - ``Commands``

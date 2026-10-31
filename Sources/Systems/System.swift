@@ -16,8 +16,27 @@ import WorldModule
 /// }
 /// ```
 public protocol System: Sendable {
+    /// What the system reads and writes, so ``Schedule/parallelRun(on:)`` can run it alongside
+    /// systems it does not conflict with; nil, the default, when it may change anything and must
+    /// run alone.
+    ///
+    /// ```swift
+    /// struct Movement: System {
+    ///     var access: Access? { .reads(Velocity.self).writes(Position.self) }
+    ///     func run(in world: inout World) { … }
+    /// }
+    /// ```
+    ///
+    /// A system with an access reads and writes only what it lists, and spawns, despawns and
+    /// changes the hierarchy not at all.
+    var access: Access? { get }
+
     /// Runs the rule once on `world`.
     func run(in world: inout World)
+}
+
+extension System {
+    public var access: Access? { nil }
 }
 
 extension System {
@@ -60,10 +79,13 @@ public struct ScheduledSystem: Sendable {
     /// What must hold for the world, every one, for the system to run.
     @usableFromInline var conditions: [@Sendable (World) -> Bool] = []
     @usableFromInline let body: @Sendable (inout World) -> Void
+    /// What the system reads and writes, or nil if it must run alone.
+    public let access: Access?
 
     /// `system`, unordered.
     @inlinable
     public init<S: System>(_ system: S) {
+        access = system.access
         name = String(describing: S.self)
         id = nextSystemID.wrappingAdd(1, ordering: .relaxed).newValue
         type = ObjectIdentifier(S.self)

@@ -130,6 +130,59 @@ public struct Schedule: Sendable {
         }
     }
 
+    /// Runs every system once on `world`, as ``run(on:)`` does, running consecutive systems
+    /// whose accesses do not conflict at the same time.
+    ///
+    /// Systems are grouped in the order they run: a system joins the group before it when it
+    /// has an access and conflicts with no system in the group. A group runs with
+    /// ``WorldModule/World/runConcurrently(_:)``, so the world ends as it would after ``run(on:)``.
+    /// A system without an access runs alone. Within a group, every condition is checked before
+    /// any system runs, so a condition reads only what its system's access lists.
+    ///
+    /// - Precondition: Every system with an access reads and writes only what it lists; see
+    ///   ``WorldModule/World/runConcurrently(_:)``.
+    public func parallelRun(on world: inout World) {
+        let outerLastRun = world.lastRun
+        defer {
+            world.lastRun = outerLastRun
+            world.advanceChangeTick()
+        }
+        var start = 0
+        while start < systems.count {
+            var end = start + 1
+            if let first = systems[start].access {
+                var accesses = [first]
+                while end < systems.count, let access = systems[end].access,
+                      !accesses.contains(where: { $0.conflicts(with: access) }) {
+                    accesses.append(access)
+                    end += 1
+                }
+            }
+            let group = systems[start ..< end].filter { $0.shouldRun(in: world) }
+            start = end
+            guard !group.isEmpty else { continue }
+            let runs = world.resources.contains(SystemRuns.self) ? world.resources[SystemRuns.self].ticks : [:]
+            let tick = world.advanceChangeTick()
+            if group.count == 1, let system = group.first {
+                world.lastRun = runs[system.id] ?? .zero
+                system.run(in: &world)
+            } else {
+                world.runConcurrently(group.map { system in
+                    let lastRun = runs[system.id] ?? .zero
+                    return ConcurrentChange(access: system.access!) { world in
+                        world.lastRun = lastRun
+                        system.run(in: &world)
+                    }
+                })
+            }
+            var updated = world.resources.contains(SystemRuns.self) ? world.resources[SystemRuns.self] : SystemRuns(ticks: [:])
+            for system in group {
+                updated.ticks[system.id] = tick
+            }
+            world.resources.insert(updated)
+        }
+    }
+
     /// `systems` reordered to satisfy their constraints, or nil if the constraints form a cycle.
     ///
     /// A depth-first postorder over "must run after" edges, from each system in written order:

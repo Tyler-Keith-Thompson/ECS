@@ -35,6 +35,8 @@ public struct World: Sendable {
     @usableFromInline var hierarchy = Hierarchy()
     /// The component hooks and the hook calls waiting to run.
     @usableFromInline var hooks = Hooks()
+    /// Counts changes to which entities are live and to the hierarchy.
+    @usableFromInline var structureVersion: UInt64 = 0
 
     /// The world's resources: values it holds once, outside any entity.
     public var resources = Resources()
@@ -463,6 +465,7 @@ public struct World: Sendable {
 
     @inlinable
     mutating func makeEntity() -> Entity {
+        structureVersion &+= 1
         if let slot = vacant.popLast() {
             isLive[Int(slot)] = true
             return Entity(index: slot, generation: generations[Int(slot)])
@@ -475,6 +478,7 @@ public struct World: Sendable {
 
     @usableFromInline
     mutating func destroy(_ entity: Entity) {
+        structureVersion &+= 1
         if !hooks.isEmpty {
             fireDespawnHooks(for: entity)
         }
