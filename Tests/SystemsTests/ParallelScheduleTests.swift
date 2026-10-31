@@ -71,8 +71,8 @@ struct ParallelScheduleTests {
                 serial.resources.insert(Paused2())
                 parallel.resources.insert(Paused2())
             }
-            schedule.run(on: &serial)
-            schedule.parallelRun(on: &parallel)
+            schedule.runSerially(on: &serial)
+            schedule.run(on: &parallel)
             #expect(parallel.snapshot(Position.self, Velocity.self, Health.self) == serial.snapshot(Position.self, Velocity.self, Health.self))
             #expect(parallel.resources[Score.self] == serial.resources[Score.self])
             #expect(parallel.resources[Clock.self] == serial.resources[Clock.self])
@@ -100,7 +100,7 @@ struct ParallelScheduleTests {
         let outer = ChangeTick(0)
         world.lastRun = outer
         let before = world.changeTick
-        schedule.parallelRun(on: &world)
+        schedule.run(on: &world)
         #expect(world.lastRun == outer)
         #expect(world.changeTick > before)
     }

@@ -23,13 +23,15 @@ public enum ScheduleBuilder {
     public static func buildArray(_ parts: [[ScheduledSystem]]) -> [ScheduledSystem] { parts.flatMap(\.self) }
 }
 
-/// Systems in the order they run.
+/// Systems that run on a world, as though in the order written, at the same time where they can.
 ///
-/// Systems run in the order they are written, except where `after` and `before` constraints
+/// Systems take the order they are written in, except where `after` and `before` constraints
 /// require otherwise: a system that must run before one written earlier is moved up to run just
-/// before it.
-/// A constraint naming a type with no system in the schedule is ignored, and one naming the
-/// system's own type does not order the system against itself.
+/// before it. A constraint naming a type with no system in the schedule is ignored, and one
+/// naming the system's own type does not order the system against itself.
+///
+/// Systems that conflict, one writing what the other reads or writes, run in that order; those
+/// that do not run at the same time (see ``run(on:)``).
 ///
 /// ```swift
 /// let tick = Schedule {
@@ -40,8 +42,11 @@ public enum ScheduleBuilder {
 /// tick.run(on: &world)  // Movement, Collisions, then DrawBoxes when debugging
 /// ```
 public struct Schedule: Sendable {
-    /// The systems, in the order they run.
+    /// The systems, in an order that satisfies their constraints and in which conflicting
+    /// systems run.
     public let systems: [ScheduledSystem]
+    /// The positions in ``systems`` of the systems each wave runs at the same time.
+    package let waves: [[Int]]
 
     /// The systems written in `build`, in an order that satisfies their constraints.
     ///
@@ -52,7 +57,7 @@ public struct Schedule: Sendable {
         guard let systems = Self.ordered(build()) else {
             preconditionFailure("The schedule's ordering constraints form a cycle")
         }
-        self.systems = systems
+        self.init(ordered: systems)
     }
 
     /// `systems`, in an order that satisfies their constraints.
@@ -66,14 +71,14 @@ public struct Schedule: Sendable {
     /// - Throws: ``CyclicOrdering`` when the constraints form a cycle.
     public init(checked systems: [ScheduledSystem]) throws(CyclicOrdering) {
         guard let ordered = Self.ordered(systems) else { throw CyclicOrdering() }
-        self.systems = ordered
+        self.init(ordered: ordered)
     }
 
-    /// This schedule, each of its systems run only when `condition` holds for the world just
-    /// before that system would run.
+    /// This schedule, each of its systems run only when `condition` holds for the world at the
+    /// start of the wave that system runs in.
     ///
-    /// The condition is checked once per system, so a system that changes what it depends on
-    /// stops the systems after it.
+    /// The condition is checked once per system, so a system in an earlier wave that changes what
+    /// it depends on stops the systems after it.
     ///
     /// ```swift
     /// let frame = Schedule {
@@ -94,83 +99,64 @@ public struct Schedule: Sendable {
     /// `systems`, already in an order that satisfies their constraints.
     init(ordered systems: [ScheduledSystem]) {
         self.systems = systems
+        waves = Self.waves(of: systems)
     }
 
-    /// The names of the systems, in the order they run.
+    /// The names of the systems, in the order of ``systems``.
     public var names: [String] { systems.map(\.name) }
 
-    /// Runs every system once on `world`, in order, skipping those whose conditions do not hold
-    /// for the world just before their turn.
+    /// Runs every system once on `world`, running systems that do not depend on each other at the
+    /// same time.
     ///
-    /// Before each system, the world's change tick advances and its ``WorldModule/World/lastRun``
-    /// is set to the tick of that system's previous run, so filters such as
-    /// `.changed(Position.self)` show the system what changed since then: changes made by the
-    /// systems after it on the previous run and before it on this one, but not its own. A system
-    /// that has not run on this world before sees every component as added and changed. A
-    /// skipped system has not run: the next time it runs, it sees everything since it last did.
+    /// A system depends on the systems before it that it must run after, by an `after` or
+    /// `before` constraint, and on those it conflicts with: one writes what the other reads or
+    /// writes, or either has no ``System/access``. The systems run in waves: each wave holds the
+    /// systems whose dependencies all ran in earlier waves, and runs them with
+    /// ``WorldModule/World/runConcurrently(_:)``. A system without an access runs alone. The world
+    /// ends as it would running the systems one after another in order.
     ///
-    /// Command buffers a system queues (``WorldModule/World/queue(_:)``) apply right after it.
+    /// At the start of each wave, every condition of its systems is checked, so a condition reads
+    /// only what its system's access lists, and the world's change tick advances. Each system's
+    /// ``WorldModule/World/lastRun`` is the tick of its previous run, so filters such as
+    /// `.changed(Position.self)` show it what changed since then: changes made by the systems
+    /// after it on the previous run and before it on this one, but not its own. A system that has
+    /// not run on this world before sees every component as added and changed. A skipped system
+    /// has not run: the next time it runs, it sees everything since it last did.
     ///
-    /// The tick advances once more after the last system, so changes made to the world between
-    /// runs are newer than every system's previous run.
-    public func run(on world: inout World) {
-        let outerLastRun = world.lastRun
-        defer {
-            world.lastRun = outerLastRun
-            world.advanceChangeTick()
-        }
-        for system in systems where system.shouldRun(in: world) {
-            let hasRuns = world.resources.contains(SystemRuns.self)
-            world.lastRun = hasRuns ? world.resources[SystemRuns.self].ticks[system.id] ?? .zero : .zero
-            let tick = world.advanceChangeTick()
-            system.run(in: &world)
-            world.applyQueuedCommands()
-            if world.resources.contains(SystemRuns.self) {
-                world.resources[SystemRuns.self].ticks[system.id] = tick
-            } else {
-                world.resources.insert(SystemRuns(ticks: [system.id: tick]))
-            }
-        }
-    }
-
-    /// Runs every system once on `world`, as ``run(on:)`` does, running consecutive systems
-    /// whose accesses do not conflict at the same time.
-    ///
-    /// Systems are grouped in the order they run: a system joins the group before it when it
-    /// has an access and conflicts with no system in the group. A group runs with
-    /// ``WorldModule/World/runConcurrently(_:)``, so the world ends as it would after ``run(on:)``.
-    /// A system without an access runs alone. Within a group, every condition is checked before
-    /// any system runs, so a condition reads only what its system's access lists.
-    /// Command buffers the group's systems queue apply after the whole group, in the order the
-    /// systems are written.
+    /// Command buffers the wave's systems queue (``WorldModule/World/queue(_:)``) apply at the end
+    /// of the wave, in the order the systems run. The tick advances once more after the last wave,
+    /// so changes made to the world between runs are newer than every system's previous run.
     ///
     /// - Precondition: Every system with an access reads and writes only what it lists; see
     ///   ``WorldModule/World/runConcurrently(_:)``.
-    public func parallelRun(on world: inout World) {
+    public func run(on world: inout World) {
+        run(on: &world, concurrently: true)
+    }
+
+    /// Runs every system once on `world`, as ``run(on:)`` does but one system at a time.
+    ///
+    /// The waves, conditions, change ticks and commands are those of ``run(on:)``, so the two
+    /// end with the same world; running serially makes a system's work easy to step through.
+    public func runSerially(on world: inout World) {
+        run(on: &world, concurrently: false)
+    }
+
+    func run(on world: inout World, concurrently: Bool) {
         let outerLastRun = world.lastRun
         defer {
             world.lastRun = outerLastRun
             world.advanceChangeTick()
         }
-        var start = 0
-        while start < systems.count {
-            var end = start + 1
-            if let first = systems[start].access {
-                var accesses = [first]
-                while end < systems.count, let access = systems[end].access,
-                      !accesses.contains(where: { $0.conflicts(with: access) }) {
-                    accesses.append(access)
-                    end += 1
-                }
-            }
-            let group = systems[start ..< end].filter { $0.shouldRun(in: world) }
-            start = end
+        for wave in waves {
+            let group = wave.map { systems[$0] }.filter { $0.shouldRun(in: world) }
             guard !group.isEmpty else { continue }
             let runs = world.resources.contains(SystemRuns.self) ? world.resources[SystemRuns.self].ticks : [:]
             let tick = world.advanceChangeTick()
-            if group.count == 1, let system = group.first {
-                world.lastRun = runs[system.id] ?? .zero
-                system.run(in: &world)
+            if group.count == 1 || !concurrently {
+                for system in group {
+                    world.lastRun = runs[system.id] ?? .zero
+                    system.run(in: &world)
+                }
             } else {
                 world.runConcurrently(group.map { system in
                     let lastRun = runs[system.id] ?? .zero
@@ -187,6 +173,39 @@ public struct Schedule: Sendable {
             }
             world.resources.insert(updated)
         }
+    }
+
+    /// The positions in `systems` of each wave's systems, waves in the order they run.
+    ///
+    /// A longest-path layering of the dependency graph: `systems` is already in an order every
+    /// dependency follows, so one pass puts each system one wave after the latest of its
+    /// dependencies.
+    ///
+    /// - Complexity: O(*s*²) for *s* systems.
+    static func waves(of systems: [ScheduledSystem]) -> [[Int]] {
+        var waveOf = [Int](repeating: 0, count: systems.count)
+        var waves: [[Int]] = []
+        for later in systems.indices {
+            var wave = 0
+            for earlier in 0 ..< later where waveOf[earlier] >= wave
+                && dependsOn(systems[later], systems[earlier]) {
+                wave = waveOf[earlier] + 1
+            }
+            waveOf[later] = wave
+            if wave == waves.count { waves.append([]) }
+            waves[wave].append(later)
+        }
+        return waves
+    }
+
+    /// Whether `later` must run after `earlier`, which comes before it in the schedule: a
+    /// constraint orders them, or they conflict.
+    static func dependsOn(_ later: ScheduledSystem, _ earlier: ScheduledSystem) -> Bool {
+        if later.predecessors.contains(earlier.type) || earlier.successors.contains(later.type) {
+            return true
+        }
+        guard let laterAccess = later.access, let earlierAccess = earlier.access else { return true }
+        return laterAccess.conflicts(with: earlierAccess)
     }
 
     /// `systems` reordered to satisfy their constraints, or nil if the constraints form a cycle.

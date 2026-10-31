@@ -148,9 +148,10 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   values. Parameters that conflict are a compile-time error. A `run(in world: inout World)`
   makes a system that may change anything.
 - **`Schedule`**: systems in the order written, adjusted by `after` and `before` constraints,
-  and skipped when a `runIf { world in … }` condition does not hold. Systems with an access
-  (every `@System` with parameters, or one declaring `access` by hand) run side by side under
-  `parallelRun(on:)`, with the result `run(on:)` gives.
+  and skipped when a `runIf { world in … }` condition does not hold. `run(on:)` runs systems
+  that neither conflict nor are ordered at the same time, in waves, with the result running them
+  in order gives; `runSerially(on:)` runs the same waves one system at a time. A system's access
+  comes from its parameters, or from `access` declared by hand; a system without one runs alone.
 
 Queries and updates of up to three types have overloads the compiler fully specializes; more types
 go through a parameter pack.

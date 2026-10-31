@@ -181,14 +181,14 @@ struct SystemParameterTests {
         #expect(world.resources[Seen.self] == expected)
     }
 
-    @Test("Commands apply right after their system when systems run one at a time")
-    func commandsSerial() {
+    @Test("Commands apply at the end of their wave, so a system ordered after theirs sees them")
+    func commandsOrdered() {
         var world = World()
         world.resources.insert(Clock(ticks: 4))
         world.resources.insert(Tally())
         Schedule {
             ParameterSpawner()
-            ParameterHealthCounter()
+            ParameterHealthCounter().after(ParameterSpawner.self)
         }.run(on: &world)
         let expected: Tally = Tally(count: 1)
         #expect(world.resources[Tally.self] == expected)
@@ -198,21 +198,26 @@ struct SystemParameterTests {
         #expect(health == spawned)
     }
 
-    @Test("Commands apply after the whole group when systems run together")
-    func commandsParallel() {
-        var world = World()
-        world.resources.insert(Clock(ticks: 4))
-        world.resources.insert(Tally())
-        // Spawner reads Clock and queues; the counter reads Health and writes Tally: one group.
-        Schedule {
-            ParameterSpawner()
-            ParameterHealthCounter()
-        }.parallelRun(on: &world)
-        let counted: Tally = Tally(count: 0)
-        #expect(world.resources[Tally.self] == counted)
-        #expect(!world.hasQueuedCommands)
-        let total: Int = 1
-        #expect(world.query(Health.self).count == total)
+    @Test("A system in the same wave as a command's system does not see it, run serially or not")
+    func commandsSameWave() {
+        func counted(serially: Bool) -> Tally {
+            var world = World()
+            world.resources.insert(Clock(ticks: 4))
+            world.resources.insert(Tally())
+            // The spawner reads Clock and queues; the counter reads Health and writes Tally.
+            let schedule = Schedule {
+                ParameterSpawner()
+                ParameterHealthCounter()
+            }
+            if serially { schedule.runSerially(on: &world) } else { schedule.run(on: &world) }
+            #expect(!world.hasQueuedCommands)
+            let total: Int = 1
+            #expect(world.query(Health.self).count == total)
+            return world.resources[Tally.self]
+        }
+        let expected: Tally = Tally(count: 0)
+        #expect(counted(serially: true) == expected)
+        #expect(counted(serially: false) == expected)
     }
 
     @Test("Several systems' commands in one group apply in the order the systems are written")
@@ -263,8 +268,8 @@ struct SystemParameterTests {
             var serial = world
             var parallel = world
             for _ in 0 ..< 3 {
-                schedule.run(on: &serial)
-                schedule.parallelRun(on: &parallel)
+                schedule.runSerially(on: &serial)
+                schedule.run(on: &parallel)
             }
             func positions(_ world: World) -> [Position] { world.query(Position.self).map { _, position in position } }
             func health(_ world: World) -> [Health] { world.query(Health.self).map { _, health in health } }

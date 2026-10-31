@@ -133,8 +133,8 @@ extension World {
     /// Queues `commands` to apply later, with ``applyQueuedCommands()``.
     ///
     /// A system that records commands while it runs alongside others queues them, since applying
-    /// would change entities the others are reading; a ``Systems/Schedule`` applies every queued
-    /// buffer at the end of each group of systems it runs together.
+    /// would change entities the others are reading; a `Schedule` applies every queued
+    /// buffer at the end of each wave of systems it runs together.
     ///
     /// - Complexity: O(1) amortized.
     @inlinable

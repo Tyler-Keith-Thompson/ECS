@@ -7,7 +7,7 @@ import WorldModule
 /// before each run. The parameters are ``WorldModule/Query`` and ``WorldModule/Query/Where`` for
 /// reading components, ``Update`` for writing them, ``ResourceReader`` and ``ResourceWriter``,
 /// ``EventReader`` and ``EventWriter``, and `inout` ``WorldModule/Commands`` for structural
-/// changes, which conflict with nothing and apply at the end of the group the system runs in.
+/// changes, which conflict with nothing and apply at the end of the wave the system runs in.
 public protocol SystemParameter {
     /// What the parameter reads and writes, as a parameter of a system of type `system`.
     static func _access<S>(in system: S.Type) -> Access

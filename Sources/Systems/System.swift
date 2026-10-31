@@ -16,7 +16,7 @@ import WorldModule
 /// }
 /// ```
 public protocol System: Sendable {
-    /// What the system reads and writes, so ``Schedule/parallelRun(on:)`` can run it alongside
+    /// What the system reads and writes, so ``Schedule/run(on:)`` can run it alongside
     /// systems it does not conflict with; nil, the default, when it may change anything and must
     /// run alone.
     ///
@@ -52,7 +52,7 @@ extension System {
         ScheduledSystem(self).before(repeat each types)
     }
 
-    /// This system, run only when `condition` holds for the world just before it would run.
+    /// This system, run only when `condition` holds for the world at the start of its wave.
     ///
     /// ```swift
     /// Movement().runIf { world in !world.resources.contains(Paused.self) }
@@ -112,7 +112,7 @@ public struct ScheduledSystem: Sendable {
         return system
     }
 
-    /// This system, also run only when `condition` holds for the world just before it would run.
+    /// This system, also run only when `condition` holds for the world at the start of its wave.
     ///
     /// A system with several conditions runs when all of them hold; they are checked in the
     /// order they were added, stopping at the first that does not.
