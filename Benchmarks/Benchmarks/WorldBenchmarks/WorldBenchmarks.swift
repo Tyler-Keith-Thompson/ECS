@@ -11,6 +11,7 @@ struct Health: Component { var current: Int }
 struct Mass: Component { var kilograms: Double }
 struct Sleeping: Component {}
 struct Likes: Relation {}
+struct Hit: EntityEvent { var damage: Int }
 
 /// Three components spawned as one bundle.
 struct Body: Bundle {
@@ -396,6 +397,18 @@ let benchmarks: @Sendable () -> Void = {
         benchmark.startMeasurement()
         for (index, entity) in entities.enumerated() {
             try? world.addChild(entity, to: parents[index % parents.count])
+        }
+        benchmark.stopMeasurement()
+        blackHole(world)
+    }
+
+    Benchmark("trigger an event on every entity, one observer") { benchmark in
+        var world = populatedWorld()
+        let entities = world.query(Position.self).map { $0.entity }
+        world.observe(Hit.self) { world, trigger in world[Position.self, of: trigger.entity].x += Double(trigger.event.damage) }
+        benchmark.startMeasurement()
+        for entity in entities {
+            world.trigger(Hit(damage: 1), on: entity)
         }
         benchmark.stopMeasurement()
         blackHole(world)

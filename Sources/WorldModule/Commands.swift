@@ -148,6 +148,13 @@ public struct Commands: Sendable {
         }
     }
 
+    /// Records triggering `event` on `entity`. When it applies, nothing happens if `entity` is
+    /// not live.
+    @inlinable
+    public mutating func trigger<E: EntityEvent>(_ event: E, on entity: Entity) {
+        operations.append { world, spawned in try? world.trigger(event, checkedOn: Self.resolve(entity, in: spawned)) }
+    }
+
     /// Records storing `resource`, replacing any of its type.
     @inlinable
     public mutating func insert<R: Resource>(resource: R) {

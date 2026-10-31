@@ -35,6 +35,8 @@ public struct World: Sendable {
     @usableFromInline var hooks = Hooks()
     /// The owning groups, each column knowing its group by position here.
     @usableFromInline var groups: [OwningGroup] = []
+    /// The observers of entity events.
+    @usableFromInline var observers = Observers()
     /// Each relation's sources by target, in the order the relations were first stored.
     @usableFromInline var relationIndexes: [RelationIndex] = []
     /// The cached queries' entities (``cache(_:)``).
@@ -556,7 +558,7 @@ public struct World: Sendable {
     /// than recursively.
     @inlinable
     mutating func destroyCascading(_ entity: Entity) {
-        guard !relationIndexes.isEmpty else {
+        guard !relationIndexes.isEmpty || !observers.byEntity.isEmpty else {
             destroy(entity)
             return
         }
@@ -571,7 +573,12 @@ public struct World: Sendable {
     mutating func destroyPending(_ pending: inout [Entity]) {
         while let next = pending.popLast() {
             guard contains(next) else { continue }
-            releaseRelations(of: next, cascade: &pending)
+            if !relationIndexes.isEmpty {
+                releaseRelations(of: next, cascade: &pending)
+            }
+            if !observers.byEntity.isEmpty {
+                forgetObservers(of: next)
+            }
             destroy(next)
         }
     }

@@ -132,7 +132,11 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
   spawning or inserting it adds each one the entity lacks, transitively; components given
   explicitly win.
 - **Hooks**: `world.onAdd(Name.self) { world, entity in … }`, `onInsert` and `onRemove` run
-  after the operation that fired them, for keeping indexes without polling.
+  after the operation that fired them, for keeping indexes without polling. Given a `Query`,
+  `onAdd` and `onRemove` run when an entity starts or stops matching it.
+- **Observers**: `world.observe(Explode.self, on: barrel) { world, trigger in … }` runs when
+  `world.trigger(Explode(), on: barrel)` is called; events that propagate move up the hierarchy
+  until an observer stops them.
 - **Disabled entities**: `world.insert(Disabled(), into: enemy)` keeps the entity and its
   components but hides it from queries and updates, unless they read `Disabled`, name it in a
   filter or say `.allowing(Disabled.self)`. `registerDisablingComponent` adds types that hide

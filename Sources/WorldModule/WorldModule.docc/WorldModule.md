@@ -73,7 +73,13 @@ Groups are made with `group(_:)` and cached queries with `cache(_:)` on ``World`
 
 ### Hooks
 
-Registered with `onAdd`, `onInsert` and `onRemove` on ``World``.
+Registered with `onAdd`, `onInsert` and `onRemove` on ``World``, for a component type or a
+query.
+
+### Observers
+
+- ``EntityEvent``
+- ``Trigger``
 
 ### Disabled entities and prefabs
 

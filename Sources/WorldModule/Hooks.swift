@@ -68,7 +68,7 @@ extension World {
 
     /// Runs `hook` whenever an entity is given a `C`, whether it is new or replaces one it held.
     ///
-    /// Hooks run as ``onAdd(_:perform:)`` describes; for a new component, the add hooks run
+    /// Hooks run as the component `onAdd(_:perform:)` describes; for a new component, the add hooks run
     /// first.
     ///
     /// - Complexity: O(1) amortized.
@@ -81,7 +81,7 @@ extension World {
     /// Runs `hook` with the removed component whenever an entity loses a `C`: by removing it,
     /// removing a bundle that holds it or despawning the entity.
     ///
-    /// Hooks run as ``onAdd(_:perform:)`` describes. The component is gone from the entity when
+    /// Hooks run as the component `onAdd(_:perform:)` describes. The component is gone from the entity when
     /// the hook runs, and a despawned entity is no longer live.
     ///
     /// ```swift

@@ -19,6 +19,9 @@ struct QueryCache: Sendable {
     /// Whether a part merged back changed the entities' components, so `entities` waits to be
     /// rebuilt and no visit uses it.
     @usableFromInline var isStale = false
+    /// Hooks run when an entity starts or stops meeting the conditions.
+    @usableFromInline var onAdd: [@Sendable (inout World, Entity) -> Void] = []
+    @usableFromInline var onRemove: [@Sendable (inout World, Entity) -> Void] = []
 
     @inlinable
     init(identifier: Int, required: [ObjectIdentifier], excluded: [ObjectIdentifier], alternatives: [[QueryFilter]]) {
@@ -101,6 +104,12 @@ extension World {
     ///   adding or removing a component of a type it names.
     @inlinable
     public mutating func cache<each T: QueryTerm>(_ query: Query<repeat each T>) {
+        _ = cachePosition(of: query)
+    }
+
+    /// The position in ``caches`` of the cache of `query`'s conditions, made if there is none.
+    @inlinable
+    mutating func cachePosition<each T: QueryTerm>(of query: Query<repeat each T>) -> Int {
         var required: [ObjectIdentifier] = []
         for term in repeat (each T).self {
             if let type = term._termReader(in: self).required, !required.contains(type) {
@@ -117,7 +126,9 @@ extension World {
         }
         let alternatives = filter.alternatives.filter { $0.allSatisfy(\.isStructural) }
         var cache = QueryCache(identifier: caches.count, required: required, excluded: excluded, alternatives: alternatives)
-        guard !caches.contains(where: { $0.hasConditions(of: cache) }) else { return }
+        if let existing = caches.firstIndex(where: { $0.hasConditions(of: cache) }) {
+            return existing
+        }
         var smallest: [Entity]?
         for type in required {
             let entities = columnPositions.position(of: type).map { columns[$0].index.dense } ?? []
@@ -129,6 +140,7 @@ extension World {
             _ = cache.entities.append(entity, at: .zero)
         }
         caches.append(cache)
+        return caches.count - 1
     }
 
     /// Whether `entity` meets the conditions of `cache`.
@@ -170,8 +182,14 @@ extension World {
             let position = caches[index].entities.position(of: entity)
             if isMet, position == nil {
                 _ = caches[index].entities.append(entity, at: .zero)
+                for hook in caches[index].onAdd {
+                    hooks.pending.append { world in hook(&world, entity) }
+                }
             } else if !isMet, let position {
                 caches[index].entities.swapRemove(at: position)
+                for hook in caches[index].onRemove {
+                    hooks.pending.append { world in hook(&world, entity) }
+                }
             }
         }
     }
@@ -183,6 +201,9 @@ extension World {
         for index in caches.indices {
             if let position = caches[index].entities.position(of: entity) {
                 caches[index].entities.swapRemove(at: position)
+                for hook in caches[index].onRemove {
+                    hooks.pending.append { world in hook(&world, entity) }
+                }
             }
         }
     }
@@ -207,9 +228,21 @@ extension World {
             for entity in self.entities where meets(caches[index], entity) {
                 _ = entities.append(entity, at: .zero)
             }
+            let old = caches[index].entities
             caches[index].entities = entities
             caches[index].isStale = false
+            for entity in entities.dense where old.position(of: entity) == nil {
+                for hook in caches[index].onAdd {
+                    hooks.pending.append { world in hook(&world, entity) }
+                }
+            }
+            for entity in old.dense where entities.position(of: entity) == nil {
+                for hook in caches[index].onRemove {
+                    hooks.pending.append { world in hook(&world, entity) }
+                }
+            }
         }
+        endOperation()
     }
 
     /// The entities of the smallest cache whose conditions a visit's imply, or nil.
