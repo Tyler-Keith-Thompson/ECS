@@ -12,28 +12,29 @@ struct Wind: Component { var speed: Double }
 struct Current: Component { var speed: Double }
 struct Anchored: Component {}
 
-struct Movement: System {
-    func run(in world: inout World) {
-        world.update(Position.self, reading: Velocity.self, where: .without(Frozen.self)) { position, row in
+@System
+struct Movement {
+    func run(_ movers: Update<Position>.Over<Velocity>.Where<Without<Frozen>>) {
+        movers { position, row in
             position.x += row.components.dx
             position.y += row.components.dy
         }
     }
 }
 
-struct Reaper: System {
-    func run(in world: inout World) {
-        var commands = Commands()
-        world.update(Health.self) { health, row in
-            if health.current <= 0 { commands.despawn(row.entity) }
+@System
+struct Reaper {
+    func run(_ living: Query<Health>, commands: inout Commands) {
+        for (entity, health) in living where health.current <= 0 {
+            commands.despawn(entity)
         }
-        world.apply(commands)
     }
 }
 
-struct Tick: System {
-    func run(in world: inout World) {
-        world.resources[Clock.self].ticks += 1
+@System
+struct Tick {
+    func run(clock: ResourceWriter<Clock>) {
+        clock.value.ticks += 1
     }
 }
 

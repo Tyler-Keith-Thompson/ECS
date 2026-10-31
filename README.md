@@ -42,28 +42,29 @@ struct Health: Component { var current: Int }
 struct Frozen: Component {}
 struct Clock: Resource { var ticks = 0 }
 
-struct Movement: System {
-    func run(in world: inout World) {
-        world.update(Position.self, reading: Velocity.self, where: .without(Frozen.self)) { position, row in
+@System
+struct Movement {
+    func run(_ movers: Update<Position>.Over<Velocity>.Where<Without<Frozen>>) {
+        movers { position, row in
             position.x += row.components.dx
             position.y += row.components.dy
         }
     }
 }
 
-struct Reaper: System {
-    func run(in world: inout World) {
-        var commands = Commands()
-        world.update(Health.self) { health, row in
-            if health.current <= 0 { commands.despawn(row.entity) }
+@System
+struct Reaper {
+    func run(_ living: Query<Health>, commands: inout Commands) {
+        for (entity, health) in living where health.current <= 0 {
+            commands.despawn(entity)
         }
-        world.apply(commands)
     }
 }
 
-struct Tick: System {
-    func run(in world: inout World) {
-        world.resources[Clock.self].ticks += 1
+@System
+struct Tick {
+    func run(clock: ResourceWriter<Clock>) {
+        clock.value.ticks += 1
     }
 }
 
@@ -139,10 +140,17 @@ for (entity, position, velocity) in world.query(Position.self, Velocity.self).wi
 - **`Commands`**: spawns, despawns and insertions recorded during an update and applied after it.
   `commands.spawn(…)` returns a handle later commands in the buffer can name.
 - **`Resources`**: values the world holds once, such as a clock or the frame's input.
+- **`@System`**: a system declared by its `run` method's parameters, whose types state what it
+  reads and writes: `Query<…>` and `Query<…>.Where<…>` read components, `Update<A>.And<B>.Over<…>.Where<…>`
+  writes them, `ResourceReader`, `ResourceWriter`, `EventReader` and `EventWriter` reach
+  resources and events, and `inout Commands` queues structural changes that apply after the
+  system. The filter types `With`, `Without`, `Added`, `Changed` and `AnyOf` mirror the filter
+  values. Parameters that conflict are a compile-time error. A `run(in world: inout World)`
+  makes a system that may change anything.
 - **`Schedule`**: systems in the order written, adjusted by `after` and `before` constraints,
-  and skipped when a `runIf { world in … }` condition does not hold. Systems that declare an `Access` (what
-  they read and write) run side by side under `parallelRun(on:)`, with the result `run(on:)`
-  gives.
+  and skipped when a `runIf { world in … }` condition does not hold. Systems with an access
+  (every `@System` with parameters, or one declaring `access` by hand) run side by side under
+  `parallelRun(on:)`, with the result `run(on:)` gives.
 
 Queries and updates of up to three types have overloads the compiler fully specializes; more types
 go through a parameter pack.

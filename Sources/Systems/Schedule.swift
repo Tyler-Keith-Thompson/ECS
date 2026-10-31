@@ -109,6 +109,8 @@ public struct Schedule: Sendable {
     /// that has not run on this world before sees every component as added and changed. A
     /// skipped system has not run: the next time it runs, it sees everything since it last did.
     ///
+    /// Command buffers a system queues (``WorldModule/World/queue(_:)``) apply right after it.
+    ///
     /// The tick advances once more after the last system, so changes made to the world between
     /// runs are newer than every system's previous run.
     public func run(on world: inout World) {
@@ -122,6 +124,7 @@ public struct Schedule: Sendable {
             world.lastRun = hasRuns ? world.resources[SystemRuns.self].ticks[system.id] ?? .zero : .zero
             let tick = world.advanceChangeTick()
             system.run(in: &world)
+            world.applyQueuedCommands()
             if world.resources.contains(SystemRuns.self) {
                 world.resources[SystemRuns.self].ticks[system.id] = tick
             } else {
@@ -138,6 +141,8 @@ public struct Schedule: Sendable {
     /// ``WorldModule/World/runConcurrently(_:)``, so the world ends as it would after ``run(on:)``.
     /// A system without an access runs alone. Within a group, every condition is checked before
     /// any system runs, so a condition reads only what its system's access lists.
+    /// Command buffers the group's systems queue apply after the whole group, in the order the
+    /// systems are written.
     ///
     /// - Precondition: Every system with an access reads and writes only what it lists; see
     ///   ``WorldModule/World/runConcurrently(_:)``.
@@ -175,6 +180,7 @@ public struct Schedule: Sendable {
                     }
                 })
             }
+            world.applyQueuedCommands()
             var updated = world.resources.contains(SystemRuns.self) ? world.resources[SystemRuns.self] : SystemRuns(ticks: [:])
             for system in group {
                 updated.ticks[system.id] = tick

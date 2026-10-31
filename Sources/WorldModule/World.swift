@@ -39,6 +39,8 @@ public struct World: Sendable {
     @usableFromInline var groups: [OwningGroup] = []
     /// Counts changes to which entities are live and to the hierarchy.
     @usableFromInline var structureVersion: UInt64 = 0
+    /// Command buffers queued with ``queue(_:)``, in the order they were queued.
+    @usableFromInline var queuedCommands: [Commands] = []
 
     /// The world's resources: values it holds once, outside any entity.
     public var resources = Resources()

@@ -16,6 +16,7 @@ Net effect: dependencies build quietly, our own warnings fail the build.
 load(
     "@rules_swift//swift:swift.bzl",
     _swift_binary = "swift_binary",
+    _swift_compiler_plugin = "swift_compiler_plugin",
     _swift_library = "swift_library",
     _swift_test = "swift_test",
 )
@@ -63,6 +64,15 @@ def swift_test(name, features = [], copts = [], **kwargs):
 
 def swift_binary(name, features = [], copts = [], **kwargs):
     _swift_binary(
+        name = name,
+        features = features + _FIRST_PARTY_FEATURES,
+        copts = copts + _FIRST_PARTY_COPTS,
+        package_name = _PACKAGE_NAME,
+        **kwargs
+    )
+
+def swift_compiler_plugin(name, features = [], copts = [], **kwargs):
+    _swift_compiler_plugin(
         name = name,
         features = features + _FIRST_PARTY_FEATURES,
         copts = copts + _FIRST_PARTY_COPTS,

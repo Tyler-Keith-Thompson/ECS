@@ -2,6 +2,7 @@
 
 load("@rules_xcodeproj//xcodeproj:defs.bzl", "xcodeproj", "xcschemes")
 load("//tools:docc.bzl", "docc_site")
+load("//tools:macros.bzl", "MACRO_PACKAGES", "MACRO_TEST_PACKAGES")
 load("//tools:performance_tests.bzl", "PERFORMANCE_TEST_PACKAGES")
 load("//tools:swiftpm.bzl", "swiftpm_manifest_test")
 
@@ -9,11 +10,12 @@ load("//tools:swiftpm.bzl", "swiftpm_manifest_test")
 # `Tests/` with a BUILD.bazel holding a swift_test is a test bundle. Listing them by hand means a
 # new suite is invisible in Xcode until somebody remembers to come back here.
 #
-# ECSTestSupport lives under Tests/ too, but it is a library, so it is excluded by name.
+# ECSTestSupport lives under Tests/ too, but it is a library, so it is excluded by name. Tests of a
+# compiler plugin (MACRO_TEST_PACKAGES) are a lone swift_test with no bundle, so Xcode skips them.
 TEST_PACKAGES = sorted([
     package
     for package in subpackages(include = ["Tests/*"])
-    if package != "Tests/ECSTestSupport"
+    if package != "Tests/ECSTestSupport" and package not in MACRO_TEST_PACKAGES
 ])
 
 # Xcode runs each package's .xctest bundle target; `bazel test` runs its swift_test (see
@@ -68,6 +70,7 @@ docc_site(
     archives = [
         "//" + package + ":" + package.removeprefix("Sources/") + "Documentation"
         for package in sorted(subpackages(include = ["Sources/*"]))
+        if package not in MACRO_PACKAGES
     ],
     landing_page_name = "ECS",
     tags = ["manual"],
@@ -87,5 +90,8 @@ swiftpm_manifest_test(
         "//" + package + ":" + module + "Library"
         for package in TEST_PACKAGES
         for module in TEST_MODULES[package]
+    ] + [
+        "//" + package
+        for package in MACRO_TEST_PACKAGES
     ],
 )

@@ -12,6 +12,9 @@ swift_library(
         "//Sources/WorldModule",
         "@swiftpkg_grafluent//:Traversal",
     ],
+    plugins = [
+        "//Sources/SystemMacros",
+    ],
     visibility = ["//visibility:public"],
 )
 

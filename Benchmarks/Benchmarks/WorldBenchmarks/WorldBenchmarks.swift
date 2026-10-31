@@ -2,6 +2,7 @@
 // every entity. Scaled iterations are entities, so per-iteration figures are per entity.
 
 import Benchmark
+import Systems
 import WorldModule
 
 struct Position: Component { var x: Double, y: Double }
@@ -15,6 +16,17 @@ struct Body: Bundle {
         Position(x: 0, y: 0)
         Velocity(dx: 1, dy: 1)
         Health(current: 1)
+    }
+}
+
+/// The "update one type reading one" visit, declared by its parameters.
+@System
+struct Movement {
+    func run(_ movers: Update<Position>.Over<Velocity>) {
+        movers { position, row in
+            position.x += row.components.dx
+            position.y += row.components.dy
+        }
     }
 }
 
@@ -81,6 +93,15 @@ let benchmarks: @Sendable () -> Void = {
             position.x += row.components.dx
             position.y += row.components.dy
         }
+        benchmark.stopMeasurement()
+        blackHole(world)
+    }
+
+    Benchmark("system updating one type over one, declared by its parameters") { benchmark in
+        var world = populatedWorld()
+        let movement = Movement()
+        benchmark.startMeasurement()
+        movement.run(in: &world)
         benchmark.stopMeasurement()
         blackHole(world)
     }

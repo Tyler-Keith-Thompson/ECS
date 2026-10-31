@@ -9,6 +9,10 @@ public protocol QueryTerm: Sendable {
     /// Reads this term from `world`; the general path a query of any shape takes.
     @_documentation(visibility: internal)
     static func _termReader(in world: World) -> TermReader<Value>
+
+    /// `access`, also reading every component type this term reads.
+    @_documentation(visibility: internal)
+    static func _reading(_ access: Access) -> Access
 }
 
 /// How a query of any shape reads one term: the column it requires, if any, whether an entity
@@ -54,6 +58,12 @@ public struct TermReader<Value> {
 extension Component {
     @_documentation(visibility: internal)
     @inlinable
+    public static func _reading(_ access: Access) -> Access {
+        access.reads(Self.self)
+    }
+
+    @_documentation(visibility: internal)
+    @inlinable
     public static func _termReader(in world: World) -> TermReader<Self> {
         let snapshot = world.snapshot(of: Self.self)
         return TermReader(
@@ -75,10 +85,25 @@ extension Component {
 ///
 /// Queries of up to three terms, with `AnyOf` groups of two to four types, are specialized for
 /// speed.
+///
+/// Among a query's filter types (``Query/Where``), `AnyOf` of filter types passes entities that
+/// pass at least one: `AnyOf<Changed<Health>, Without<Shield>>`.
 @frozen
-public struct AnyOf<each C: Component>: QueryTerm {
+public struct AnyOf<each C>: Sendable {}
+
+extension AnyOf: QueryTerm where repeat each C: Component {
     /// One optional per type, in the order listed: nil where the entity lacks that type.
     public typealias Value = (repeat Optional<each C>)
+
+    @_documentation(visibility: internal)
+    @inlinable
+    public static func _reading(_ access: Access) -> Access {
+        var access = access
+        for type in repeat (each C).self {
+            access = type._reading(access)
+        }
+        return access
+    }
 
     @_documentation(visibility: internal)
     @inlinable

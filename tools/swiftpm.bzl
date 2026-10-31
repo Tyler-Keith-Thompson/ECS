@@ -27,7 +27,7 @@ def _external_name(label):
 def _module_dependencies_aspect_impl(target, ctx):
     if target.label.repo_name:
         return [_ModuleDependencies(name = _external_name(target.label), lines = depset())]
-    deps = [dep for dep in getattr(ctx.rule.attr, "deps", []) if _ModuleDependencies in dep]
+    deps = [dep for dep in getattr(ctx.rule.attr, "deps", []) + getattr(ctx.rule.attr, "plugins", []) if _ModuleDependencies in dep]
     name = getattr(ctx.rule.attr, "module_name", None) or target.label.name
     names = sorted({dep[_ModuleDependencies].name: None for dep in deps}.keys())
     line = name + ":" + "".join([" " + dependency for dependency in names])
@@ -38,17 +38,17 @@ def _module_dependencies_aspect_impl(target, ctx):
 
 _module_dependencies_aspect = aspect(
     implementation = _module_dependencies_aspect_impl,
-    attr_aspects = ["deps"],
+    attr_aspects = ["deps", "plugins"],
 )
 
-# Pulls one `Module: Dependency ...` line out of every `.target(name:` and `.testTarget(name:`
+# Pulls one `Module: Dependency ...` line out of every `.target(name:`, `.testTarget(name:` and `.macro(name:`
 # entry, writing a product dependency as `identity/Product`, as the aspect does.
 _SCRIPT = """#!/bin/sh
 set -eu
 manifest="$1"
 expected="$2"
 actual="${TEST_TMPDIR:-/tmp}/actual.txt"
-grep -E '^ *\\.(target|testTarget)\\(name: "' "$manifest" | while IFS= read -r line; do
+grep -E '^ *\\.(target|testTarget|macro)\\(name: "' "$manifest" | while IFS= read -r line; do
     name="${line#*name: \\"}"
     name="${name%%\\"*}"
     deps=""

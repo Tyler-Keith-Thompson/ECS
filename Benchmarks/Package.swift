@@ -15,6 +15,7 @@ let package = Package(
             name: "WorldBenchmarks",
             dependencies: [
                 .product(name: "WorldModule", package: "ECS"),
+                .product(name: "Systems", package: "ECS"),
                 .product(name: "Benchmark", package: "package-benchmark"),
             ],
             path: "Benchmarks/WorldBenchmarks",

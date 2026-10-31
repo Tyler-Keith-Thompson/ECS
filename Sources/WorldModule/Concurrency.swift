@@ -114,6 +114,19 @@ public struct Access: Sendable {
         reads(resources: Events<E>.self).writes(resources: EventCursor<E, Reader>.self)
     }
 
+    /// This access, also reading and writing everything `other` does.
+    ///
+    /// - Complexity: O(*t*) for *t* types in `other`.
+    @inlinable
+    public func merging(_ other: Access) -> Access {
+        var access = self
+        access.componentReads.formUnion(other.componentReads)
+        access.componentWrites.merge(other.componentWrites) { first, _ in first }
+        access.resourceReads.formUnion(other.resourceReads)
+        access.resourceWrites.formUnion(other.resourceWrites)
+        return access
+    }
+
     /// Whether this access and `other` cannot run at the same time: one writes a type the
     /// other reads or writes.
     ///
@@ -149,7 +162,8 @@ extension World {
     /// Each change reads the world as it was before any of them ran, and writes only the types
     /// its access lists, so the result is the same as running them one after another in any
     /// order. A change sees the components and resources other changes write as missing, so it
-    /// must declare everything it reads.
+    /// must declare everything it reads. Command buffers a change queues (``queue(_:)``) are
+    /// queued here in the order of `changes`.
     ///
     /// - Complexity: O(*c*·*t*) besides the changes themselves, for *c* changes and *t* stored
     ///   component types.
@@ -224,6 +238,7 @@ extension World {
             for key in changes[index].access.resourceWrites {
                 resources.storage[key] = copy.resources.storage[key]
             }
+            queuedCommands += copy.queuedCommands[base.queuedCommands.count...]
         }
     }
 }
@@ -233,4 +248,44 @@ extension World {
 /// Unchecked: each change writes only its own element.
 struct UncheckedWorlds: @unchecked Sendable {
     let worlds: UnsafeMutableBufferPointer<World>
+}
+
+extension World {
+    /// A copy of this world holding the only reference to every column and resource `access`
+    /// writes, which this world gives up (holding empty ones) until ``merge(writing:from:)``.
+    ///
+    /// Writing the copy copies no storage, and reading this world meanwhile does not keep the
+    /// written storage shared.
+    @inlinable
+    package mutating func split(writing access: Access) -> World {
+        for store in access.componentWrites.values {
+            store(&self)
+        }
+        var part = self
+        for type in access.componentWrites.keys {
+            let slot = columnPositions.position(of: type)!
+            columns[slot] = columns[slot].makeEmpty()
+        }
+        for key in access.resourceWrites {
+            resources.storage.removeValue(forKey: key)
+        }
+        // `part` shares the columns array; dropping the written columns from this world's copy
+        // of it left `part` the only holder.
+        part.queuedCommands = []
+        return part
+    }
+
+    /// Takes back the columns and resources `access` writes from `part`, a world returned by
+    /// ``split(writing:)``.
+    @inlinable
+    package mutating func merge(writing access: Access, from part: World) {
+        for type in access.componentWrites.keys {
+            let slot = columnPositions.position(of: type)!
+            columns[slot] = part.columns[slot]
+        }
+        for key in access.resourceWrites {
+            resources.storage[key] = part.resources.storage[key]
+        }
+        queuedCommands += part.queuedCommands
+    }
 }

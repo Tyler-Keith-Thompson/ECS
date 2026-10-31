@@ -13,6 +13,18 @@ A system that declares its ``System/access`` can run alongside the systems next 
 does not conflict with: ``Schedule/parallelRun(on:)`` gives the same world as
 ``Schedule/run(on:)``, using more cores.
 
+`@System` declares a system by its `run` method's parameters, whose types state what it reads
+and writes, so the access is never written by hand:
+
+```swift
+@System
+struct Movement {
+    func run(_ movers: Update<Position>.Over<Velocity>.Where<Without<Frozen>>) {
+        movers { position, row in position.x += row.components.dx }
+    }
+}
+```
+
 ## Topics
 
 ### Systems
@@ -20,6 +32,16 @@ does not conflict with: ``Schedule/parallelRun(on:)`` gives the same world as
 - ``System``
 - ``ScheduledSystem``
 - ``UpdateEvents``
+- ``System()``
+
+### System parameters
+
+- ``SystemParameter``
+- ``Update``
+- ``ResourceReader``
+- ``ResourceWriter``
+- ``EventReader``
+- ``EventWriter``
 
 ### Schedules
 

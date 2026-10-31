@@ -15,10 +15,15 @@
 ///     position.x += row.components.dx
 /// }
 /// ```
+///
+/// As a system parameter, a query arrives bound to the world the system runs on, and iterates its
+/// rows directly; see ``Query/Where``.
 @frozen
 public struct Query<each T: QueryTerm>: Hashable, Sendable {
     /// The conditions entities must meet beyond matching the terms.
     public let filter: QueryFilter
+    /// The rows of the world this query is bound to, when it is a system parameter.
+    @usableFromInline let view: QueryView<repeat (each T).Value>?
 
     /// A query of `terms`, passing every entity that matches them all.
     ///
@@ -26,37 +31,71 @@ public struct Query<each T: QueryTerm>: Hashable, Sendable {
     @inlinable
     public init(_ terms: repeat (each T).Type) {
         filter = QueryFilter()
+        view = nil
+    }
+
+    /// A query of its type's terms, passing the entities that match them all and pass `filter`.
+    ///
+    /// ```swift
+    /// let living = Query<Health>(filter: .without(Dead.self))
+    /// ```
+    ///
+    /// - Complexity: O(1).
+    @inlinable
+    public init(filter: QueryFilter) {
+        self.filter = filter
+        view = nil
     }
 
     @inlinable
-    init(filter: QueryFilter) {
+    init(filter: QueryFilter, view: QueryView<repeat (each T).Value>?) {
         self.filter = filter
+        self.view = view
+    }
+
+    /// This query, bound to `view`, the rows ``World/query(_:)`` lists for it: what a system
+    /// parameter receives.
+    @_documentation(visibility: internal)
+    @inlinable
+    public func _bound(to view: QueryView<repeat (each T).Value>) -> Query {
+        Query(filter: filter, view: view)
+    }
+
+    /// Whether two queries have the same terms and filter; a bound world does not count.
+    @inlinable
+    public static func == (lhs: Query, rhs: Query) -> Bool {
+        lhs.filter == rhs.filter
+    }
+
+    @inlinable
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(filter)
     }
 
     /// This query, keeping only entities that also hold every one of `types`.
     @inlinable
     public func with<each F: Component>(_ types: repeat (each F).Type) -> Query {
-        Query(filter: filter.with(repeat each types))
+        Query(filter: filter.with(repeat each types), view: nil)
     }
 
     /// This query, keeping only entities that hold none of `types`.
     @inlinable
     public func without<each F: Component>(_ types: repeat (each F).Type) -> Query {
-        Query(filter: filter.without(repeat each types))
+        Query(filter: filter.without(repeat each types), view: nil)
     }
 
     /// This query, keeping only entities whose `F` was added after `since` (nil for the world's
     /// ``World/lastRun``).
     @inlinable
     public func added<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> Query {
-        Query(filter: filter.added(F.self, since: since))
+        Query(filter: filter.added(F.self, since: since), view: nil)
     }
 
     /// This query, keeping only entities whose `F` was added or changed after `since` (nil for
     /// the world's ``World/lastRun``).
     @inlinable
     public func changed<F: Component>(_ type: F.Type, since: ChangeTick? = nil) -> Query {
-        Query(filter: filter.changed(F.self, since: since))
+        Query(filter: filter.changed(F.self, since: since), view: nil)
     }
 
     /// This query, keeping only entities that at least one of `filters` passes.
@@ -66,13 +105,61 @@ public struct Query<each T: QueryTerm>: Hashable, Sendable {
     /// ```
     @inlinable
     public func anyOf(_ filters: QueryFilter...) -> Query {
-        Query(filter: filter.anyOf(filters))
+        Query(filter: filter.anyOf(filters), view: nil)
     }
 
     /// This query, keeping only entities that `filter` passes as well.
     @inlinable
     public func filtered(by filter: QueryFilter) -> Query {
-        Query(filter: self.filter.merging(filter))
+        Query(filter: self.filter.merging(filter), view: nil)
+    }
+}
+
+extension Query: Sequence {
+    /// The rows of the world the query is bound to, as a system parameter receives it.
+    ///
+    /// - Precondition: The query is bound: it is a system parameter. Otherwise iterate
+    ///   `world.query(query)`.
+    @inlinable
+    public func makeIterator() -> QueryView<repeat (each T).Value>.Iterator {
+        guard let view else {
+            preconditionFailure("A Query iterates only as a system parameter; iterate world.query(query) instead")
+        }
+        return view.makeIterator()
+    }
+
+    /// The query's filter types, as a system parameter spells them:
+    /// `Query<Health>.Where<Changed<Health>, Without<Dead>>`.
+    ///
+    /// A `Where` iterates like the query it holds, which carries the filter the types stand for.
+    @frozen
+    public struct Where<each F: FilterTerm>: Sequence, Sendable {
+        /// The query, with ``filter`` applied.
+        public let query: Query
+
+        /// `query`, which carries ``filter``.
+        @_documentation(visibility: internal)
+        @inlinable
+        public init(_bound query: Query) {
+            self.query = query
+        }
+
+        /// The filter the filter types stand for, every one applied.
+        public static var filter: QueryFilter {
+            var filter = QueryFilter()
+            for type in repeat (each F).self {
+                filter = filter.merging(type.filter)
+            }
+            return filter
+        }
+
+        /// The rows of the world the query is bound to.
+        ///
+        /// - Precondition: The query is bound: it is a system parameter.
+        @inlinable
+        public func makeIterator() -> QueryView<repeat (each T).Value>.Iterator {
+            query.makeIterator()
+        }
     }
 }
 

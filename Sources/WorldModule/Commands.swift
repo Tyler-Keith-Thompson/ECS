@@ -128,3 +128,40 @@ extension World {
         return spawned
     }
 }
+
+extension World {
+    /// Queues `commands` to apply later, with ``applyQueuedCommands()``.
+    ///
+    /// A system that records commands while it runs alongside others queues them, since applying
+    /// would change entities the others are reading; a ``Systems/Schedule`` applies every queued
+    /// buffer at the end of each group of systems it runs together.
+    ///
+    /// - Complexity: O(1) amortized.
+    @inlinable
+    public mutating func queue(_ commands: Commands) {
+        queuedCommands.append(commands)
+    }
+
+    /// Whether any command buffers are queued.
+    @inlinable
+    public var hasQueuedCommands: Bool { !queuedCommands.isEmpty }
+
+    /// Applies every queued command buffer, in the order they were queued, and empties the queue.
+    ///
+    /// - Returns: The entities the buffers' spawn commands created, in the order they were
+    ///   recorded.
+    /// - Complexity: The sum of the commands' costs.
+    @inlinable
+    @discardableResult
+    public mutating func applyQueuedCommands() -> [Entity] {
+        var spawned: [Entity] = []
+        while !queuedCommands.isEmpty {
+            let queued = queuedCommands
+            queuedCommands = []
+            for commands in queued {
+                spawned += apply(commands)
+            }
+        }
+        return spawned
+    }
+}

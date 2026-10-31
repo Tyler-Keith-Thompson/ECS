@@ -16,7 +16,8 @@ every project built; delete a rule only when it cannot apply here, and say so in
 Sources/<Module>/                One directory per module, each with a generated BUILD.bazel
 Sources/<Module>/Generated/      SwiftPM's checked-in copies of build-time generated sources
 Sources/WorldModule/             World, Entity, components, resources, queries, updates, Commands
-Sources/Systems/                 System and Schedule
+Sources/Systems/                 System, Schedule, the system parameters and the @System macro's declaration
+Sources/SystemMacros/            The @System macro's compiler plugin (swift-syntax)
 Sources/ECS/             Umbrella module (@_exported imports) and the landing DocC catalog
 Tests/<Module>Tests/             One test target per module; Performance/ holds speed-reliant tests
 Tests/ECSTests/          The README examples, verbatim
@@ -44,6 +45,13 @@ the umbrella module and `swift/Package.swift` from it. Never edit the generated 
   module that declares the protocol and to its test target, add `swiftpkg_mockable` to
   `use_repo`, then `just modules` and `just resolve`. The generator defines `MOCKING` for that
   module in debug builds only, in both build systems.
+- Add a macro: a row in `MACROS` (name, group, description, swift-syntax dependencies), the
+  plugin under `Sources/<Name>/`, the plugin's name among the dependencies of the module that
+  declares the macro (SwiftPM takes it as a dependency, Bazel as a `plugins` entry), then
+  `just modules`. Its tests are a row in `TEST_TARGETS` depending on the plugin; Bazel builds
+  that target as a lone `swift_test`, since only a test can link a `swift_compiler_plugin`. Test
+  expansions with `assertMacroExpansion` from `SwiftSyntaxMacrosGenericTestSupport`, reporting
+  through `Issue.record`.
 - Generate sources at build time: a row in `GENERATED_SOURCES` naming the module, the source and
   its generator (a `swift_binary` writing the source to standard output), then `just modules`
   and `just sources`. Bazel compiles the generator's output; SwiftPM compiles the checked-in copy

@@ -34,6 +34,11 @@ type the fewest entities hold and looks the others up.
 - ``EntityQueryView``
 - ``QueryRow``
 - ``QueryFilter``
+- ``FilterTerm``
+- ``With``
+- ``Without``
+- ``Added``
+- ``Changed``
 
 ### Groups
 
