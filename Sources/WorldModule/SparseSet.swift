@@ -103,6 +103,11 @@ class AnyColumn: @unchecked Sendable {
     @usableFromInline final var group = -1
     /// Whether the column holds a relation's ``Targets``, which the world indexes by target.
     @usableFromInline final let isRelation: Bool
+    /// Whether the world keeps an index of the column's values (``World/index(_:)``).
+    @usableFromInline final var isIndexed = false
+    /// Counts the times the column was reached for writing, so an index of its values knows
+    /// whether a write may have changed one.
+    @usableFromInline final var writeVersion: UInt64 = 0
 
     @inlinable
     init(
@@ -150,6 +155,8 @@ final class Column<C: Component>: AnyColumn, @unchecked Sendable {
         values = column.values
         super.init(index: column.index, swapRemove: column.swapRemove, swapAt: column.swapAt, read: column.read, isRelation: column.isRelation)
         group = column.group
+        isIndexed = column.isIndexed
+        writeVersion = column.writeVersion
     }
 
     /// Swaps the entities and components at `first` and `second`.

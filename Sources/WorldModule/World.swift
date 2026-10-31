@@ -35,6 +35,8 @@ public struct World: Sendable {
     @usableFromInline var hooks = Hooks()
     /// The owning groups, each column knowing its group by position here.
     @usableFromInline var groups: [OwningGroup] = []
+    /// The indexes of components by value (``index(_:)``), by component type.
+    @usableFromInline var valueIndexes: [ObjectIdentifier: any AnyValueIndex] = [:]
     /// The observers of entity events.
     @usableFromInline var observers = Observers()
     /// Each relation's sources by target, in the order the relations were first stored.
@@ -86,6 +88,9 @@ public struct World: Sendable {
     @discardableResult
     public mutating func advanceChangeTick() -> ChangeTick {
         storedChangeTick = ChangeTick(storedChangeTick.value + 1)
+        if !valueIndexes.isEmpty {
+            refreshValueIndexes()
+        }
         return storedChangeTick
     }
 
@@ -446,7 +451,9 @@ public struct World: Sendable {
         if !isKnownUniquelyReferenced(&columns[slot]) {
             copyColumn(at: slot)
         }
-        return unretainedColumn(at: slot, of: C.self)
+        let column = unretainedColumn(at: slot, of: C.self)
+        column._withUnsafeGuaranteedRef { $0.writeVersion &+= 1 }
+        return column
     }
 
     /// The column at `slot`, copied first if another world shares it.
@@ -455,7 +462,9 @@ public struct World: Sendable {
         if !isKnownUniquelyReferenced(&columns[slot]) {
             copyColumn(at: slot)
         }
-        return unsafeDowncast(columns[slot], to: Column<C>.self)
+        let column = unsafeDowncast(columns[slot], to: Column<C>.self)
+        column.writeVersion &+= 1
+        return column
     }
 
     @inline(never)
@@ -477,8 +486,11 @@ public struct World: Sendable {
     mutating func store<C: Component>(_ component: C, for entity: Entity) {
         let tick = changeTick
         var isRelation = false
-        let group = uniqueUnretainedColumn(at: columnSlot(of: C.self), of: C.self)._withUnsafeGuaranteedRef { column in
+        var isIndexed = false
+        let slot = columnSlot(of: C.self)
+        let group = uniqueUnretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef { column in
             isRelation = column.isRelation
+            isIndexed = column.isIndexed
             if let position = column.index.position(of: entity) {
                 column.values[position] = component
                 column.index.ticks[position].changed = tick
@@ -498,6 +510,9 @@ public struct World: Sendable {
         }
         if isRelation {
             reindexTargets(C.self, of: entity)
+        }
+        if isIndexed {
+            reindexValue(C.self, of: entity, stored: component, slot: slot)
         }
         if !hooks.isEmpty {
             fireInsertHooks(C.self, for: entity, added: added)
@@ -523,8 +538,10 @@ public struct World: Sendable {
             return nil
         }
         var isRelation = false
+        var isIndexed = false
         let component = uniqueUnretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef { column in
             isRelation = column.isRelation
+            isIndexed = column.isIndexed
             let component = column.values[position]
             column.swapRemove(at: position)
             return component
@@ -534,6 +551,9 @@ public struct World: Sendable {
         }
         if isRelation {
             reindexTargets(C.self, of: entity)
+        }
+        if isIndexed {
+            reindexValue(C.self, of: entity, stored: nil, slot: slot)
         }
         if !hooks.isEmpty {
             fireRemoveHooks(component, of: entity)
@@ -558,7 +578,7 @@ public struct World: Sendable {
     /// than recursively.
     @inlinable
     mutating func destroyCascading(_ entity: Entity) {
-        guard !relationIndexes.isEmpty || !observers.byEntity.isEmpty else {
+        guard !relationIndexes.isEmpty || !observers.byEntity.isEmpty || !valueIndexes.isEmpty else {
             destroy(entity)
             return
         }
@@ -578,6 +598,9 @@ public struct World: Sendable {
             }
             if !observers.byEntity.isEmpty {
                 forgetObservers(of: next)
+            }
+            if !valueIndexes.isEmpty {
+                leaveValueIndexes(next)
             }
             destroy(next)
         }

@@ -12,6 +12,7 @@ struct Mass: Component { var kilograms: Double }
 struct Sleeping: Component {}
 struct Likes: Relation {}
 struct Hit: EntityEvent { var damage: Int }
+struct Team: Component, Hashable { var number: Int }
 
 /// Three components spawned as one bundle.
 struct Body: Bundle {
@@ -410,6 +411,29 @@ let benchmarks: @Sendable () -> Void = {
         for entity in entities {
             world.trigger(Hit(damage: 1), on: entity)
         }
+        benchmark.stopMeasurement()
+        blackHole(world)
+    }
+
+    Benchmark("look up a thousand indexed values, a thousand entities each") { benchmark in
+        var world = populatedWorld()
+        for (index, entity) in world.query(Position.self).map({ $0.entity }).enumerated() {
+            world.insert(Team(number: index % 1000), into: entity)
+        }
+        world.index(Team.self)
+        benchmark.startMeasurement()
+        var found = 0
+        for number in 0 ..< 1000 { found += world.lookup(Team(number: number)).count }
+        benchmark.stopMeasurement()
+        blackHole(found)
+    }
+
+    Benchmark("insert an indexed component into every entity") { benchmark in
+        var world = populatedWorld()
+        world.index(Team.self)
+        let entities = world.query(Position.self).map { $0.entity }
+        benchmark.startMeasurement()
+        for (index, entity) in entities.enumerated() { world.insert(Team(number: index % 1000), into: entity) }
         benchmark.stopMeasurement()
         blackHole(world)
     }

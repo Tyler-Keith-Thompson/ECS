@@ -5,14 +5,12 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Indexes by value.** `world.index(Name.self)` keeps a map from a `Hashable` component's value
-   to its entities, current through hooks.
-2. **Scenes and a type registry.** Register component types once; save and load whole worlds
+1. **Scenes and a type registry.** Register component types once; save and load whole worlds
    without listing types per snapshot.
-3. **Swift concurrency bridges.** Events and changes as an `AsyncSequence` (Afluent), and
+2. **Swift concurrency bridges.** Events and changes as an `AsyncSequence` (Afluent), and
    `@MainActor` systems run on the main actor by a schedule.
-4. **Profiling.** Time per system per run, and the schedule's dependency graph as DOT.
-5. **Checked accesses.** A debug-build record of the columns and resources a system with a
+3. **Profiling.** Time per system per run, and the schedule's dependency graph as DOT.
+4. **Checked accesses.** A debug-build record of the columns and resources a system with a
    hand-written `access` touches while it runs concurrently, trapping on undeclared reads as
    undeclared writes already trap. Systems declared by their parameters cannot reach anything
    else, so this covers hand-written conformances only; it needs a lookup check that costs
@@ -80,3 +78,5 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 - Observers: `EntityEvent`s triggered on an entity run its observers and every entity's,
   propagating up the hierarchy; `onAdd` and `onRemove` hooks for entities starting or stopping
   to match a query.
+- Indexes by value: `index(_:)` and `lookup(_:)` over a `Hashable` component, kept current
+  by structural changes and rebuilt at the next tick after changes in place.

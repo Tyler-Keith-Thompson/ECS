@@ -41,11 +41,12 @@ type the fewest entities hold and looks the others up.
 - ``Changed``
 - ``Allows``
 
-### Groups and cached queries
+### Groups, cached queries and indexes
 
 - ``GroupError``
 
-Groups are made with `group(_:)` and cached queries with `cache(_:)` on ``World``.
+Groups are made with `group(_:)`, cached queries with `cache(_:)` and indexes by value with
+`index(_:)` on ``World``; `lookup(_:)` finds the entities holding a value.
 
 ### Change detection
 
