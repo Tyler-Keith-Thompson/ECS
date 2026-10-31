@@ -5,7 +5,37 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
 
 ## Next
 
-1. **Systems declared by their parameters.** A system's `run` takes either the world or system
+1. **Queries as values, with `AnyOf`.** A `Query` describes a selection without a world: its
+   terms are components and `AnyOf<…>` groups, and filters (`.with`, `.without`, `.added`,
+   `.changed`) chain on it. Each type is named once.
+
+   ```swift
+   let movers = Query(Position.self, Velocity.self, AnyOf<Wind, Current>.self)
+       .without(Frozen.self)
+
+   for (entity, position, velocity, (wind, current)) in world.query(movers) { … }
+   world.update(Position.self, over: movers) { position, row in … }
+   ```
+
+   - **Terms.** A component term matches entities holding it and yields its value. `AnyOf<A, B, …>`
+     matches entities holding at least one of its types and yields a tuple of optionals, one
+     per type, so a row keeps each group as a nested tuple (`for` patterns take it apart;
+     closures receive it whole). Any number of terms and of `AnyOf` types.
+   - **Speed.** Fixed-arity versions for one to three terms and for `AnyOf` of two to four
+     types, each building its `Reader` at fixed arity, with the parameter-pack versions as the
+     general fallback, as `world.query` and `world.update` have today. Benchmarks for each
+     arity, against the existing spellings.
+   - **Updates.** `world.update(_:over:)` for one to three written types visits the query's
+     entities and passes its row alongside; a query that also reads a written type traps, as
+     `reading:` does today.
+   - The query value is `Sendable`, `Hashable` and holds no world, so systems and system
+     parameters can store it. `QueryFilter` becomes the query's filter part.
+   - Settled in a prototype: chained methods that append types to a query (`.anyOf(…)`) do not
+     type-check once the query holds two or more types, and operator-built queries
+     (`.with(A.self) || .with(B.self)`) nest the row by the shape of the expression and lose it
+     behind `some`; terms in one pack avoid both.
+
+2. **Systems declared by their parameters.** A system's `run` takes either the world or system
    parameters, and `@System` (a swift-syntax macro, the default spelling) connects either kind:
 
    ```swift
@@ -30,7 +60,7 @@ docs and benchmarks where speed matters. Move an item to Done when it ships.
      system parameter, two parameters that conflict (when the names show it; otherwise a trap
      when the system is built), `inout` parameters or a `mutating` `run`, `async` or `throws`,
      no `run` or several.
-   - **Parameters.** `Query<…>` reads components. `Update<A>`, `Update<A>.And<B>` and
+   - **Parameters.** `Query<…>` (item 1) reads components. `Update<A>`, `Update<A>.And<B>` and
      `Update<A>.And<B>.And<C>` write one to three types, each passed `inout`, optionally
      `.Reading<…>` any number of types for the entities that hold them, as `world.update`
      does; every level is fixed-arity, so the loops specialize. `ResourceReader<…>`,
