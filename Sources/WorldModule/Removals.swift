@@ -39,17 +39,18 @@ extension World {
     /// are, so each ``updateEvents()`` drops the removals from before the previous one. Calling
     /// this method again for the same type does nothing.
     ///
-    /// The record is kept by a remove hook, so removing the hooks of `C` (``removeHooks(of:)``)
-    /// stops it.
+    /// The record isn't one of the type's hooks: removing the hooks of `C`
+    /// (``removeHooks(of:)``) leaves it in place.
     ///
     /// - Parameter type: The component type whose removals to record.
     /// - Complexity: O(1) amortized.
     @inlinable
     public mutating func trackRemovals<C: Component>(of type: C.Type) {
-        guard !resources.contains(Events<RemovedComponent<C>>.self) else { return }
-        resources.insert(Events<RemovedComponent<C>>())
-        onRemove(C.self) { world, entity, _ in
-            world.send(RemovedComponent<C>(entity: entity))
+        hooks.register(C.self)
+        guard !hooks.byType[ObjectIdentifier(C.self)]!.tracksRemovals else { return }
+        hooks.byType[ObjectIdentifier(C.self)]!.tracksRemovals = true
+        if !resources.contains(Events<RemovedComponent<C>>.self) {
+            resources.insert(Events<RemovedComponent<C>>())
         }
     }
 

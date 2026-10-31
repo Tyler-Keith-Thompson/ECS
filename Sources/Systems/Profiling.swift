@@ -121,9 +121,13 @@ extension Schedule {
     /// }
     /// var dot = ""
     /// frame.writeDOT(to: &dot)
+    ///
+    /// let lines = dot.split(separator: "\n").map { line in line.drop { $0 == "\t" } }
+    /// print(lines)
+    /// // Prints "["digraph {", "0 [label=Gravity];", "1 [label=Movement];", "2 [label=Scoring];", "0 -> 1;", "1 -> 2 [style=dashed];", "}"]"
     /// ```
     ///
-    /// The DOT text it writes shows that `Movement` is ordered after `Gravity`, and that
+    /// Laid out, the DOT text shows that `Movement` is ordered after `Gravity`, and that
     /// `Scoring` runs after `Movement` only because it reads the `Position` that `Movement`
     /// writes:
     ///

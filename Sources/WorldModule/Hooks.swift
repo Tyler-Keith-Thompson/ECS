@@ -6,11 +6,21 @@ struct ComponentHooks: Sendable {
     @usableFromInline var onRemove: [@Sendable (inout World, Entity, any Component) -> Void] = []
     /// Reads the entity's component of the hooks' type, for removal hooks run by a despawn.
     @usableFromInline let read: @Sendable (World, Entity) -> (any Component)?
+    /// Whether removals of the type are recorded as `RemovedComponent` events
+    /// (``World/trackRemovals(of:)``), which removing the type's hooks leaves in place.
+    @usableFromInline var tracksRemovals = false
+    /// Records that the entity lost its component of the hooks' type.
+    @usableFromInline let recordRemoval: @Sendable (inout World, Entity) -> Void
 
     @inlinable
     init<C: Component>(_ type: C.Type) {
         read = { world, entity in try? world[checked: C.self, of: entity] }
+        recordRemoval = { world, entity in world.send(RemovedComponent<C>(entity: entity)) }
     }
+
+    /// Whether losing a component of the type has anything to run.
+    @inlinable
+    var hasRemovalWork: Bool { tracksRemovals || !onRemove.isEmpty }
 }
 
 /// Every hook of a world, and the hook calls waiting for the operation that fired them to end.
@@ -160,15 +170,21 @@ extension World {
 
     /// Removes every hook registered for a component type.
     ///
-    /// This removes the add, insert and remove hooks of `C`. If the world was recording
-    /// removals of `C` (``trackRemovals(of:)``), it stops.
+    /// This removes the add, insert and remove hooks of `C`. A record of the removals of `C`
+    /// (``trackRemovals(of:)``) isn't a hook, and keeps recording.
     ///
     /// - Parameter type: The component type whose hooks to remove.
     /// - Complexity: O(*h*), where *h* is the number of hooked component types.
     @inlinable
     public mutating func removeHooks<C: Component>(of type: C.Type) {
-        guard hooks.byType.removeValue(forKey: ObjectIdentifier(C.self)) != nil else { return }
-        hooks.order.removeAll { $0 == ObjectIdentifier(C.self) }
+        guard let removed = hooks.byType.removeValue(forKey: ObjectIdentifier(C.self)) else { return }
+        guard removed.tracksRemovals else {
+            hooks.order.removeAll { $0 == ObjectIdentifier(C.self) }
+            return
+        }
+        var tracking = ComponentHooks(C.self)
+        tracking.tracksRemovals = true
+        hooks.byType[ObjectIdentifier(C.self)] = tracking
     }
 
     /// Queues the hooks for `entity` having been given a `C`, new when `added`.
@@ -191,6 +207,10 @@ extension World {
     @inline(never)
     mutating func fireRemoveHooks<C: Component>(_ component: C, of entity: Entity) {
         guard let typeHooks = hooks.byType[ObjectIdentifier(C.self)] else { return }
+        if typeHooks.tracksRemovals {
+            let record = typeHooks.recordRemoval
+            hooks.pending.append { world in record(&world, entity) }
+        }
         for hook in typeHooks.onRemove {
             hooks.pending.append { world in hook(&world, entity, component) }
         }
@@ -202,8 +222,12 @@ extension World {
     @inline(never)
     mutating func fireDespawnHooks(for entity: Entity) {
         for type in hooks.order {
-            guard let typeHooks = hooks.byType[type], !typeHooks.onRemove.isEmpty,
+            guard let typeHooks = hooks.byType[type], typeHooks.hasRemovalWork,
                   let component = typeHooks.read(self, entity) else { continue }
+            if typeHooks.tracksRemovals {
+                let record = typeHooks.recordRemoval
+                hooks.pending.append { world in record(&world, entity) }
+            }
             for hook in typeHooks.onRemove {
                 hooks.pending.append { world in hook(&world, entity, component) }
             }

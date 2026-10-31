@@ -7,6 +7,7 @@ import WorldModule
 
 enum FirstMourner {}
 enum SecondMourner {}
+private struct RemovalHookCalls: Resource { var value = 0 }
 
 @Suite("World: removal detection")
 struct RemovalTests {
@@ -68,6 +69,46 @@ struct RemovalTests {
     func idempotent() {
         var world = World()
         world.trackRemovals(of: Health.self)
+        world.trackRemovals(of: Health.self)
+        let entity = world.spawn(Health(1))
+        world.remove(Health.self, from: entity)
+        let expected: [Entity] = [entity]
+        #expect(world.removed(Health.self, by: FirstMourner.self) == expected)
+    }
+
+    @Test("Removing a type's hooks keeps recording its removals and despawns")
+    func removingHooksKeepsTracking() {
+        var world = World()
+        world.trackRemovals(of: Health.self)
+        world.onRemove(Health.self) { _, _, _ in }
+        world.removeHooks(of: Health.self)
+        let removed = world.spawn(Health(1))
+        let despawned = world.spawn(Health(1))
+        world.remove(Health.self, from: removed)
+        world.despawn(despawned)
+        let expected: [Entity] = [removed, despawned]
+        #expect(world.removed(Health.self, by: FirstMourner.self) == expected)
+    }
+
+    @Test("Removing a type's hooks removes its hooks but not the record")
+    func removingHooksRemovesUserHooks() {
+        var world = World()
+        world.trackRemovals(of: Health.self)
+        world.resources.insert(RemovalHookCalls())
+        world.onRemove(Health.self) { world, _, _ in world.resources[RemovalHookCalls.self].value += 1 }
+        world.removeHooks(of: Health.self)
+        let entity = world.spawn(Health(1))
+        world.remove(Health.self, from: entity)
+        let noCalls = 0
+        let expected: [Entity] = [entity]
+        #expect(world.resources[RemovalHookCalls.self].value == noCalls)
+        #expect(world.removed(Health.self, by: FirstMourner.self) == expected)
+    }
+
+    @Test("Tracking a type whose events resource exists without tracking starts recording")
+    func trackingWithExistingEvents() {
+        var world = World()
+        world.resources.insert(Events<RemovedComponent<Health>>())
         world.trackRemovals(of: Health.self)
         let entity = world.spawn(Health(1))
         world.remove(Health.self, from: entity)

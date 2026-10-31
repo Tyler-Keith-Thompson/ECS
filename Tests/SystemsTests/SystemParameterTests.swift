@@ -328,6 +328,14 @@ struct SystemParameterTests {
             _ = ParameterHiddenConflict().access
         }
     }
+
+    @Test("Parameters conflicting under names the macro cannot see trap when a schedule takes the system")
+    func hiddenConflictTrapsWhenScheduled() async {
+        await #expect(processExitsWith: .failure) {
+            var world = World()
+            Schedule { ParameterHiddenConflict() }.run(on: &world)
+        }
+    }
 }
 
 @System

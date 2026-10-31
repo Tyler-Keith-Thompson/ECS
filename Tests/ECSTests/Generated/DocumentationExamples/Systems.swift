@@ -228,6 +228,9 @@ struct SystemsDocumentationExamples {
         }
         var dot = ""
         frame.writeDOT(to: &dot)
+
+        let lines = dot.split(separator: "\n").map { line in line.drop { $0 == "\t" } }
+        #expect(printed(lines) == #"["digraph {", "0 [label=Gravity];", "1 [label=Movement];", "2 [label=Scoring];", "0 -> 1;", "1 -> 2 [style=dashed];", "}"]"#)
     }
 
     @Test("Sources/Systems/Schedule.swift:21")

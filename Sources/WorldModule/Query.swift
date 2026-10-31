@@ -299,7 +299,30 @@ extension Query: Sequence {
     /// ``QueryFilter`` value. Instead, it names the filter with filter types, such as ``With``,
     /// ``Without``, ``Added`` and ``Changed``. A system that counts the entities with a position
     /// that aren't frozen declares a parameter of type `Query<Position>.Where<Without<Frozen>>`,
-    /// and iterates it like the query it holds, with `for (entity, position) in positions`.
+    /// and iterates it like the query it holds:
+    ///
+    /// ```swift
+    /// struct ThawedCount: Resource { var value = 0 }
+    ///
+    /// @System
+    /// struct CountThawedPositions {
+    ///     func run(_ positions: Query<Position>.Where<Without<Frozen>>, count: ResourceWriter<ThawedCount>) {
+    ///         count.value.value = 0
+    ///         for _ in positions {
+    ///             count.value.value += 1
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// var world = World()
+    /// world.resources.insert(ThawedCount())
+    /// world.spawn(Position(x: 0, y: 0))
+    /// world.spawn(Position(x: 1, y: 1), Frozen())
+    ///
+    /// Schedule { CountThawedPositions() }.run(on: &world)
+    /// print(world.resources[ThawedCount.self].value)
+    /// // Prints "1"
+    /// ```
     ///
     /// Listing several filter types passes the entities that pass all of them. Each filter type
     /// stands for a ``QueryFilter``, and the `Where` type's ``filter`` combines them:
