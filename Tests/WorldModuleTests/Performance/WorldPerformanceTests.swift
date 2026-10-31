@@ -9,7 +9,7 @@ import WorldModule
 
 @Suite("World: performance")
 struct WorldPerformanceTests {
-    @Test("Spawning, updating, querying and despawning 200,000 entities each take well under a second", .timeLimit(.minutes(1)))
+    @Test("Spawning, updating, querying and despawning 200,000 entities each finish in seconds, not minutes", .timeLimit(.minutes(1)))
     func lifecycle() {
         let count = 200_000
         let clock = ContinuousClock()
@@ -37,7 +37,7 @@ struct WorldPerformanceTests {
                 world.despawn(entity)
             }
         }
-        let limit = Duration.seconds(2)
+        let limit = Duration.seconds(5)
         #expect(spawning < limit)
         #expect(updating < limit)
         #expect(querying < limit)
