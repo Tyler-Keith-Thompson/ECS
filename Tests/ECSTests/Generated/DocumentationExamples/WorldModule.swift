@@ -136,7 +136,7 @@ fileprivate struct Stamina: Component { var current: Int }
 
 fileprivate struct Regeneration: Component { var health: Int, stamina: Int }
 
-// Sources/WorldModule/ValueIndex.swift:279
+// Sources/WorldModule/ValueIndex.swift:293
 fileprivate struct Seat: Component { var row: Int, number: Int }
 
 // Sources/WorldModule/World.swift:153
@@ -1402,7 +1402,7 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(world[Position.self, of: cart].x, world[Velocity.self, of: cart].dx, world[Health.self, of: cart].current) == #"4.0 2.0 9"#)
     }
 
-    @Test("Sources/WorldModule/ValueIndex.swift:209")
+    @Test("Sources/WorldModule/ValueIndex.swift:223")
     func example101() async throws {
         var world = World()
         let bob = world.spawn(Name(value: "bob"), Health(current: 3))
@@ -1412,7 +1412,7 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(world.lookup(Name(value: "bob")) == [bob]) == #"true"#)
     }
 
-    @Test("Sources/WorldModule/ValueIndex.swift:245")
+    @Test("Sources/WorldModule/ValueIndex.swift:259")
     func example102() async throws {
         var world = World()
         world.spawn(Name(value: "guard"))
@@ -1422,7 +1422,7 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(world.lookup(Name(value: "guard")).count) == #"2"#)
     }
 
-    @Test("Sources/WorldModule/ValueIndex.swift:279")
+    @Test("Sources/WorldModule/ValueIndex.swift:293")
     func example103() async throws {
         var world = World()
         let front = world.spawn(Seat(row: 1, number: 7))
@@ -1432,7 +1432,7 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(world.lookup(\Seat.number, equals: 7) == [front]) == #"true"#)
     }
 
-    @Test("Sources/WorldModule/ValueIndex.swift:317")
+    @Test("Sources/WorldModule/ValueIndex.swift:331")
     func example104() async throws {
         var world = World()
         world.spawn(Seat(row: 1, number: 7))
@@ -1441,7 +1441,7 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(world.lookup(\Seat.number, equals: 7).count) == #"2"#)
     }
 
-    @Test("Sources/WorldModule/ValueIndex.swift:356")
+    @Test("Sources/WorldModule/ValueIndex.swift:370")
     func example105() async throws {
         var world = World()
         let weak = world.spawn(Health(current: 2))
@@ -1452,7 +1452,7 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(world.lookup(\Health.current, in: ...3) == [weaker, weak]) == #"true"#)
     }
 
-    @Test("Sources/WorldModule/ValueIndex.swift:398")
+    @Test("Sources/WorldModule/ValueIndex.swift:412")
     func example106() async throws {
         var world = World()
         let healthy = world.spawn(Health(current: 8))
@@ -1462,7 +1462,7 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(world.lookup(\Health.current, in: 5...) == [healthy, healthiest]) == #"true"#)
     }
 
-    @Test("Sources/WorldModule/ValueIndex.swift:443")
+    @Test("Sources/WorldModule/ValueIndex.swift:457")
     func example107() async throws {
         var world = World()
         let middle = world.spawn(Health(current: 5))

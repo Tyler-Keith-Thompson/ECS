@@ -10,14 +10,20 @@ struct ValueIndex<C: Component, Key: Hashable & Sendable>: Sendable {
     @usableFromInline var valueByEntity: [Entity: Key] = [:]
     /// The column's write version the index agrees with.
     @usableFromInline var version: UInt64 = 0
+    // A world reaches the index through `AnyValueIndex`, whose witnesses run unspecialized, so
+    // the dictionaries' work goes through closures made where `C` and `Key` are known.
+    @usableFromInline let recordComponent: @Sendable (inout Self, C, Entity) -> Void
+    @usableFromInline let forgetEntity: @Sendable (inout Self, Entity) -> Void
 
     @inlinable
     init(key: @escaping @Sendable (C) -> Key) {
         self.key = key
+        recordComponent = { index, component, entity in index.record(component, for: entity) }
+        forgetEntity = { index, entity in index.forget(entity) }
     }
 
     @inlinable
-    mutating func set(_ component: C, for entity: Entity) {
+    mutating func record(_ component: C, for entity: Entity) {
         let value = key(component)
         if let old = valueByEntity[entity] {
             guard old != value else { return }
@@ -29,7 +35,7 @@ struct ValueIndex<C: Component, Key: Hashable & Sendable>: Sendable {
     }
 
     @inlinable
-    mutating func remove(_ entity: Entity) {
+    mutating func forget(_ entity: Entity) {
         guard let old = valueByEntity.removeValue(forKey: entity) else { return }
         entitiesByValue[old]?.removeAll { $0 == entity }
         if entitiesByValue[old]?.isEmpty == true { entitiesByValue[old] = nil }
@@ -179,7 +185,14 @@ protocol AnyValueIndex: Sendable {
 extension ValueIndex: AnyValueIndex {
     @usableFromInline
     mutating func set(_ component: any Component, for entity: Entity) {
-        set(component as! C, for: entity)
+        let record = recordComponent
+        record(&self, component as! C, entity)
+    }
+
+    @usableFromInline
+    mutating func remove(_ entity: Entity) {
+        let forget = forgetEntity
+        forget(&self, entity)
     }
 
     @usableFromInline
@@ -190,8 +203,9 @@ extension ValueIndex: AnyValueIndex {
             version = 0
             return
         }
+        let record = recordComponent
         for (entity, value) in zip(column.index.dense, column.values) {
-            set(value, for: entity)
+            record(&self, value, entity)
         }
         version = column.writeVersion
     }
