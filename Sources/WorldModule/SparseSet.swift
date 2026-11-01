@@ -32,7 +32,11 @@ struct SparseIndex: Sendable {
     @inlinable
     mutating func append(_ entity: Entity, at tick: ChangeTick) -> Int {
         let slot = Int(entity.index)
-        if slot >= sparse.count {
+        if slot == sparse.count {
+            // Spawning appends slots in order, and appending one element is much cheaper than
+            // appending a repeated sequence of one.
+            sparse.append(0)
+        } else if slot > sparse.count {
             sparse.append(contentsOf: repeatElement(0, count: slot - sparse.count + 1))
         }
         dense.append(entity)
@@ -192,14 +196,14 @@ class AnyColumn: @unchecked Sendable {
     /// The component at a position; a closure for the same reason.
     @usableFromInline final let read: @Sendable (AnyColumn, Int) -> any Component
     /// The position in its world's groups of the group that owns the column, or -1 for none.
-    @usableFromInline final var group = -1
+    @exclusivity(unchecked) @usableFromInline final var group = -1
     /// Whether the column holds a relation's ``Targets``, which the world indexes by target.
     @usableFromInline final let isRelation: Bool
     /// Whether the world keeps an index of the column's values (``World/index(_:)-u1gw``).
-    @usableFromInline final var isIndexed = false
+    @exclusivity(unchecked) @usableFromInline final var isIndexed = false
     /// Counts the times the column was reached for writing, so an index of its values knows
     /// whether a write may have changed one.
-    @usableFromInline final var writeVersion: UInt64 = 0
+    @exclusivity(unchecked) @usableFromInline final var writeVersion: UInt64 = 0
 
     @inlinable
     init(

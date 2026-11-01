@@ -1700,7 +1700,7 @@ struct WorldModuleDocumentationExamples {
         #expect(printed(world.count(of: Velocity.self)) == #"1"#)
     }
 
-    @Test("Sources/WorldModule/World.swift:1119")
+    @Test("Sources/WorldModule/World.swift:1117")
     func example129() async throws {
         var world = World()
         world.spawn(Position(x: 0, y: 0))

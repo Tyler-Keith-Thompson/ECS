@@ -955,22 +955,20 @@ public struct World: Sendable {
     @inlinable
     mutating func store<C: Component>(_ component: C, for entity: Entity) {
         let tick = changeTick
-        var isRelation = false
-        var isIndexed = false
         let slot = columnSlot(of: C.self)
-        let group = uniqueUnretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef { column in
-            isRelation = column.isRelation
-            isIndexed = column.isIndexed
+        // Returned rather than written to captured variables, which would be checked for
+        // exclusive access at run time on every store.
+        let (group, isRelation, isIndexed) = uniqueUnretainedColumn(at: slot, of: C.self)._withUnsafeGuaranteedRef { column in
             if let position = column.index.position(of: entity) {
                 column.values[position] = component
                 column.index.ticks[position].changed = tick
                 column.logChange(of: entity, at: tick)
-                return -2
+                return (-2, column.isRelation, column.isIndexed)
             } else {
                 _ = column.index.append(entity, at: tick)
                 column.values.append(component)
                 column.logChange(of: entity, at: tick)
-                return column.group
+                return (column.group, column.isRelation, column.isIndexed)
             }
         }
         let added = group != -2

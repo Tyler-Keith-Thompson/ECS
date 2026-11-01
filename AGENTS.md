@@ -289,8 +289,10 @@ zero.
   bridging on every access.
 - Component types are found through `ColumnTable`, not `Dictionary`, whose SipHash dominated
   single-component reads.
-- A column's `index` and `values` are `@exclusivity(unchecked)`: they are only written through a
-  uniquely referenced column.
+- A column's stored `var`s (`index`, `values`, its flags and its change log) are
+  `@exclusivity(unchecked)`: they are only written through a uniquely referenced column. A class
+  `var` without it pays a run-time exclusivity check on every access, which once cost a third of a
+  spawn. Mark any new one the same way.
 - Single-entity paths reach a column through `Unmanaged` (`unretainedColumn`,
   `uniqueUnretainedColumn`) so they retain nothing; a retain and release per call cost more than
   the rest of a read. The subscript's `_modify` swaps the values array out and back rather than
