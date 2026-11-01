@@ -91,6 +91,10 @@ extension World {
             for position in column.index.ticks.indices {
                 column.index.ticks[position].changed = tick
             }
+            if column.changeLog != nil {
+                let index = column.index
+                column.changeLog!.record(changesOf: index.dense, upTo: index.dense.count, at: tick, index: index, ticks: index.ticks)
+            }
         }
         return try Self.withMutableSpans(column.index.dense, &column.values, body)
     }

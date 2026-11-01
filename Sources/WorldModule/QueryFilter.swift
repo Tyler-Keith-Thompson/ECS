@@ -321,6 +321,9 @@ struct ResolvedFilter: Sendable {
     /// The sources of each pair the filter requires, as lists to walk and sets to check.
     @usableFromInline let relatedSources: [[Entity]]
     @usableFromInline let relatedMembers: [Set<Entity>]
+    /// For each tick-checked type whose changes the world tracks, the entities its change log
+    /// records after the tick: every entity the condition can pass, without walking the column.
+    @usableFromInline let changedEntities: [[Entity]]
 
     /// A tick-checked column and the tick its components must be newer than.
     @frozen
@@ -378,6 +381,12 @@ struct ResolvedFilter: Sendable {
             world.relationIndexes.first { $0.key == pair.type }?.sources(of: pair.target) ?? []
         }
         relatedMembers = relatedSources.map(Set.init)
+        // An entity added after a tick also changed after it, so the log serves both conditions.
+        changedEntities = (filter.addedSince + filter.changedSince).compactMap { condition in
+            guard let slot = world.columnPositions.position(of: condition.type),
+                  let log = world.columns[slot].changeLog else { return nil }
+            return log.entities(changedAfter: condition.since ?? world.lastRun)
+        }
         alternatives = filter.alternatives.map { group in
             group.map { ResolvedFilter($0, in: world) }.filter { !$0.isUnsatisfiable }
         }
@@ -388,6 +397,7 @@ struct ResolvedFilter: Sendable {
     @inlinable
     var candidates: [[Entity]] {
         var candidates = (required + addedSince.map(\.index) + changedSince.map(\.index)).map(\.dense) + relatedSources
+            + changedEntities
         if let cached {
             candidates.append(cached.dense)
         }

@@ -86,9 +86,101 @@ struct ComponentTicks: Sendable {
 /// Columns are shared between copies of a world and copied before the first write to a shared
 /// one, so they are only ever mutated through a unique reference; that is why their storage needs
 /// no exclusivity checks.
+/// The entities whose component of a column's type was added or changed, each with the tick of
+/// the change, in the order of the changes, so that the ones changed since a tick are found
+/// without walking the column.
+///
+/// An entity can appear more than once, and entries for entities that have since lost the
+/// component stay until the log is compacted; readers check each entity against the column.
+@frozen
+@usableFromInline
+struct ChangeLog: Sendable {
+    @usableFromInline var ticks: [ChangeTick] = []
+    @usableFromInline var entities: [Entity] = []
+    /// Whether every entry's tick is at least the previous one's, so a search can find the
+    /// entries after a tick.
+    @usableFromInline var isOrdered = true
+
+    @inlinable
+    init() {}
+
+    /// A log of every component of a column, in the order they last changed.
+    @inlinable
+    init(of index: SparseIndex) {
+        let order = index.dense.indices.sorted { (index.ticks[$0].changed, index.dense[$0]) < (index.ticks[$1].changed, index.dense[$1]) }
+        ticks = order.map { index.ticks[$0].changed }
+        entities = order.map { index.dense[$0] }
+    }
+
+    @inlinable
+    mutating func record(_ entity: Entity, at tick: ChangeTick) {
+        if let last = ticks.last, tick < last { isOrdered = false }
+        ticks.append(tick)
+        entities.append(entity)
+    }
+
+    /// Records the entities among the first `end` of `visited` whose component a visit just
+    /// changed at `tick`, read through the column's `index` and `ticks`.
+    @inlinable
+    mutating func record(changesOf visited: [Entity], upTo end: Int, at tick: ChangeTick, index: SparseIndex, ticks columnTicks: [ComponentTicks]) {
+        for entity in visited[..<end] {
+            guard let position = index.position(of: entity), columnTicks[position].changed == tick else { continue }
+            record(entity, at: tick)
+        }
+        compactIfLarge(index: index, ticks: columnTicks)
+    }
+
+    /// The entities recorded as changed after `tick`, each once.
+    ///
+    /// - Complexity: O(log *m* + *k*) for *m* entries, *k* of them after `tick`.
+    @inlinable
+    func entities(changedAfter tick: ChangeTick) -> [Entity] {
+        var first = 0
+        if isOrdered {
+            var upper = ticks.count
+            while first < upper {
+                let middle = (first + upper) / 2
+                if ticks[middle] > tick { upper = middle } else { first = middle + 1 }
+            }
+        }
+        var seen = Set<Entity>(minimumCapacity: ticks.count - first)
+        var found: [Entity] = []
+        for position in first ..< ticks.count where ticks[position] > tick && seen.insert(entities[position]).inserted {
+            found.append(entities[position])
+        }
+        return found
+    }
+
+    /// Drops the entries a later one supersedes, and those of entities that lost the component,
+    /// once the log holds more than twice as many entries as the column holds components.
+    ///
+    /// - Complexity: O(*m*) for *m* entries when it compacts, which happens at most once per
+    ///   *n* records for a column of *n* components.
+    @inlinable
+    mutating func compactIfLarge(index: SparseIndex, ticks columnTicks: [ComponentTicks]) {
+        guard ticks.count > 2 * index.dense.count + 64 else { return }
+        var keptTicks: [ChangeTick] = []
+        var keptEntities: [Entity] = []
+        var seen = Set<Entity>(minimumCapacity: index.dense.count)
+        for position in ticks.indices.reversed() {
+            let entity = entities[position]
+            guard let held = index.position(of: entity), columnTicks[held].changed == ticks[position],
+                  seen.insert(entity).inserted else { continue }
+            keptTicks.append(ticks[position])
+            keptEntities.append(entity)
+        }
+        ticks = keptTicks.reversed()
+        entities = keptEntities.reversed()
+        isOrdered = zip(ticks, ticks.dropFirst()).allSatisfy { $0 <= $1 }
+    }
+}
+
 @usableFromInline
 class AnyColumn: @unchecked Sendable {
     @exclusivity(unchecked) @usableFromInline final var index: SparseIndex
+    /// The log of changes to the column's components, kept once the world tracks the type's
+    /// changes (`trackChanges(of:)`).
+    @exclusivity(unchecked) @usableFromInline final var changeLog: ChangeLog?
     /// Removes the entity and component at a position, moving the last ones into its place.
     ///
     /// A closure made where the component type is known, so that a world removing from a column
@@ -125,6 +217,35 @@ class AnyColumn: @unchecked Sendable {
     }
 
     /// A column holding the same entities and components.
+    /// Records that `entity`'s component changed at `tick`, when the column keeps a change log.
+    @inlinable
+    @inline(__always)
+    final func logChange(of entity: Entity, at tick: ChangeTick) {
+        guard changeLog != nil else { return }
+        logChangeSlowly(of: entity, at: tick)
+    }
+
+    @usableFromInline
+    @inline(never)
+    final func logChangeSlowly(of entity: Entity, at tick: ChangeTick) {
+        changeLog!.record(entity, at: tick)
+        changeLog!.compactIfLarge(index: index, ticks: index.ticks)
+    }
+
+    /// The entities a visit is walking and how many of them, held while a column that logs its
+    /// changes is visited, so the log can record them afterward.
+    @exclusivity(unchecked) @usableFromInline final var visiting: (entities: [Entity], end: Int)?
+
+    /// Records the entities of the visit just finished whose component it changed at `tick`,
+    /// read through `ticks`, the column's ticks moved out for the visit.
+    @usableFromInline
+    @inline(never)
+    final func logVisit(at tick: ChangeTick, ticks: [ComponentTicks]) {
+        guard let (entities, end) = visiting else { return }
+        visiting = nil
+        changeLog!.record(changesOf: entities, upTo: end, at: tick, index: index, ticks: ticks)
+    }
+
     @usableFromInline
     func copy() -> AnyColumn { preconditionFailure("abstract") }
 
@@ -157,6 +278,7 @@ final class Column<C: Component>: AnyColumn, @unchecked Sendable {
         group = column.group
         isIndexed = column.isIndexed
         writeVersion = column.writeVersion
+        changeLog = column.changeLog
     }
 
     /// Swaps the entities and components at `first` and `second`.

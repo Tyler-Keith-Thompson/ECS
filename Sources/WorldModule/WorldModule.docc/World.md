@@ -177,6 +177,7 @@
 - ``changeTick``
 - ``advanceChangeTick()``
 - ``lastRun``
+- ``trackChanges(of:)``
 
 ### Detecting Removals
 

@@ -202,6 +202,27 @@ for (_, name, health) in world.query(Name.self, Health.self).changed(Health.self
 }
 ```
 
+Each filter checks every entity the visit would otherwise walk, so its cost grows with the number
+of entities that hold the type, not with the number that changed. When few of many entities change
+between visits, log the type's changes with ``World/trackChanges(of:)``; the filters then start
+from the entities the log records after the tick:
+
+```swift
+var world = World()
+for _ in 0 ..< 1000 { world.spawn(Name(value: "bystander"), Health(current: 10)) }
+let target = world.spawn(Name(value: "target"), Health(current: 10))
+world.trackChanges(of: Health.self)
+
+let checkpoint = world.changeTick
+world.advanceChangeTick()
+world[Health.self, of: target].current -= 2
+
+for (_, name, health) in world.query(Name.self, Health.self).changed(Health.self, since: checkpoint) {
+    print(name.value, health.current)
+    // Prints "target 8"
+}
+```
+
 Without a tick, the filters compare against the world's ``World/lastRun``. A schedule sets it to
 the running system's previous run, so in a system, `changed(Health.self)` means "changed since
 this system last ran".

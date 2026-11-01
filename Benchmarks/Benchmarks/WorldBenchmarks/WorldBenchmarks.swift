@@ -511,6 +511,33 @@ let benchmarks: @Sendable () -> Void = {
         blackHole(world)
     }
 
+    Benchmark("find the ten entities changed since a tick, of a tracked type") { benchmark in
+        var world = populatedWorld()
+        world.trackChanges(of: Position.self)
+        let entities = world.query(Position.self).map { $0.entity }
+        let checkpoint = world.changeTick
+        world.advanceChangeTick()
+        for entity in entities.prefix(10) { world[Position.self, of: entity].x += 1 }
+        benchmark.startMeasurement()
+        var found = 0
+        for _ in world.query(Position.self).changed(Position.self, since: checkpoint) { found += 1 }
+        benchmark.stopMeasurement()
+        blackHole(found)
+    }
+
+    Benchmark("find the ten entities changed since a tick, of an untracked type") { benchmark in
+        var world = populatedWorld()
+        let entities = world.query(Position.self).map { $0.entity }
+        let checkpoint = world.changeTick
+        world.advanceChangeTick()
+        for entity in entities.prefix(10) { world[Position.self, of: entity].x += 1 }
+        benchmark.startMeasurement()
+        var found = 0
+        for _ in world.query(Position.self).changed(Position.self, since: checkpoint) { found += 1 }
+        benchmark.stopMeasurement()
+        blackHole(found)
+    }
+
     Benchmark("insert an indexed component into every entity") { benchmark in
         var world = populatedWorld()
         world.index(Team.self)

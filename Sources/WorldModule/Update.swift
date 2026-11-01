@@ -331,25 +331,34 @@ extension World {
             driverColumn = alignedDriver
             end = aligned
         }
+        if column.changeLog != nil { column.visiting = (driver, end) }
         let checksFilter = !resolved.isEmpty
 
-        // Through buffer pointers, so the loop pays no uniqueness or bounds check per write.
-        try ticks.withUnsafeMutableBufferPointer { ticks throws(Failure) in
-            try values.withUnsafeMutableBufferPointer { values throws(Failure) in
-                for cursor in 0 ..< end {
-                    let entity = driver[cursor]
-                    var position = cursor
-                    if driverColumn != -2, driverColumn != alignedDriver {
-                        guard let found = index.position(of: entity) else { continue }
-                        position = found
+        // A column that logs its changes records the entities the visit reached, also when the
+        // body throws partway through.
+        do {
+            // Through buffer pointers, so the loop pays no uniqueness or bounds check per write.
+            try ticks.withUnsafeMutableBufferPointer { ticks throws(Failure) in
+                try values.withUnsafeMutableBufferPointer { values throws(Failure) in
+                    for cursor in 0 ..< end {
+                        let entity = driver[cursor]
+                        var position = cursor
+                        if driverColumn != -2, driverColumn != alignedDriver {
+                            guard let found = index.position(of: entity) else { continue }
+                            position = found
+                        }
+                        if checksFilter, !resolved.passes(entity) { continue }
+                        guard let row = reader.row(entity, cursor, driverColumn) else { continue }
+                        ticks[position].changed = tick
+                        try body(&values[position], row)
                     }
-                    if checksFilter, !resolved.passes(entity) { continue }
-                    guard let row = reader.row(entity, cursor, driverColumn) else { continue }
-                    ticks[position].changed = tick
-                    try body(&values[position], row)
                 }
             }
+        } catch {
+            if column.changeLog != nil { column.logVisit(at: tick, ticks: ticks) }
+            throw error
         }
+        if column.changeLog != nil { column.logVisit(at: tick, ticks: ticks) }
     }
 
     /// Visits every entity holding an `A`, a `B`, the read types and passing `filter`, changing
@@ -414,35 +423,47 @@ extension World {
             driverColumn = alignedDriver
             end = aligned
         }
+        if firstColumn.changeLog != nil { firstColumn.visiting = (driver, end) }
+        if secondColumn.changeLog != nil { secondColumn.visiting = (driver, end) }
         let checksFilter = !resolved.isEmpty
 
-        // Through buffer pointers, so the loop pays no uniqueness or bounds check per write.
-        try firstTicks.withUnsafeMutableBufferPointer { firstTicks throws(Failure) in
-            try secondTicks.withUnsafeMutableBufferPointer { secondTicks throws(Failure) in
-                try firstValues.withUnsafeMutableBufferPointer { firstValues throws(Failure) in
-                    try secondValues.withUnsafeMutableBufferPointer { secondValues throws(Failure) in
-                        for cursor in 0 ..< end {
-                            let entity = driver[cursor]
-                            var firstPosition = cursor
-                            var secondPosition = cursor
-                            if driverColumn != -2, driverColumn != alignedDriver {
-                                guard let found = firstIndex.position(of: entity) else { continue }
-                                firstPosition = found
+        // A column that logs its changes records the entities the visit reached, also when the
+        // body throws partway through.
+        do {
+            // Through buffer pointers, so the loop pays no uniqueness or bounds check per write.
+            try firstTicks.withUnsafeMutableBufferPointer { firstTicks throws(Failure) in
+                try secondTicks.withUnsafeMutableBufferPointer { secondTicks throws(Failure) in
+                    try firstValues.withUnsafeMutableBufferPointer { firstValues throws(Failure) in
+                        try secondValues.withUnsafeMutableBufferPointer { secondValues throws(Failure) in
+                            for cursor in 0 ..< end {
+                                let entity = driver[cursor]
+                                var firstPosition = cursor
+                                var secondPosition = cursor
+                                if driverColumn != -2, driverColumn != alignedDriver {
+                                    guard let found = firstIndex.position(of: entity) else { continue }
+                                    firstPosition = found
+                                }
+                                if driverColumn != -3, driverColumn != alignedDriver {
+                                    guard let found = secondIndex.position(of: entity) else { continue }
+                                    secondPosition = found
+                                }
+                                if checksFilter, !resolved.passes(entity) { continue }
+                                guard let row = reader.row(entity, cursor, driverColumn) else { continue }
+                                firstTicks[firstPosition].changed = tick
+                                secondTicks[secondPosition].changed = tick
+                                try body(&firstValues[firstPosition], &secondValues[secondPosition], row)
                             }
-                            if driverColumn != -3, driverColumn != alignedDriver {
-                                guard let found = secondIndex.position(of: entity) else { continue }
-                                secondPosition = found
-                            }
-                            if checksFilter, !resolved.passes(entity) { continue }
-                            guard let row = reader.row(entity, cursor, driverColumn) else { continue }
-                            firstTicks[firstPosition].changed = tick
-                            secondTicks[secondPosition].changed = tick
-                            try body(&firstValues[firstPosition], &secondValues[secondPosition], row)
                         }
                     }
                 }
             }
+        } catch {
+            if firstColumn.changeLog != nil { firstColumn.logVisit(at: tick, ticks: firstTicks) }
+            if secondColumn.changeLog != nil { secondColumn.logVisit(at: tick, ticks: secondTicks) }
+            throw error
         }
+        if firstColumn.changeLog != nil { firstColumn.logVisit(at: tick, ticks: firstTicks) }
+        if secondColumn.changeLog != nil { secondColumn.logVisit(at: tick, ticks: secondTicks) }
     }
 
     /// Visits every entity holding an `A`, a `B`, a `C`, the read types and passing `filter`,
@@ -520,44 +541,59 @@ extension World {
             driverColumn = alignedDriver
             end = aligned
         }
+        if firstColumn.changeLog != nil { firstColumn.visiting = (driver, end) }
+        if secondColumn.changeLog != nil { secondColumn.visiting = (driver, end) }
+        if thirdColumn.changeLog != nil { thirdColumn.visiting = (driver, end) }
         let checksFilter = !resolved.isEmpty
 
-        // Through buffer pointers, so the loop pays no uniqueness or bounds check per write.
-        try firstTicks.withUnsafeMutableBufferPointer { firstTicks throws(Failure) in
-            try secondTicks.withUnsafeMutableBufferPointer { secondTicks throws(Failure) in
-                try thirdTicks.withUnsafeMutableBufferPointer { thirdTicks throws(Failure) in
-                    try firstValues.withUnsafeMutableBufferPointer { firstValues throws(Failure) in
-                        try secondValues.withUnsafeMutableBufferPointer { secondValues throws(Failure) in
-                            try thirdValues.withUnsafeMutableBufferPointer { thirdValues throws(Failure) in
-                                for cursor in 0 ..< end {
-                                    let entity = driver[cursor]
-                                    var firstPosition = cursor
-                                    var secondPosition = cursor
-                                    var thirdPosition = cursor
-                                    if driverColumn != -2, driverColumn != alignedDriver {
-                                        guard let found = firstIndex.position(of: entity) else { continue }
-                                        firstPosition = found
+        // A column that logs its changes records the entities the visit reached, also when the
+        // body throws partway through.
+        do {
+            // Through buffer pointers, so the loop pays no uniqueness or bounds check per write.
+            try firstTicks.withUnsafeMutableBufferPointer { firstTicks throws(Failure) in
+                try secondTicks.withUnsafeMutableBufferPointer { secondTicks throws(Failure) in
+                    try thirdTicks.withUnsafeMutableBufferPointer { thirdTicks throws(Failure) in
+                        try firstValues.withUnsafeMutableBufferPointer { firstValues throws(Failure) in
+                            try secondValues.withUnsafeMutableBufferPointer { secondValues throws(Failure) in
+                                try thirdValues.withUnsafeMutableBufferPointer { thirdValues throws(Failure) in
+                                    for cursor in 0 ..< end {
+                                        let entity = driver[cursor]
+                                        var firstPosition = cursor
+                                        var secondPosition = cursor
+                                        var thirdPosition = cursor
+                                        if driverColumn != -2, driverColumn != alignedDriver {
+                                            guard let found = firstIndex.position(of: entity) else { continue }
+                                            firstPosition = found
+                                        }
+                                        if driverColumn != -3, driverColumn != alignedDriver {
+                                            guard let found = secondIndex.position(of: entity) else { continue }
+                                            secondPosition = found
+                                        }
+                                        if driverColumn != -4, driverColumn != alignedDriver {
+                                            guard let found = thirdIndex.position(of: entity) else { continue }
+                                            thirdPosition = found
+                                        }
+                                        if checksFilter, !resolved.passes(entity) { continue }
+                                        guard let row = reader.row(entity, cursor, driverColumn) else { continue }
+                                        firstTicks[firstPosition].changed = tick
+                                        secondTicks[secondPosition].changed = tick
+                                        thirdTicks[thirdPosition].changed = tick
+                                        try body(&firstValues[firstPosition], &secondValues[secondPosition], &thirdValues[thirdPosition], row)
                                     }
-                                    if driverColumn != -3, driverColumn != alignedDriver {
-                                        guard let found = secondIndex.position(of: entity) else { continue }
-                                        secondPosition = found
-                                    }
-                                    if driverColumn != -4, driverColumn != alignedDriver {
-                                        guard let found = thirdIndex.position(of: entity) else { continue }
-                                        thirdPosition = found
-                                    }
-                                    if checksFilter, !resolved.passes(entity) { continue }
-                                    guard let row = reader.row(entity, cursor, driverColumn) else { continue }
-                                    firstTicks[firstPosition].changed = tick
-                                    secondTicks[secondPosition].changed = tick
-                                    thirdTicks[thirdPosition].changed = tick
-                                    try body(&firstValues[firstPosition], &secondValues[secondPosition], &thirdValues[thirdPosition], row)
                                 }
                             }
                         }
                     }
                 }
             }
+        } catch {
+            if firstColumn.changeLog != nil { firstColumn.logVisit(at: tick, ticks: firstTicks) }
+            if secondColumn.changeLog != nil { secondColumn.logVisit(at: tick, ticks: secondTicks) }
+            if thirdColumn.changeLog != nil { thirdColumn.logVisit(at: tick, ticks: thirdTicks) }
+            throw error
         }
+        if firstColumn.changeLog != nil { firstColumn.logVisit(at: tick, ticks: firstTicks) }
+        if secondColumn.changeLog != nil { secondColumn.logVisit(at: tick, ticks: secondTicks) }
+        if thirdColumn.changeLog != nil { thirdColumn.logVisit(at: tick, ticks: thirdTicks) }
     }
 }

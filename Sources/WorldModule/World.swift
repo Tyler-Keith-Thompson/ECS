@@ -216,6 +216,49 @@ public struct World: Sendable {
         return storedChangeTick
     }
 
+    /// Starts logging which entities have a component of the given type added or changed, so
+    /// that finding the ones changed since a tick costs time in proportion to how many changed,
+    /// not to how many hold the type.
+    ///
+    /// Without a log, a query filtered with ``Query/changed(_:since:)`` or
+    /// ``Query/added(_:since:)`` checks every entity it would otherwise visit. Once a type's
+    /// changes are tracked, those filters start from the entities the log records after the tick.
+    /// Track a type when you often ask what changed among many entities and few change between
+    /// asks, such as rules that react to the handful of entities an event touched:
+    ///
+    /// ```swift
+    /// var world = World()
+    /// for _ in 0 ..< 1000 { world.spawn(Health(current: 10)) }
+    /// let hurt = world.spawn(Health(current: 10))
+    /// world.trackChanges(of: Health.self)
+    ///
+    /// let checkpoint = world.changeTick
+    /// world.advanceChangeTick()
+    /// world[Health.self, of: hurt].current -= 4
+    ///
+    /// let changed = world.query(Health.self).changed(Health.self, since: checkpoint)
+    /// print(changed.map(\.entity) == [hurt])
+    /// // Prints "true"
+    /// ```
+    ///
+    /// Every write is logged: through the world's subscript, an insert, an update or a mutable
+    /// span. An update logs each entity it visits, as it marks each one changed. The log holds at
+    /// most about twice as many entries as there are entities holding the type: once it grows past
+    /// that, the next write drops the entries a later change supersedes. Tracking changes makes no
+    /// difference to which entities a query finds, only to how fast it finds them. Calling this
+    /// method again for the same type does nothing. A copy of the world keeps the log.
+    ///
+    /// - Parameter type: The component type whose changes to log.
+    /// - Complexity: O(*n* log *n*) for *n* entities holding a `C`. Afterward, each write to a `C`
+    ///   costs O(1) amortized more.
+    @inlinable
+    public mutating func trackChanges<C: Component>(of type: C.Type) {
+        let slot = columnSlot(of: C.self)
+        guard columns[slot].changeLog == nil else { return }
+        let column = uniqueColumn(at: slot, of: C.self)
+        column.changeLog = ChangeLog(of: column.index)
+    }
+
     /// Creates an empty world, with no entities or resources.
     @inlinable
     public init() {}
@@ -524,7 +567,10 @@ public struct World: Sendable {
             // column for the duration.
             let column = uniqueUnretainedColumn(at: slot, of: C.self)
             let tick = changeTick
-            column._withUnsafeGuaranteedRef { $0.index.ticks[position].changed = tick }
+            column._withUnsafeGuaranteedRef {
+                $0.index.ticks[position].changed = tick
+                $0.logChange(of: entity, at: tick)
+            }
             var values: [C] = []
             column._withUnsafeGuaranteedRef { swap(&values, &$0.values) }
             defer { column._withUnsafeGuaranteedRef { swap(&values, &$0.values) } }
@@ -918,10 +964,12 @@ public struct World: Sendable {
             if let position = column.index.position(of: entity) {
                 column.values[position] = component
                 column.index.ticks[position].changed = tick
+                column.logChange(of: entity, at: tick)
                 return -2
             } else {
                 _ = column.index.append(entity, at: tick)
                 column.values.append(component)
+                column.logChange(of: entity, at: tick)
                 return column.group
             }
         }

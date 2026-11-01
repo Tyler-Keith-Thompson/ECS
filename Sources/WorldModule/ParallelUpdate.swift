@@ -173,6 +173,7 @@ extension World {
             visitedCount = aligned
         }
         let entityCount = visitedCount
+        if column.changeLog != nil { column.visiting = (driver, entityCount) }
         let checksFilter = !resolved.isEmpty
         let chunkCount = max(1, entityCount / minimumChunk)
         let chunkSize = (entityCount + chunkCount - 1) / chunkCount
@@ -194,6 +195,7 @@ extension World {
                 }
             }
         }
+        if column.changeLog != nil { column.logVisit(at: tick, ticks: ticks) }
     }
 }
 

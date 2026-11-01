@@ -205,6 +205,8 @@ go through a parameter pack. To go faster still:
 - **Change detection**: every component remembers when it was added and last changed.
   `query(…).changed(Position.self)` inside a system lists what changed since that system last ran,
   and `.added(…)` lists what is new. Outside a schedule, pass a tick: `since: checkpoint`.
+  `world.trackChanges(of: Position.self)` logs a type's changes, so those filters cost time in
+  proportion to what changed rather than to how many entities hold the type.
 - **Removal detection**: `world.removed(Health.self, by: Healthbars.self)` lists the entities that
   lost a `Health` since that reader last asked, by removal or despawn. Recording starts at the
   first look (or `trackRemovals(of:)`), and removals are kept as long as events are. A system takes
