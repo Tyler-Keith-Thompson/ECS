@@ -455,6 +455,62 @@ let benchmarks: @Sendable () -> Void = {
         blackHole(found)
     }
 
+    Benchmark("look up a range of one percent of the keys of an ordered index") { benchmark in
+        var world = populatedWorld()
+        for (index, entity) in world.query(Position.self).map({ $0.entity }).enumerated() {
+            world.insert(Team(number: index % 1000), into: entity)
+        }
+        world.index(ordered: \Team.number)
+        benchmark.startMeasurement()
+        let found = world.lookup(\Team.number, in: 500 ..< 510)
+        benchmark.stopMeasurement()
+        blackHole(found)
+    }
+
+    Benchmark("look up a range of one percent of the keys without an index") { benchmark in
+        var world = populatedWorld()
+        for (index, entity) in world.query(Position.self).map({ $0.entity }).enumerated() {
+            world.insert(Team(number: index % 1000), into: entity)
+        }
+        benchmark.startMeasurement()
+        let found = world.lookup(\Team.number, in: 500 ..< 510)
+        benchmark.stopMeasurement()
+        blackHole(found)
+    }
+
+    Benchmark("list every entity sorted by the key of an ordered index") { benchmark in
+        var world = populatedWorld()
+        for (index, entity) in world.query(Position.self).map({ $0.entity }).enumerated() {
+            world.insert(Team(number: index % 1000), into: entity)
+        }
+        world.index(ordered: \Team.number)
+        benchmark.startMeasurement()
+        let sorted = world.entities(sortedBy: \Team.number)
+        benchmark.stopMeasurement()
+        blackHole(sorted)
+    }
+
+    Benchmark("list every entity sorted by a key without an index") { benchmark in
+        var world = populatedWorld()
+        for (index, entity) in world.query(Position.self).map({ $0.entity }).enumerated() {
+            world.insert(Team(number: index % 1000), into: entity)
+        }
+        benchmark.startMeasurement()
+        let sorted = world.entities(sortedBy: \Team.number)
+        benchmark.stopMeasurement()
+        blackHole(sorted)
+    }
+
+    Benchmark("insert a component with an ordered index into every entity") { benchmark in
+        var world = populatedWorld()
+        world.index(ordered: \Team.number)
+        let entities = world.query(Position.self).map { $0.entity }
+        benchmark.startMeasurement()
+        for (index, entity) in entities.enumerated() { world.insert(Team(number: index % 1000), into: entity) }
+        benchmark.stopMeasurement()
+        blackHole(world)
+    }
+
     Benchmark("insert an indexed component into every entity") { benchmark in
         var world = populatedWorld()
         world.index(Team.self)

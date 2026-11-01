@@ -16,6 +16,9 @@ swift_library(
     name = "WorldModule",
     srcs = glob(["**/*.swift"], exclude = ["Generated/**"], allow_empty = True) + [":QueryShapes"],
     module_name = "WorldModule",
+    deps = [
+        "@swiftpkg_grafluentcollections//:BTrees",
+    ],
     visibility = ["//visibility:public"],
 )
 

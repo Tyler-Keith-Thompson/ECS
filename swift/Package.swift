@@ -10,6 +10,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/x-sheep/swift-property-based", from: "2.0.1"),
         .package(url: "https://github.com/Tyler-Keith-Thompson/Grafluent", from: "0.0.61"),
+        .package(url: "https://github.com/Tyler-Keith-Thompson/GrafluentCollections", from: "0.0.8"),
         .package(url: "https://github.com/swiftlang/swift-syntax", from: "603.0.0"),
     ]
 )

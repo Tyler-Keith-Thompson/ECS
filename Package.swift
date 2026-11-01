@@ -22,12 +22,13 @@ let products: [Product] = [
 let dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/x-sheep/swift-property-based", from: "2.0.1"),
     .package(url: "https://github.com/Tyler-Keith-Thompson/Grafluent", from: "0.0.61"),
+    .package(url: "https://github.com/Tyler-Keith-Thompson/GrafluentCollections", from: "0.0.8"),
     .package(url: "https://github.com/swiftlang/swift-syntax", from: "603.0.0"),
 ]
 
 let targets: [Target] = [
     // Storage
-    .target(name: "WorldModule", exclude: bazelFiles),
+    .target(name: "WorldModule", dependencies: [.product(name: "BTrees", package: "grafluentcollections")], exclude: bazelFiles),
     // Scheduling
     .target(name: "Systems", dependencies: ["WorldModule", "SystemMacros", .product(name: "Traversal", package: "grafluent"), .product(name: "GraphProtocols", package: "grafluent"), .product(name: "AdjacencyListModule", package: "grafluent"), .product(name: "DirectedAcyclicGraphModule", package: "grafluent"), .product(name: "GraphOperations", package: "grafluent"), .product(name: "GraphFormats", package: "grafluent")], exclude: bazelFiles),
     .target(name: "SimulationModule", dependencies: ["WorldModule", "Systems"], exclude: bazelFiles),

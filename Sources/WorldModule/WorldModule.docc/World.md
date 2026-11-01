@@ -102,6 +102,9 @@
 - ``index(_:)-2gtfg``
 - ``lookup(_:)``
 - ``lookup(_:equals:)``
+- ``index(ordered:)``
+- ``lookup(_:in:)``
+- ``entities(sortedBy:)``
 
 ### Disabling Entities
 

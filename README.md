@@ -193,6 +193,9 @@ go through a parameter pack. To go faster still:
 - **Indexes**: `world.index(Name.self)` maps each value of a `Hashable` component to its entities,
   so `world.lookup(Name("bob"))` skips the walk; `world.index(\Seat.number)` and
   `world.lookup(\Seat.number, equals: 7)` do the same for one property.
+- **Ordered indexes**: `world.index(ordered: \Health.current)` keeps a type's entities sorted by a
+  property, so `world.lookup(\Health.current, in: ...3)` finds a range and
+  `world.entities(sortedBy: \Health.current)` lists them in order without sorting.
 - **Column spans**: `world.withSpan(of: Health.self) { entities, health in … }` lends a component
   type's storage as `Span`s for vectorized loops and C calls; `withMutableSpan` writes in place
   and marks every component changed.

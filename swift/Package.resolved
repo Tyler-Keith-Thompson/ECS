@@ -1,5 +1,5 @@
 {
-  "originHash" : "9c00ac40bdfbdc158c912e84a6b032f9469172d3a5d9f8a91d9a34b35b3b7691",
+  "originHash" : "e85771008eff930c7b1a9da4e07fe08f6e8e056c71bfb1b0374da8e883f8676b",
   "pins" : [
     {
       "identity" : "grafluent",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "77deea13c0bd1b6a22c71c67f0d7fc35da19c141",
         "version" : "0.0.61"
+      }
+    },
+    {
+      "identity" : "grafluentcollections",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Tyler-Keith-Thompson/GrafluentCollections",
+      "state" : {
+        "revision" : "a8662178cc6fe1fd37cd58b7793e6df43af664b4",
+        "version" : "0.0.8"
       }
     },
     {

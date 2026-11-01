@@ -25,6 +25,8 @@ PACKAGES = [
     ("swift-property-based", "https://github.com/x-sheep/swift-property-based", "2.0.1"),
     # Graphs and their algorithms (the owner's library): ordering a schedule's systems and drawing its graph.
     ("grafluent", "https://github.com/Tyler-Keith-Thompson/Grafluent", "0.0.61"),
+    # Graph-shaped collections (the owner's library): the sorted storage of ordered value indexes.
+    ("grafluentcollections", "https://github.com/Tyler-Keith-Thompson/GrafluentCollections", "0.0.8"),
     # Macros: the compiler plugins in MACROS, and their tests.
     ("swift-syntax", "https://github.com/swiftlang/swift-syntax", "603.0.0"),
     # Mocks generated from protocols (`@Mockable`). Uncomment when a module first needs one; see
@@ -41,7 +43,7 @@ MOCKING = "mockable/Mockable"
 # (name, group, description, dependencies)
 MODULES = [
     # Storage
-    ("WorldModule", "Storage", "World: entities, their components and resources, with queries, in-place updates and deferred commands.", []),
+    ("WorldModule", "Storage", "World: entities, their components and resources, with queries, in-place updates and deferred commands.", ["grafluentcollections/BTrees"]),
     # Scheduling
     ("Systems", "Scheduling", "System and Schedule: rules that run on a world, ordered as written unless constrained otherwise.", ["WorldModule", "SystemMacros", "grafluent/Traversal", "grafluent/GraphProtocols", "grafluent/AdjacencyListModule", "grafluent/DirectedAcyclicGraphModule", "grafluent/GraphOperations", "grafluent/GraphFormats"]),
     ("SimulationModule", "Scheduling", "Simulation: a world and its schedules by label, stepped frame by frame with a fixed timestep and states.", ["WorldModule", "Systems"]),

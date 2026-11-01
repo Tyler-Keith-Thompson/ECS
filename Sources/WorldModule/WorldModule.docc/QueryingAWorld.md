@@ -283,3 +283,25 @@ world.index(\Berth.number)
 print(world.lookup(\Berth.number, equals: 14) == [ferry])
 // Prints "true"
 ```
+
+To find the entities whose property falls in a range, or to visit them in the order of a
+property, index the key path ordered with `index(ordered:)`. The property's type needs to be
+`Comparable`. `lookup(_:in:)` takes any range and returns the entities in the property's order,
+and `entities(sortedBy:)` returns every entity holding the component in that order:
+
+```swift
+var world = World()
+let fresh = world.spawn(Name(value: "fresh"), Health(current: 9))
+let wounded = world.spawn(Name(value: "wounded"), Health(current: 2))
+let dying = world.spawn(Name(value: "dying"), Health(current: 1))
+world.index(ordered: \Health.current)
+
+print(world.lookup(\Health.current, in: ..<3) == [dying, wounded])
+// Prints "true"
+print(world.entities(sortedBy: \Health.current) == [dying, wounded, fresh])
+// Prints "true"
+```
+
+An ordered index costs more to keep than an index by value, since each insert, removal and
+despawn finds the entity's place in sorted order, so index a key path ordered only when you look
+it up by range or order.
