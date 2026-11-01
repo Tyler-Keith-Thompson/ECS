@@ -97,6 +97,24 @@ let benchmarks: @Sendable () -> Void = {
         blackHole(world.count)
     }
 
+    Benchmark("spawn two components, one entity at a time") { benchmark in
+        let rows = (0 ..< entityCount).map { index in (Position(x: Double(index), y: 0), Velocity(dx: 1, dy: 1)) }
+        var world = World()
+        benchmark.startMeasurement()
+        for row in rows { world.spawn(row.0, row.1) }
+        benchmark.stopMeasurement()
+        blackHole(world.count)
+    }
+
+    Benchmark("spawn two components, a batch of entities") { benchmark in
+        let rows = (0 ..< entityCount).map { index in (Position(x: Double(index), y: 0), Velocity(dx: 1, dy: 1)) }
+        var world = World()
+        benchmark.startMeasurement()
+        let entities = world.spawn(contentsOf: rows)
+        benchmark.stopMeasurement()
+        blackHole(entities.count)
+    }
+
     Benchmark("spawn one component requiring two") { benchmark in
         var world = World()
         for _ in benchmark.scaledIterations {

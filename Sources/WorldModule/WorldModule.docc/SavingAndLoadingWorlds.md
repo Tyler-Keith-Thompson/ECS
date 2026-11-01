@@ -131,7 +131,7 @@ print(restored.sources(Likes.self, of: bob) == [alice])
 
 Restoring a scene replaces a whole world. To add a scene's entities to an existing world instead,
 as you would to place a saved enemy squad or a room of a level, call
-``World/spawn(contentsOf:)``. Each of the scene's live entities is spawned as a new entity, and
+``World/spawn(contentsOf:)->[Entity:Entity]``. Each of the scene's live entities is spawned as a new entity, and
 the method returns the new entity for each of the scene's:
 
 ```swift

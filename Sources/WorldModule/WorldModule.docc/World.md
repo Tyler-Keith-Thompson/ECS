@@ -11,6 +11,10 @@
 - ``spawn(_:)-2slwa``
 - ``spawn(_:)-13jpz``
 - ``spawn(_:)-5h8u``
+- ``spawn(contentsOf:)-6qu8f``
+- ``spawn(contentsOf:)-3rsne``
+- ``spawn(contentsOf:)-8te4h``
+- ``spawn(contentsOf:)-3vl0y``
 - ``spawn(_:_:)``
 - ``spawn(_:_:_:)``
 - ``despawn(_:)``
@@ -190,7 +194,7 @@
 - ``init(restoring:)-6alog``
 - ``scene(_:)``
 - ``init(restoring:)-7m7do``
-- ``spawn(contentsOf:)``
+- ``spawn(contentsOf:)->[Entity:Entity]``
 
 ### Running Changes Concurrently
 

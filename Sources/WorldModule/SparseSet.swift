@@ -46,6 +46,23 @@ struct SparseIndex: Sendable {
     }
 
     /// Swaps the entities, and their ticks, at positions `first` and `second`.
+    /// Appends `entities`, none of which the column holds, all added and changed at `tick`.
+    @inlinable
+    mutating func append(contentsOf entities: [Entity], at tick: ChangeTick) {
+        guard let highest = entities.lazy.map(\.index).max() else { return }
+        if Int(highest) >= sparse.count {
+            sparse.append(contentsOf: repeatElement(0, count: Int(highest) + 1 - sparse.count))
+        }
+        let first = dense.count
+        dense.append(contentsOf: entities)
+        ticks.append(contentsOf: repeatElement(ComponentTicks(added: tick, changed: tick), count: entities.count))
+        sparse.withUnsafeMutableBufferPointer { sparse in
+            for (offset, entity) in entities.enumerated() {
+                sparse[Int(entity.index)] = UInt32(first + offset + 1)
+            }
+        }
+    }
+
     @inlinable
     mutating func swapAt(_ first: Int, _ second: Int) {
         guard first != second else { return }

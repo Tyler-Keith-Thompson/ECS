@@ -186,6 +186,8 @@ print(world[Position.self, of: rock].x)
 Queries and updates of up to three types have overloads the compiler fully specializes; more types
 go through a parameter pack. To go faster still:
 
+- **Spawning many**: `world.spawn(contentsOf: rows)` takes a sequence of components, pairs, triples
+  or bundles and spawns an entity for each, finding and growing each type's storage once.
 - **Groups**: `world.group(Position.self, Velocity.self)` keeps two or more types packed in the
   same order, so queries and updates over exactly those types make no lookups.
 - **Cached queries**: `world.cache(Query(Position.self).without(Sleeping.self))` keeps the entities

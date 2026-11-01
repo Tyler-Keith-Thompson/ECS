@@ -540,7 +540,7 @@ extension ComponentRows: SavedComponents {
 /// A type whose values name other entities, which can be pointed at different entities.
 ///
 /// Conform a component that stores entity handles to `MapEntities` so that spawning a scene
-/// into a world (``World/spawn(contentsOf:)``) keeps it pointing at the right entities. The
+/// into a world (``World/spawn(contentsOf:)->[Entity:Entity]``) keeps it pointing at the right entities. The
 /// world spawns new entities in place of the scene's, then calls ``mapEntities(_:)`` with a
 /// closure that maps each of the scene's entities to its replacement.
 ///
@@ -623,7 +623,7 @@ struct SavedResource<R: Resource & Codable>: SavedResourceValue, Codable {
 /// editor, or to store a group of entities you spawn many times, such as an enemy squad. Take a
 /// scene with ``World/scene(_:)``, passing a ``TypeRegistry`` of the types to save. Then either
 /// rebuild the whole world with `World(restoring:)`, or add the scene's entities to another
-/// world as new ones with ``World/spawn(contentsOf:)``.
+/// world as new ones with ``World/spawn(contentsOf:)->[Entity:Entity]``.
 ///
 /// A scene is `Codable`. Encoding needs nothing more; decoding needs the registry in the
 /// decoder's `userInfo` under `CodingUserInfoKey.typeRegistry`:
