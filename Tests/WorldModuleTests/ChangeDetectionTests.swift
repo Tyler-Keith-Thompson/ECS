@@ -1,6 +1,7 @@
 // Each test is self-contained: it builds its own world and states its own expectations.
 
 import ECSTestSupport
+import Generators
 import Testing
 import WorldModule
 
@@ -181,7 +182,7 @@ struct ChangeDetectionTests {
 
     @Test("Added and changed agree with a model over random writes", .tags(.randomized), arguments: [5, 17, 2_026] as [UInt])
     func agreesWithModel(seed: UInt) {
-        var generator = SeededRandomNumberGenerator(seed: seed)
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         var world = World()
         var added: [Entity: ChangeTick] = [:]
         var changed: [Entity: ChangeTick] = [:]

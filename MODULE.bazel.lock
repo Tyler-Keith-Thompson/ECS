@@ -677,7 +677,7 @@
           "REPO_MAPPING:rules_swift_package_manager+,bazel_skylib bazel_skylib+",
           "REPO_MAPPING:rules_swift_package_manager+,bazel_tools bazel_tools",
           "REPO_MAPPING:rules_swift_package_manager+,cgrindel_bazel_starlib cgrindel_bazel_starlib+",
-          "FILE:@@//swift/Package.resolved b6e7d05afcb9a9a65d352b29aea3ee72dc706f24302fd402d0d63306375d3733"
+          "FILE:@@//swift/Package.resolved e734a8c6a51bd75cda1b52385850f02ed76df69b1b5de557da8580af8d1dbf70"
         ],
         "generatedRepoSpecs": {
           "swift_deps_info": {
@@ -687,7 +687,8 @@
                 "@swiftpkg_swift_property_based//:pkg_info.json": "swift-property-based",
                 "@swiftpkg_grafluent//:pkg_info.json": "grafluent",
                 "@swiftpkg_grafluentcollections//:pkg_info.json": "grafluentcollections",
-                "@swiftpkg_swift_syntax//:pkg_info.json": "swift-syntax"
+                "@swiftpkg_swift_syntax//:pkg_info.json": "swift-syntax",
+                "@swiftpkg_swiftprng//:pkg_info.json": "swiftprng"
               }
             }
           },
@@ -744,6 +745,19 @@
               "commit": "79e4b74a295b6eb74a8b585e3a39d29e70c1dbd1",
               "remote": "https://github.com/swiftlang/swift-syntax",
               "version": "603.0.2",
+              "env": {},
+              "env_inherit": [],
+              "cached_json_directory": "",
+              "replace_scm_with_registry": false
+            }
+          },
+          "swiftpkg_swiftprng": {
+            "repoRuleId": "@@rules_swift_package_manager+//swiftpkg/internal:swift_package.bzl%swift_package",
+            "attributes": {
+              "bazel_package_name": "swiftpkg_swiftprng",
+              "commit": "964257d448bda388e30186f49363d35a22afbb69",
+              "remote": "https://github.com/Tyler-Keith-Thompson/SwiftPRNG",
+              "version": "0.0.1",
               "env": {},
               "env_inherit": [],
               "cached_json_directory": "",
@@ -809,6 +823,7 @@
             "swiftpkg_grafluent",
             "swiftpkg_grafluentcollections",
             "swiftpkg_swift_syntax",
+            "swiftpkg_swiftprng",
             "swift_deps_info",
             "swift_package"
           ],

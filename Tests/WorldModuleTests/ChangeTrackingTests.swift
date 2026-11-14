@@ -2,6 +2,7 @@
 // changes. Self-contained.
 
 import ECSTestSupport
+import Generators
 import PropertyBased
 import Testing
 import WorldModule
@@ -165,7 +166,7 @@ struct ChangeTrackingTests {
     func matchesUntracked() async {
         let seeds = Gen.int(in: 0 ... 1_000_000)
         await propertyCheck(count: 100, input: seeds) { seed in
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             var tracked = World()
             tracked.trackChanges(of: Health.self)
             var untracked = World()

@@ -1,6 +1,7 @@
 // The optional subscripts of a world and its resources. Each test is self-contained.
 
 import ECSTestSupport
+import Generators
 import PropertyBased
 import Testing
 import WorldModule
@@ -134,7 +135,7 @@ struct OptionalAccessTests {
     func matchesDictionary() async {
         let seeds = Gen.int(in: 0 ... 1_000_000)
         await propertyCheck(count: 100, input: seeds) { seed in
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             var world = World()
             let entities = [world.spawn(), world.spawn(), world.spawn()]
             var expected: [Entity: Int] = [:]

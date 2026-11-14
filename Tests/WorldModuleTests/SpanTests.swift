@@ -1,6 +1,7 @@
 // Spans over a component type's storage. Self-contained.
 
 import ECSTestSupport
+import Generators
 import PropertyBased
 import Testing
 import WorldModule
@@ -142,7 +143,7 @@ struct SpanTests {
     func matchesQuery() async {
         let seeds = Gen.int(in: 0 ... 1_000_000)
         await propertyCheck(count: 100, input: seeds) { seed in
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             var world = World()
             var alive: [Entity] = []
             for _ in 0 ..< Int.random(in: 0 ... 40, using: &generator) {

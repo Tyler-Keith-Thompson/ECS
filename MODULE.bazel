@@ -41,4 +41,5 @@ use_repo(
     "swiftpkg_grafluentcollections",
     "swiftpkg_swift_property_based",
     "swiftpkg_swift_syntax",
+    "swiftpkg_swiftprng",
 )

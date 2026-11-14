@@ -72,6 +72,15 @@
         "revision" : "79e4b74a295b6eb74a8b585e3a39d29e70c1dbd1",
         "version" : "603.0.2"
       }
+    },
+    {
+      "identity" : "swiftprng",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Tyler-Keith-Thompson/SwiftPRNG",
+      "state" : {
+        "revision" : "964257d448bda388e30186f49363d35a22afbb69",
+        "version" : "0.0.1"
+      }
     }
   ],
   "version" : 3

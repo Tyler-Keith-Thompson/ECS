@@ -1,6 +1,7 @@
 // Cached queries: the entities a query matches, kept current. Self-contained.
 
 import ECSTestSupport
+import Generators
 import PropertyBased
 import Testing
 import WorldModule
@@ -225,7 +226,7 @@ struct QueryCacheTests {
     func matchesUncached() async {
         let seeds = Gen.int(in: 0 ... 1_000_000)
         await propertyCheck(count: 100, input: seeds) { seed in
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             var cached = World()
             cached.cache(Query(Position.self, Velocity.self).without(Frozen.self))
             cached.cache(Query(Health.self).with(Name.self))

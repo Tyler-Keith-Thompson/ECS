@@ -12,5 +12,6 @@ let package = Package(
         .package(url: "https://github.com/Tyler-Keith-Thompson/Grafluent", from: "0.0.61"),
         .package(url: "https://github.com/Tyler-Keith-Thompson/GrafluentCollections", from: "0.0.8"),
         .package(url: "https://github.com/swiftlang/swift-syntax", from: "603.0.0"),
+        .package(url: "https://github.com/Tyler-Keith-Thompson/SwiftPRNG", from: "0.0.1"),
     ]
 )

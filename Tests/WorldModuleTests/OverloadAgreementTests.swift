@@ -2,6 +2,7 @@
 // through a parameter pack. These tests pin both paths to the same answers. Each is self-contained.
 
 import ECSTestSupport
+import Generators
 import Testing
 import WorldModule
 
@@ -14,7 +15,7 @@ struct Fourth: Component, Hashable {
 struct OverloadAgreementTests {
     @Test("Queries of one to four types list the same entities as filters requiring those types", .tags(.randomized), arguments: [7, 99, 2_024] as [UInt])
     func queries(seed: UInt) {
-        var generator = SeededRandomNumberGenerator(seed: seed)
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         var world = World()
         for value in 0 ..< 400 {
             let entity = world.spawn()

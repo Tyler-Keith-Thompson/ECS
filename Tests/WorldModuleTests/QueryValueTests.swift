@@ -2,6 +2,7 @@
 // Each test is self-contained: it builds its own world and states its own expectations.
 
 import ECSTestSupport
+import Generators
 import PropertyBased
 import Testing
 import WorldModule
@@ -248,7 +249,7 @@ struct QueryValueTests {
 
     @Test("Queries wider than the specialized overloads read the same rows", .tags(.randomized), arguments: [1, 2, 3, 42, 1_000] as [UInt])
     func wideQueries(seed: UInt) {
-        var generator = SeededRandomNumberGenerator(seed: seed)
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         var world = World()
         for value in 0 ..< 300 {
             let entity = world.spawn(Health(value))
@@ -286,7 +287,7 @@ struct QueryValueTests {
         func general<each T: QueryTerm>(_ query: Query<repeat each T>, in world: World) -> [Entity] {
             world.query(query).map { $0.entity }.sorted()
         }
-        var generator = SeededRandomNumberGenerator(seed: seed)
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         var world = World()
         for value in 0 ..< 300 {
             let entity = world.spawn()
@@ -355,7 +356,7 @@ struct QueryValueTests {
             }
             return visited.sorted()
         }
-        var generator = SeededRandomNumberGenerator(seed: seed)
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         var world = World()
         for value in 0 ..< 300 {
             let entity = world.spawn()

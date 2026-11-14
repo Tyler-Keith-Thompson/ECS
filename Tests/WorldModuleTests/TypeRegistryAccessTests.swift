@@ -1,6 +1,7 @@
 // Reading and inserting components and resources by their registered names. Self-contained.
 
 import ECSTestSupport
+import Generators
 import Foundation
 import PropertyBased
 import Testing
@@ -291,7 +292,7 @@ struct TypeRegistryAccessTests {
     func copyByName() async {
         let seeds = Gen.int(in: 0 ... 1_000_000)
         await propertyCheck(count: 100, input: seeds) { seed in
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             var registry = TypeRegistry()
             try! registry.register(Position.self, named: "Position")
             try! registry.register(Health.self, named: "Health")

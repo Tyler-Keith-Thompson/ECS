@@ -24,6 +24,7 @@ let dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/Tyler-Keith-Thompson/Grafluent", from: "0.0.61"),
     .package(url: "https://github.com/Tyler-Keith-Thompson/GrafluentCollections", from: "0.0.8"),
     .package(url: "https://github.com/swiftlang/swift-syntax", from: "603.0.0"),
+    .package(url: "https://github.com/Tyler-Keith-Thompson/SwiftPRNG", from: "0.0.1"),
 ]
 
 let targets: [Target] = [
@@ -41,14 +42,14 @@ let targets: [Target] = [
     // Shared fixtures (data only) for every test target.
     .target(name: "ECSTestSupport", dependencies: ["WorldModule"], path: "Tests/ECSTestSupport", exclude: bazelFiles),
 
-    .testTarget(name: "WorldModuleTests", dependencies: ["WorldModule", "ECSTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: ["BUILD.bazel", "Performance"]),
-    .testTarget(name: "SystemsTests", dependencies: ["Systems", "WorldModule", "ECSTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: bazelFiles),
+    .testTarget(name: "WorldModuleTests", dependencies: ["WorldModule", "ECSTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), .product(name: "Generators", package: "swiftprng")], exclude: ["BUILD.bazel", "Performance"]),
+    .testTarget(name: "SystemsTests", dependencies: ["Systems", "WorldModule", "ECSTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), .product(name: "Generators", package: "swiftprng")], exclude: bazelFiles),
     .testTarget(name: "SimulationModuleTests", dependencies: ["SimulationModule", "Systems", "WorldModule", "ECSTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], exclude: bazelFiles),
     .testTarget(name: "SystemMacrosTests", dependencies: ["SystemMacros", .product(name: "SwiftSyntax", package: "swift-syntax"), .product(name: "SwiftSyntaxMacros", package: "swift-syntax"), .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax"), .product(name: "SwiftSyntaxMacrosGenericTestSupport", package: "swift-syntax")], exclude: bazelFiles),
     .testTarget(name: "ECSTests", dependencies: ["ECS"], exclude: bazelFiles),
 
     // Speed-reliant tests, split from the target of the same module (PERFORMANCE_TESTS in scripts/modules.py).
-    .testTarget(name: "WorldModulePerformanceTests", dependencies: ["WorldModule", "ECSTestSupport", .product(name: "PropertyBased", package: "swift-property-based")], path: "Tests/WorldModuleTests/Performance"),
+    .testTarget(name: "WorldModulePerformanceTests", dependencies: ["WorldModule", "ECSTestSupport", .product(name: "PropertyBased", package: "swift-property-based"), .product(name: "Generators", package: "swiftprng")], path: "Tests/WorldModuleTests/Performance"),
 ]
 
 let package = Package(

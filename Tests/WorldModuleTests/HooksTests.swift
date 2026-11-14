@@ -2,6 +2,7 @@
 // own expectations.
 
 import ECSTestSupport
+import Generators
 import PropertyBased
 import Testing
 import WorldModule
@@ -233,7 +234,7 @@ struct HooksTests {
 
     @Test("Hooks keep an index through long seeded sequences", .tags(.randomized), arguments: [1, 2, 3, 42, 1_000] as [UInt])
     func seeded(seed: UInt) {
-        var generator = SeededRandomNumberGenerator(seed: seed)
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         let operations = (0 ..< 3_000).map { _ in Int.random(in: 0 ... 1_000_000, using: &generator) }
         Self.run(operations)
     }

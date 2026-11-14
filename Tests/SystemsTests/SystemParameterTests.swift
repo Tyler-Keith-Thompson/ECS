@@ -2,6 +2,7 @@
 // the systems each test runs are declared below.
 
 import ECSTestSupport
+import Generators
 import PropertyBased
 import Systems
 import Testing
@@ -254,7 +255,7 @@ struct SystemParameterTests {
     func parallelMatchesSerial() async {
         let seeds = Gen.int(in: 0 ... 1_000_000)
         await propertyCheck(count: 50, input: seeds) { seed in
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             var world = World()
             world.resources.insert(Clock(ticks: Int.random(in: 0 ... 3, using: &generator)))
             world.resources.insert(Tally())
@@ -294,7 +295,7 @@ struct SystemParameterTests {
     func movementMatchesModel() async {
         let seeds = Gen.int(in: 0 ... 1_000_000)
         await propertyCheck(count: 100, input: seeds) { seed in
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             var world = World()
             var model: [Entity: Position] = [:]
             var velocities: [Entity: Velocity] = [:]

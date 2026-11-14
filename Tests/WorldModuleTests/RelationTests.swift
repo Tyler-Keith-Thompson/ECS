@@ -1,6 +1,7 @@
 // Relations: pairs of a relation and a target, indexed both ways. Self-contained.
 
 import ECSTestSupport
+import Generators
 import Foundation
 import PropertyBased
 import Testing
@@ -398,7 +399,7 @@ struct RelationTests {
     func matchesModel() async {
         let seeds = Gen.int(in: 0 ... 1_000_000)
         await propertyCheck(count: 100, input: seeds) { seed in
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             var world = World()
             var alive: [Entity] = (0 ..< 8).map { _ in world.spawn() }
             var model: [Entity: [Entity]] = [:]

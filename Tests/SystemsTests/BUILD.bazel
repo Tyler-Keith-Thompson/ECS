@@ -22,6 +22,7 @@ swift_library(
         "//Sources/WorldModule",
         "//Tests/ECSTestSupport",
         "@swiftpkg_swift_property_based//:PropertyBased",
+        "@swiftpkg_swiftprng//:Generators",
     ],
 )
 

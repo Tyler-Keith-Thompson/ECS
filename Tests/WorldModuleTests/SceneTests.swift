@@ -1,6 +1,7 @@
 // Scenes saved through a type registry. Self-contained.
 
 import ECSTestSupport
+import Generators
 import Foundation
 import PropertyBased
 import Testing
@@ -246,7 +247,7 @@ struct SceneTests {
         try registry.register(Health.self, named: "Health")
         let seeds = Gen.int(in: 0 ... 1_000_000)
         await propertyCheck(count: 50, input: seeds) { seed in
-            var generator = SeededRandomNumberGenerator(seed: UInt(seed))
+            var generator = Xoroshiro128Plus(seed: UInt64(seed))
             var world = World()
             var alive: [Entity] = []
             for _ in 0 ..< Int.random(in: 0 ... 40, using: &generator) {

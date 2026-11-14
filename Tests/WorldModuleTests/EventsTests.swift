@@ -1,6 +1,7 @@
 // Each test is self-contained: it builds its own world and states its own expectations.
 
 import ECSTestSupport
+import Generators
 import PropertyBased
 import Testing
 import WorldModule
@@ -233,7 +234,7 @@ struct EventsTests {
 
     @Test("Long seeded interleavings agree with a model that keeps every event", .tags(.randomized), arguments: [1, 2, 3, 42, 1_000] as [UInt])
     func seeded(seed: UInt) {
-        var generator = SeededRandomNumberGenerator(seed: seed)
+        var generator = Xoroshiro128Plus(seed: UInt64(seed))
         let operations = (0 ..< 5_000).map { _ in Int.random(in: 0 ... 1_000, using: &generator) }
         Self.run(operations)
     }
