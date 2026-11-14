@@ -178,13 +178,14 @@ def _docc_archive_impl(ctx):
     args.add("--source-service", "github")
     args.add("--source-service-base-url", _SOURCE_SERVICE_BASE_URL)
     args.add("--checkout-path", _CHECKOUT_ROOT)
-    # A broken link or an unknown symbol fails the build, like a first-party compiler warning.
+    # Any warning (a link that doesn't resolve, a missing symbol) fails the action, as
+    # first-party compiler warnings do. docc writes its diagnostics to standard output, with its
+    # progress, so the output is shown only when the action fails.
     args.add("--warnings-as-errors")
 
     docc = _docc(ctx)
     ctx.actions.run_shell(
-        # docc writes its diagnostics to standard output, among its progress; show them on failure.
-        command = 'log=$(mktemp) && ' + docc.command + ' "$@" > "$log" || { cat "$log" >&2; exit 1; }',
+        command = 'output="$(' + docc.command + ' "$@" 2>&1)" || { printf "%s\\n" "$output"; exit 1; }',
         arguments = [args],
         inputs = depset([symbol_graph_dir] + catalog + dependencies),
         outputs = [archive],
@@ -242,9 +243,15 @@ site="$1"; name="$2"; shift 2
 copies="$(mktemp -d)"
 for archive in "$@"; do cp -RL "$archive" "$copies"; done
 chmod -R u+w "$copies"
-{docc} merge "$copies"/*.doccarchive --output-path "$site" \\
-  --synthesized-landing-page-name "$name" --synthesized-landing-page-kind Package > /dev/null
+# `docc merge` takes no --warnings-as-errors, so a warning in its output fails the action here.
+status=0
+output="$({docc} merge "$copies"/*.doccarchive --output-path "$site" \\
+  --synthesized-landing-page-name "$name" --synthesized-landing-page-kind Package 2>&1)" || status=$?
 rm -rf "$copies"
+if [ "$status" -ne 0 ] || printf "%s\\n" "$output" | grep -q "warning:"; then
+  printf "%s\\n" "$output"
+  exit 1
+fi
 """.format(docc = docc.command),
         arguments = [site.path, ctx.attr.landing_page_name] + [a.path for a in archives],
         inputs = archives,

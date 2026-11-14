@@ -26,10 +26,16 @@ xcuserdata/
 # Python
 __pycache__/
 
+# Benchmark baselines: `main` (just bench-baseline) and `simulated` (just bench-simulated) are shared;
+# other names are local before/after comparisons.
+Benchmarks/.benchmarkBaselines/*/*
+!Benchmarks/.benchmarkBaselines/*/main/
+!Benchmarks/.benchmarkBaselines/*/simulated/
+# The harness copy, toolchain stamp and lock scripts/bench_simulated.py writes for Bazel, per machine.
+Benchmarks/.harness/
+
 *.swp
 
 # Benchmarks (a separate package)
 Benchmarks/.build/
 Benchmarks/.swiftpm/
-Benchmarks/Package.resolved
-Benchmarks/.benchmarkBaselines/
