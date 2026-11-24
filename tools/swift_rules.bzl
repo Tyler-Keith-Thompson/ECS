@@ -1,7 +1,7 @@
 """First-party Swift rule wrappers.
 
-Every first-party `swift_library` / `swift_test` / `swift_binary` loads from here instead of
-`@rules_swift//swift:swift.bzl`. The wrappers flip rules_swift features so our
+Every first-party `swift_library` / `swift_test` / `swift_binary` / `swift_compiler_plugin` loads
+from here instead of `@rules_swift//swift:swift.bzl`. The wrappers flip rules_swift features so our
 own code is held to a stricter warnings policy than third-party code:
 
   * `.bazelrc` enables `swift.suppress_warnings` globally, so swiftc gets
