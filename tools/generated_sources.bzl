@@ -4,7 +4,8 @@ Bazel compiles the generator's output directly, so it never goes stale there. Sw
 the generator, so the published package compiles a copy kept under the module's `Generated/`
 directory. `generated_swift_source` declares both halves: a genrule running `generator`, and a
 test that fails when the checked-in copy differs from what the generator writes now. `just
-sources` refreshes every copy.
+modules` writes the calls from GENERATED_SOURCES in scripts/modules.py, and `just sources`
+refreshes every copy.
 """
 
 GeneratedSwiftSourcesInfo = provider(

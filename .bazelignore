@@ -15,6 +15,3 @@ swift/.swiftpm
 # the simulated counts (tools/benchmarks.bzl).
 Benchmarks/.build
 Benchmarks/.swiftpm
-
-# Overlays the bootstrap script copies over the template (server and embedded types); not built in place.
-templates

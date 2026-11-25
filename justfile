@@ -86,6 +86,7 @@ sources:
     set -euo pipefail
     cd {{PROJECT_ROOT}}
     targets=$({{BAZEL}} query 'attr(generator_function, generated_swift_source, kind(genrule, //Sources/... + //Tests/...))')
+    [ -n "$targets" ] || { echo "No generated sources (GENERATED_SOURCES in scripts/modules.py)."; exit 0; }
     {{BAZEL}} build $targets
     for target in $targets; do
         package="${target#//}"; package="${package%%:*}"

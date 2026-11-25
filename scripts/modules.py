@@ -67,7 +67,7 @@ APPLE_ONLY_TESTS = []
 # its swift_test on the Mac (and Linux), and gains `<name>Simulator`, an ios_unit_test of the same
 # test library hosted by tools/test_host, which Bazel runs on macOS alone. A target that depends on
 # an iOS module or a Bazel label runs in the simulator alone already and isn't listed. Needs the
-# test host and .bazelrc's simulator settings, which the app type ships.
+# test host and .bazelrc's simulator settings, which the app type, --ios and --simulator ship.
 SIMULATOR_TESTS = []
 
 # Environment variables a test target's tests read, by test target name: Bazel runs a test with
@@ -142,6 +142,30 @@ TESTING_MODULES = []
 #  "GreetingsTests": [("copy", "Fixtures")], "GreetingsPerformanceTests": [("copy", "Fixtures")]}
 RESOURCES = {}
 
+# The README, and the umbrella's and every library module's Swift sources and DocC articles (the
+# `documentation` filegroup each module's BUILD.bazel declares).
+DOCUMENTATION = ["//:readme"] + [f"//Sources/{name}:documentation" for name in [PROJECT] + [m[0] for m in MODULES]]
+
+# Swift sources a generator writes at build time: {module or test target: [(name, generator label,
+# input labels, output names)]}. Bazel compiles the generator's output, so it never goes stale
+# there; SwiftPM can't run the generator, so it compiles a checked-in copy, at
+# <target directory>/Generated/<name>.swift, or with output names Generated/<name>/<output>.swift
+# for each. `just sources` refreshes the copies, and <name>_test fails while one differs from what
+# the generator writes (tools/generated_sources.bzl). The generator gets the inputs' paths as
+# arguments; with no output names it writes the one source to standard output, with them it gets
+# the outputs' paths first, before a `--`. Simulated benchmarks stage the generator's output at the
+# copy's path (tools/benchmarks.bzl).
+# {"Greetings": [("Phrases", "//tools/phrases", ["//Sources/Greetings:phrases.txt"], [])]}
+GENERATED_SOURCES = {
+    "WorldModule": [("QueryShapes", "//tools/QueryShapes", [], [])],
+    # The documentation's ```swift blocks, compiled and run as tests: one source per module, and
+    # one for the README.
+    f"{PROJECT}Tests": [(
+        "DocumentationExamples", "//tools/DocumentationExamples", DOCUMENTATION,
+        ["README", PROJECT] + [m[0] for m in MODULES],
+    )],
+}
+
 # Compiler plugins holding macros: (name, group, description, dependencies), whose dependencies
 # are packages' products only (swift-syntax's). A module lists one among its dependencies to offer its
 # macros: SwiftPM takes it as a dependency of a `.macro` target, Bazel as a `plugins` entry of a
@@ -173,25 +197,6 @@ PLUGINS = []
 # code lives in MODULES, where tests can reach it. They are left out of the umbrella and the docs.
 EXECUTABLES = [
 ]
-
-# The README, and the umbrella's and every library module's Swift sources and DocC articles (the
-# `documentation` filegroup each module's BUILD.bazel declares).
-DOCUMENTATION = ["//:readme"] + [f"//Sources/{name}:documentation" for name in [PROJECT] + [m[0] for m in MODULES]]
-
-# Sources a generator writes at build time: {module or test target: [(name, generator label,
-# input labels, output names)]}. Bazel compiles the generator's output; SwiftPM compiles the
-# checked-in copy at <target directory>/Generated/<name>.swift (or, given output names,
-# Generated/<name>/<output>.swift for each), which `just sources` refreshes and <name>_test keeps
-# honest (tools/generated_sources.bzl). The generator gets the inputs' paths as arguments.
-GENERATED_SOURCES = {
-    "WorldModule": [("QueryShapes", "//tools/QueryShapes", [], [])],
-    # The documentation's ```swift blocks, compiled and run as tests: one source per module, and
-    # one for the README.
-    f"{PROJECT}Tests": [(
-        "DocumentationExamples", "//tools/DocumentationExamples", DOCUMENTATION,
-        ["README", PROJECT] + [m[0] for m in MODULES],
-    )],
-}
 
 # Test targets. SwiftPM rejects a target with no sources, so list a target only once its directory
 # holds tests. (name, dependencies)
@@ -406,6 +411,65 @@ def check_resources(names):
                 f"add (\"copy\", \"{PRIVACY_MANIFEST}\") to RESOURCES[\"{name}\"]")
 
 
+def generated_copies(name):
+    """The checked-in copies of target `name`'s generated sources (GENERATED_SOURCES), each path
+    relative to the target's directory."""
+    return [f"Generated/{source}/{out}.swift" for source, _, _, outs in GENERATED_SOURCES.get(name, []) for out in outs] \
+        + [f"Generated/{source}.swift" for source, _, _, outs in GENERATED_SOURCES.get(name, []) if not outs]
+
+
+def check_generated_sources(names, tests):
+    for name, sources in GENERATED_SOURCES.items():
+        assert name in names + tests, f"GENERATED_SOURCES names {name}, which is neither a module nor a test target"
+        assert name not in PERFORMANCE_TESTS, \
+            f"GENERATED_SOURCES names {name}, whose Performance/ target would compile the copies: generate them into a module"
+        assert name not in IOS_MODULES, f"GENERATED_SOURCES names the iOS module {name}, which only the simulator builds"
+        assert sources, f"GENERATED_SOURCES gives {name} no sources: list at least one, or leave {name} out"
+        given = [source for source, _, _, _ in sources]
+        assert len(given) == len(set(given)), f"GENERATED_SOURCES names a source of {name} twice"
+        for source, generator, _, outs in sources:
+            assert re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", source), \
+                f"GENERATED_SOURCES gives {name} the source {source!r}, which isn't a Bazel target's plain name"
+            assert generator.startswith("//") or generator.startswith(":"), \
+                f"GENERATED_SOURCES gives {source} the generator {generator!r}, which isn't a Bazel label"
+            assert len(outs) == len(set(outs)), f"GENERATED_SOURCES names an output of {source} twice"
+        directory = ("Sources/" if name in names else "Tests/") + name
+        for copy in generated_copies(name):
+            assert os.path.isfile(os.path.join(ROOT, directory, copy)), (
+                f"GENERATED_SOURCES declares {directory}/{copy}, SwiftPM's copy, which doesn't exist: create it "
+                "(an empty file will do), then `just modules` and `just sources`")
+
+
+def generated_bazel(name):
+    """Target `name`'s generated sources in its BUILD.bazel (GENERATED_SOURCES): the load and the
+    generated_swift_source calls, or nothing."""
+    sources = GENERATED_SOURCES.get(name, [])
+    if not sources:
+        return "", ""
+    rules = ""
+    for source, generator, inputs, outs in sources:
+        inputs_attr = "    srcs = [\n" + "".join(f'        "{i}",\n' for i in inputs) + "    ],\n" if inputs else ""
+        outs_attr = "    outs = [\n" + "".join(f'        "{o}",\n' for o in outs) + "    ],\n" if outs else ""
+        copy = f"Generated/{source}/" if outs else f"Generated/{source}.swift"
+        rules += (
+            f"# {copy} is SwiftPM's copy (GENERATED_SOURCES in scripts/modules.py); Bazel compiles the\n"
+            "# generator's output, and `just sources` refreshes the copy.\n"
+            f'generated_swift_source(\n    name = "{source}",\n    generator = "{generator}",\n{inputs_attr}{outs_attr}'
+            f'    tags = ["{RELEASE_EXCLUDED_TAG}"],\n)\n\n'
+        )
+    return 'load("//tools:generated_sources.bzl", "generated_swift_source")\n', rules
+
+
+def swift_srcs(name, pattern='glob(["**/*.swift"])'):
+    """The `srcs` expression of target `name`'s sources: with generated sources (GENERATED_SOURCES),
+    the generators' outputs in place of the checked-in copies under Generated/. The glob may come
+    up empty: a target whose every source is generated holds only the copies."""
+    sources = GENERATED_SOURCES.get(name, [])
+    if not sources:
+        return pattern
+    return pattern[:-1] + ', exclude = ["Generated/**"], allow_empty = True)' + " + [" + ", ".join(f'":{s}"' for s, _, _, _ in sources) + "]"
+
+
 def check():
     names = [m[0] for m in MODULES]
     # A plugin is a dependency like a module, but no list of modules below may name one.
@@ -425,10 +489,11 @@ def check():
                 f"TEST_ENVIRONMENT gives {name} {variable!r}, which isn't an environment variable's name"
             assert variables.count(variable) == 1, f"TEST_ENVIRONMENT lists {variable} for {name} more than once"
     # The root BUILD.bazel leaves iOS modules out of the docs and //:package_swift_test through
-    # tools/ios.bzl, which only the app type and --ios write.
+    # tools/ios.bzl, which only the app type, --ios and --simulator write.
     assert not IOS_MODULES, (
-        "IOS_MODULES needs tools/ios.bzl, the iOS test host and the simulator settings the app type and the "
-        "--ios option ship: from the project template's checkout, ./template.py add <project> --ios")
+        "IOS_MODULES needs tools/ios.bzl, the iOS test host and the simulator settings the app type, --ios "
+        "and --simulator ship: from the project template's checkout, ./template.py add <project> --ios for "
+        "an iOS app, or --simulator for the modules and their tests alone")
     simulator_tests = sorted(name for name, _ in TEST_TARGETS if simulator_test(name))
     if simulator_tests:
         with open(os.path.join(ROOT, ".bazelrc")) as file:
@@ -437,8 +502,8 @@ def check():
             f"{', '.join(simulator_tests)} run in the iOS simulator (SIMULATOR_TESTS, or a dependency on an iOS "
             "module or a Bazel label), which needs the test host (tools/test_host) and the simulator settings "
             "in .bazelrc (--ios_minimum_os, --ios_simulator_device, --ios_simulator_version, "
-            "--local_resources=simulator=1) that the app type and the --ios option ship: from the project "
-            "template's checkout, ./template.py add <project> --ios")
+            "--local_resources=simulator=1) that the app type, --ios and --simulator ship: from the project "
+            "template's checkout, ./template.py add <project> --simulator (or --ios, for an iOS app too)")
     packages = [p[0] for p in PACKAGES]
     for name, _, version in PACKAGES:
         if version.startswith("range:"):
@@ -481,11 +546,6 @@ def check():
         assert name not in taken, f"the command plugin {name} has the name of {taken.get(name)}"
         assert glob.glob(os.path.join(ROOT, "Plugins", name, "**", "*.swift"), recursive=True), \
             f"the command plugin {name} has no Swift sources in Plugins/{name}"
-    for name in GENERATED_SOURCES:
-        assert name in names + tests, f"GENERATED_SOURCES names unknown module or test target {name}"
-        assert name not in PERFORMANCE_TESTS, f"GENERATED_SOURCES cannot feed {name}, whose sources Performance/ splits"
-        assert name not in IOS_MODULES + EXAMPLE_MODULES, \
-            f"GENERATED_SOURCES cannot feed {name}: the iOS and example module rules don't emit its generator"
     for name in PERFORMANCE_TESTS:
         assert name in tests, f"PERFORMANCE_TESTS names unknown test target {name}"
         assert not simulator_test(name), f"{name} runs in the simulator, which PERFORMANCE_TESTS doesn't support"
@@ -519,6 +579,7 @@ def check():
         for d in deps:
             assert d not in TESTING_MODULES, f"the executable {name} depends on {d}, which imports Testing, a test-only library"
     check_resources(names)
+    check_generated_sources(names, tests)
     for name, deps in BENCHMARKS:
         for d in deps:
             assert d in names or (d == PROJECT and umbrella()), f"benchmark {name} imports unknown module {d}"
@@ -700,7 +761,7 @@ def resources_bazel(name):
     `srcs` and nothing else."""
     entries = RESOURCES.get(name, [])
     if not entries:
-        return "", '    srcs = glob(["**/*.swift"]),\n', "", ""
+        return "", f"    srcs = {swift_srcs(name)},\n", "", ""
     what = ("speed-reliant tests' fixtures" if performance_parent(name)
             else "tests' fixtures" if resources_directory(name).startswith("Tests/") else "module's resources")
     target = resources_target(name)
@@ -714,7 +775,7 @@ def resources_bazel(name):
     return (
         'load("//tools:resources.bzl", "module_resources", "module_resources_data")\n',
         '    # `Bundle.module`, as SwiftPM generates it, for the resources below.\n'
-        f'    srcs = glob(["**/*.swift"]) + [":{target}Accessor"],\n',
+        f'    srcs = {swift_srcs(name)} + [":{target}Accessor"],\n',
         f'    data = module_resources_data("{target}"),\n',
         f"\n# The {what} (RESOURCES in scripts/modules.py), in the bundle SwiftPM builds for them.\n"
         "module_resources(\n"
@@ -859,33 +920,11 @@ def dependency_manifest():
     )
 
 
-def generated_parts(name):
-    """The load, the generated_swift_source rules and the srcs expression of the target `name`
-    (GENERATED_SOURCES)."""
-    generated = GENERATED_SOURCES.get(name, [])
-    if not generated:
-        return "", "", 'glob(["**/*.swift"])'
-    load = 'load("//tools:generated_sources.bzl", "generated_swift_source")\n'
-    rules = ""
-    for source, generator, inputs, outs in generated:
-        inputs_attr = "    srcs = [\n" + "".join(f'        "{i}",\n' for i in inputs) + "    ],\n" if inputs else ""
-        outs_attr = "    outs = [\n" + "".join(f'        "{o}",\n' for o in outs) + "    ],\n" if outs else ""
-        copy = f"Generated/{source}/" if outs else f"Generated/{source}.swift"
-        rules += (
-            f"# {copy} is SwiftPM's copy; Bazel compiles the generator's output.\n"
-            f'generated_swift_source(\n    name = "{source}",\n    generator = "{generator}",\n{inputs_attr}{outs_attr}'
-            f'    tags = ["{RELEASE_EXCLUDED_TAG}"],\n)\n\n'
-        )
-    srcs = 'glob(["**/*.swift"], exclude = ["Generated/**"], allow_empty = True) + [' + ", ".join(f'":{source}"' for source, _, _, _ in generated) + "]"
-    return load, rules, srcs
-
-
 def build_bazel(name, description, deps, linked=()):
     """A module's BUILD.bazel. `linked` names modules its catalog links to without importing them:
     their archives join its docs' dependencies alone."""
     resources_load, srcs_attr, data_attr, resources = resources_bazel(name)
-    generated_load, generated_rules, generated_srcs = generated_parts(name)
-    srcs_attr = srcs_attr.replace('glob(["**/*.swift"])', generated_srcs, 1)
+    generated_load, generated = generated_bazel(name)
     deps_attr = bazel_deps(deps)
     defines_attr = (
         "    # Mock<Protocol> types from @Mockable, in debug builds only (MOCKING in scripts/modules.py).\n"
@@ -918,8 +957,10 @@ def build_bazel(name, description, deps, linked=()):
     if name in EXAMPLE_MODULES:
         return (
             "# GENERATED by scripts/modules.py — edit the table there, then run `just modules`.\n\n"
+            f"{generated_load}"
             f"{resources_load}"
             'load("//tools:swift_rules.bzl", "swift_library")\n\n'
+            f"{generated}"
             f"# {description}\n"
             "# An example (EXAMPLE_MODULES in scripts/modules.py): no product, umbrella import or docs.\n"
             "swift_library(\n"
@@ -943,7 +984,7 @@ def build_bazel(name, description, deps, linked=()):
         f"{generated_load}"
         f"{resources_load}"
         'load("//tools:swift_rules.bzl", "swift_library")\n\n'
-        f"{generated_rules}"
+        f"{generated}"
         f"# {description}\n"
         "swift_library(\n"
         f'    name = "{name}",\n'
@@ -1154,6 +1195,11 @@ def simulator_half_bazel(name, deps, srcs, tags, env_attr):
         '    target_compatible_with = ["@platforms//os:ios"],\n'
         f"{bazel_deps(deps, testing=True, ios=True)}"
         ")\n\n"
+        # rules_apple's default runner, with no pre-action to uninstall the host as the UI
+        # tests' has (tools/ui_test). It reuses a booted simulator and installs over the earlier
+        # install, keeping files whose size and time match, but the host never changes and the
+        # test bundle is installed fresh on every run: same-size changes to a test and to the
+        # module under test both ran on the next run.
         "# Run inside the test host (tools/test_host), which gives windows a scene.\n"
         f"# `{SIMULATOR_TEST_TAG}` runs one simulator test at a time (.bazelrc).\n"
         "ios_unit_test(\n"
@@ -1179,14 +1225,17 @@ def simulator_test_build_bazel(name, deps, size):
     """A test module run in the iOS simulator: its library, its snapshot references, its fixtures
     (RESOURCES) and the ios_unit_test."""
     resources_load, srcs_attr, _, resources = resources_bazel(name)
+    generated_load, generated = generated_bazel(name)
     data_attr = ('    data = [":Snapshots"] + module_resources_data("Resources"),\n' if resources
                  else '    data = [":Snapshots"],\n')
     return (
         "# GENERATED by scripts/modules.py — edit the table there, then run `just modules`.\n\n"
         'load("@rules_apple//apple:ios.bzl", "ios_unit_test")\n'
         'load("@rules_apple//apple:resources.bzl", "apple_resource_bundle")\n'
+        f"{generated_load}"
         f"{resources_load}"
         'load("//tools:swift_rules.bzl", "swift_library")\n\n'
+        f"{generated}"
         "# The tests, run in the iOS simulator: the target depends on an iOS module (IOS_MODULES in\n"
         f"# scripts/modules.py). Tagged `{RELEASE_EXCLUDED_TAG}`, like every target but the speed-reliant ones.\n"
         "swift_library(\n"
@@ -1207,6 +1256,7 @@ def simulator_test_build_bazel(name, deps, size):
         '    structured_resources = glob(["__Snapshots__/**"], allow_empty = True),\n'
         f'    tags = ["{RELEASE_EXCLUDED_TAG}"],\n'
         ")\n\n"
+        # The default runner, with no uninstall: simulator_half_bazel says why.
         "# `bazel test` and the generated Xcode project both run this bundle in the simulator, inside the\n"
         "# test host (tools/test_host), which gives windows a scene.\n"
         f"# `{SIMULATOR_TEST_TAG}` runs one simulator test at a time (.bazelrc).\n"
@@ -1238,12 +1288,15 @@ def test_build_bazel(name, deps):
     resources_load, _, _, resources = resources_bazel(name)
     performance_load, _, _, performance_resources = resources_bazel(performance_target(name)) if name in PERFORMANCE_TESTS else ("", "", "", "")
     resources_load = resources_load or performance_load
+    generated_load, generated = generated_bazel(name)
     header = (
         "# GENERATED by scripts/modules.py — edit the table there, then run `just modules`.\n\n"
         + ('load("@rules_apple//apple:ios.bzl", "ios_unit_test")\n' if simulator else "")
         + 'load("@rules_apple//apple:macos.bzl", "macos_unit_test")\n'
+        + generated_load
         + resources_load
         + 'load("//tools:swift_rules.bzl", "swift_library", "swift_test")\n\n'
+        + generated
     )
     excluded_note = (
         f"Tagged `{RELEASE_EXCLUDED_TAG}`: none of these relies on speed, so\n"
@@ -1251,10 +1304,8 @@ def test_build_bazel(name, deps):
     )
     header += "".join(macro_library_bazel(d) for d in deps if is_macro(d))
     if name not in PERFORMANCE_TESTS:
-        generated_load, generated_rules, srcs = generated_parts(name)
-        return (header.replace('load("//tools:swift_rules.bzl"', generated_load + 'load("//tools:swift_rules.bzl"', 1)
-                + generated_rules + "# The tests, built once and linked into two runners.\n# " + excluded_note
-                + test_targets_bazel(name, deps, size, srcs, [RELEASE_EXCLUDED_TAG], simulator)
+        return (header + "# The tests, built once and linked into two runners.\n# " + excluded_note
+                + test_targets_bazel(name, deps, size, swift_srcs(name), [RELEASE_EXCLUDED_TAG], simulator)
                 + resources)
     return (
         header

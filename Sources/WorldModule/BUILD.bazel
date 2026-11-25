@@ -4,7 +4,8 @@ load("//tools:docc.bzl", "docc_archive")
 load("//tools:generated_sources.bzl", "generated_swift_source")
 load("//tools:swift_rules.bzl", "swift_library")
 
-# Generated/QueryShapes.swift is SwiftPM's copy; Bazel compiles the generator's output.
+# Generated/QueryShapes.swift is SwiftPM's copy (GENERATED_SOURCES in scripts/modules.py); Bazel compiles the
+# generator's output, and `just sources` refreshes the copy.
 generated_swift_source(
     name = "QueryShapes",
     generator = "//tools/QueryShapes",
