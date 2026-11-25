@@ -87,14 +87,6 @@ let benchmarks: @Sendable () -> Void = {
         maxDuration: .seconds(3),
         maxIterations: 20
     )
-    // Under BenchmarkHarness, Callgrind loses some returns from calls through the PLT in a few
-    // loops (--skip-plt=yes, its default): its call stack grows by a few frames per entity, and one
-    // iteration takes over an hour where a sibling of the same instruction count takes a minute.
-    // The harness runs the benchmark's clock a thousand times slower than real time, so the default
-    // 3 s limit is 50 minutes, and such a benchmark stopped after one iteration. A longer limit lets
-    // it measure its three. Natively it only lets a benchmark that takes more than 3 s to reach
-    // maxIterations run them all. Drop it once the harness tracks those returns.
-    let slowUnderCallgrind = Benchmark.Configuration(maxDuration: .seconds(60))
 
     Benchmark("spawn two components, a third on every third entity") { benchmark in
         var world = World()
@@ -431,7 +423,7 @@ let benchmarks: @Sendable () -> Void = {
         blackHole(world)
     }
 
-    Benchmark("add every entity as a child of one of a thousand parents", configuration: slowUnderCallgrind) { benchmark in
+    Benchmark("add every entity as a child of one of a thousand parents") { benchmark in
         var world = populatedWorld()
         let entities = world.query(Position.self).map { $0.entity }
         let parents = (0 ..< 1_000).map { _ in world.spawn() }
@@ -574,7 +566,7 @@ let benchmarks: @Sendable () -> Void = {
         blackHole(world)
     }
 
-    Benchmark("read a resource and a component of a world held by a final class", configuration: slowUnderCallgrind) { benchmark in
+    Benchmark("read a resource and a component of a world held by a final class") { benchmark in
         var world = populatedWorld()
         world.resources.insert(Clock(ticks: 1))
         let entity = world.query(Position.self).first!.entity
