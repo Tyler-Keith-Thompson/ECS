@@ -9,7 +9,7 @@ private func printed(_ items: Any...) -> String {
     items.map { String(describing: $0) }.joined(separator: " ")
 }
 
-// README.md:50
+// README.md:49
 // Components are plain value types.
 fileprivate struct Position: Component { var x: Double, y: Double }
 
@@ -17,15 +17,10 @@ fileprivate struct Velocity: Component { var dx: Double, dy: Double }
 
 fileprivate struct Health: Component { var current: Int }
 
-fileprivate struct Frozen: Component {}
-
-// A resource is a value the world holds once.
-fileprivate struct Clock: Resource { var ticks = 0 }
-
-// Moves everything with a velocity, unless it is frozen.
+// Moves everything with a velocity.
 @System
 fileprivate struct Movement {
-    func run(_ movers: Update<Position>.Over<Velocity>.Where<Without<Frozen>>) {
+    func run(_ movers: Update<Position>.Over<Velocity>) {
         movers { position, row in
             position.x += row.components.dx
             position.y += row.components.dy
@@ -43,76 +38,22 @@ fileprivate struct Reaper {
     }
 }
 
-// Counts the steps.
-@System
-fileprivate struct Tick {
-    func run(clock: ResourceWriter<Clock>) {
-        clock.value.ticks += 1
-    }
-}
-
-// README.md:159
-fileprivate struct Wind: Component { var speed: Double }
-
-fileprivate struct Current: Component { var speed: Double }
-
-fileprivate struct Anchored: Component {}
-
 @Suite("Examples in the README documentation")
 @MainActor
 struct READMEDocumentationExamples {
-    @Test("README.md:50")
+    @Test("README.md:49")
     func example1() async throws {
         var world = World()
-        world.resources.insert(Clock())
-
         let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 2), Health(current: 3))
-        let wall = world.spawn(Position(x: 5, y: 0), Velocity(dx: 9, dy: 9), Frozen())
         let ghost = world.spawn(Health(current: 0))
 
         let step = Schedule {
-            Reaper().after(Movement.self)
             Movement()
-            Tick()
+            Reaper()
         }
         step.run(on: &world)
 
-        #expect(printed(step.names) == #"["Movement", "Reaper", "Tick"]"#)
         #expect(printed(world[Position.self, of: ball]) == #"Position(x: 1.0, y: 2.0)"#)
-        #expect(printed(world[Position.self, of: wall]) == #"Position(x: 5.0, y: 0.0)"#)
         #expect(printed(world.contains(ghost)) == #"false"#)
-        #expect(printed(world.resources[Clock.self]) == #"Clock(ticks: 1)"#)
-    }
-
-    @Test("README.md:159")
-    func example2() async throws {
-        var world = World()
-        let raft = world.spawn(Position(x: 0, y: 0), Wind(speed: 1), Current(speed: 2))
-        let kite = world.spawn(Position(x: 0, y: 0), Wind(speed: 3))
-        let buoy = world.spawn(Position(x: 0, y: 0), Current(speed: 4), Anchored())
-        let rock = world.spawn(Position(x: 0, y: 0))
-
-        let drifting = Query(AnyOf<Wind, Current>.self).without(Anchored.self)
-        world.update(Position.self, over: drifting) { position, row in
-            let (wind, current) = row.components
-            position.x += (wind?.speed ?? 0) + (current?.speed ?? 0)
-        }
-
-        #expect(printed(world[Position.self, of: raft].x) == #"3.0"#)
-        #expect(printed(world[Position.self, of: kite].x) == #"3.0"#)
-        #expect(printed(world[Position.self, of: buoy].x) == #"0.0"#)
-        #expect(printed(world[Position.self, of: rock].x) == #"0.0"#)
-    }
-
-    @Test("README.md:303")
-    func example3() async throws {
-        var world = World()
-        let ball = world.spawn(Position(x: 0, y: 0), Velocity(dx: 1, dy: 2))
-
-        var simulation = Simulation(world, fixedTimestep: .milliseconds(10))
-        simulation.add(to: .fixedUpdate) { Movement() }
-        simulation.update(elapsed: .milliseconds(30))
-
-        #expect(printed(simulation.world[Position.self, of: ball]) == #"Position(x: 3.0, y: 6.0)"#)
     }
 }

@@ -87,13 +87,14 @@ run at the same time, and the world ends as though they had run one after anothe
 apply when each wave finishes). Systems that
 conflict run in order. When two conflicting systems aren't ordered by any constraint, their order
 rests only on how they happen to be written; ``Schedule/ambiguities()`` finds those pairs so a
-test can keep a schedule free of them.
+test can keep a schedule free of them. To learn more, see <doc:SchedulingSystems>.
 
 ## Topics
 
 ### Essentials
 
 - <doc:DeclaringSystems>
+- <doc:SchedulingSystems>
 - <doc:DrivingAWorldFromAnApp>
 - ``System()``
 - ``System``

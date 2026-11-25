@@ -131,7 +131,7 @@ fileprivate struct Climb {
     }
 }
 
-// Sources/Systems/Systems.docc/DeclaringSystems.md:76
+// Sources/Systems/Systems.docc/DeclaringSystems.md:85
 @System
 fileprivate struct RemoveDefeated {
     func run(_ fighters: Query<Health>, _ commands: inout Commands) {
@@ -186,7 +186,7 @@ fileprivate struct SyncSprites: MainActorSystem {
     }
 }
 
-// Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:135
+// Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:144
 @MainActor
 fileprivate final class MessageLog {
     var lines: [String] = []
@@ -203,7 +203,7 @@ fileprivate struct AnnounceDefeats: MainActorSystem {
     }
 }
 
-// Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:181
+// Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:190
 fileprivate final class Script {
     var line = 0
     func advance() { line += 1 }
@@ -612,7 +612,7 @@ struct SystemsDocumentationExamples {
         #expect(printed(world[Position.self, of: statue].y) == #"0.0"#)
     }
 
-    @Test("Sources/Systems/Systems.docc/DeclaringSystems.md:53")
+    @Test("Sources/Systems/Systems.docc/DeclaringSystems.md:62")
     func example28() async throws {
         var world = World()
         let knight = world.spawn(Position(x: 0, y: -1), Health(current: 30))
@@ -626,7 +626,7 @@ struct SystemsDocumentationExamples {
         #expect(printed(world[Health.self, of: knight].current) == #"20"#)
     }
 
-    @Test("Sources/Systems/Systems.docc/DeclaringSystems.md:76")
+    @Test("Sources/Systems/Systems.docc/DeclaringSystems.md:85")
     func example29() async throws {
         var world = World()
         let knight = world.spawn(Health(current: 0))
@@ -673,7 +673,7 @@ struct SystemsDocumentationExamples {
         #expect(printed(sprite.x) == #"3.0"#)
     }
 
-    @Test("Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:135")
+    @Test("Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:144")
     func example33() async throws {
         var world = World()
         let knight = world.spawn(Health(current: 10))
@@ -690,7 +690,7 @@ struct SystemsDocumentationExamples {
         #expect(printed(world.contains(knight)) == #"false"#)
     }
 
-    @Test("Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:181")
+    @Test("Sources/Systems/Systems.docc/DrivingAWorldFromAnApp.md:190")
     func example34() async throws {
         var world = World()
         world.resources.insert(Story(state: StoryState()))
@@ -700,18 +700,33 @@ struct SystemsDocumentationExamples {
         #expect(printed(world.resources[Story.self].state.script.line) == #"2"#)
     }
 
-    @Test("Sources/Systems/Systems.docc/Systems.md:14")
+    @Test("Sources/Systems/Systems.docc/SchedulingSystems.md:63")
     func example35() async throws {
-
+        let frame = Schedule {
+            Schedule {
+                Gravity()
+                Movement().after(Gravity.self)
+            }
+            .inSet(Physics.self)
+            .runIf { world in !world.resources.contains(Paused.self) }
+            Scoring().after(Physics.self)
+        }
+        #expect(printed(frame.names) == #"["Gravity", "Movement", "Scoring"]"#)
+        #expect(printed(frame.ambiguities().isEmpty) == #"true"#)
     }
 
-    @Test("Sources/Systems/Systems.docc/Systems.md:35")
+    @Test("Sources/Systems/Systems.docc/Systems.md:14")
     func example36() async throws {
 
     }
 
-    @Test("Sources/Systems/Systems.docc/Systems.md:66")
+    @Test("Sources/Systems/Systems.docc/Systems.md:35")
     func example37() async throws {
+
+    }
+
+    @Test("Sources/Systems/Systems.docc/Systems.md:66")
+    func example38() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: 100), Velocity(dx: 1, dy: 0))
 
@@ -725,7 +740,7 @@ struct SystemsDocumentationExamples {
     }
 
     @Test("Sources/Systems/Update.swift:32")
-    func example38() async throws {
+    func example39() async throws {
         var world = World()
         let ball = world.spawn(Position(x: 0, y: -2), Velocity(dx: 0, dy: -5))
         Schedule { Bounce() }.run(on: &world)

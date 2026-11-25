@@ -125,6 +125,15 @@ The object reads and writes the world it is handed, and the schedule orders its 
 other systems like any other system's. A main-actor system runs on the main actor, so it can call
 into views and other objects isolated to it.
 
+### Follow Events and Changes from Async Code
+
+Code that doesn't run in a schedule, such as a task that plays a sound for each hit or a view that
+redraws a health bar, can await what the world does through an `AsyncStream`. Put a
+``ForwardEvents`` system in the schedule, after the systems that send the events, to yield each
+new event of a type to a stream's continuation. A ``ForwardChanges`` system yields each component
+of a type that was added or changed since it last ran, with its entity. Either stream ends when
+you finish its continuation.
+
 ### Perform Effects Before a Step Continues
 
 Events suit effects the outside handles later: a system sends them, and the outside reads them

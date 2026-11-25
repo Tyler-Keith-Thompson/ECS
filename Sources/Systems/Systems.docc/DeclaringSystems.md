@@ -43,6 +43,15 @@ print(world[Position.self, of: statue].y)
 writes `Velocity` or `Frozen`, or reads or writes `Position`, and runs at the same time as any
 other.
 
+A parameter's filter is a list of filter types in `Where`: ``/WorldModule/With``,
+``/WorldModule/Without``, ``/WorldModule/Added``, ``/WorldModule/Changed``,
+``/WorldModule/Allows`` and ``/WorldModule/AnyOf`` of filter types. Each mirrors the query filter
+of the same name.
+
+Two parameters that name the same component, one of them writing it, are a compile-time error.
+A conflict the macro can't see by name, such as one through a type alias, traps when a schedule
+takes the system.
+
 ### Read and Write Resources and Events
 
 A ``ResourceReader`` reads a resource and a ``ResourceWriter`` changes one. An ``EventWriter``
@@ -112,6 +121,9 @@ writes.
 Mark a system type, or its `run` method, `@MainActor` to make a ``MainActorSystem``, which a
 schedule runs on the main actor after the other systems of its wave. Use one to carry results
 from the world to a user interface.
+
+Once you've declared systems, see <doc:SchedulingSystems> to order them and run them only when
+a condition holds.
 
 ## Topics
 

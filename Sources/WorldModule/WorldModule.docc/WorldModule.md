@@ -43,6 +43,26 @@ print(world[Health.self, of: hero].current)
 // Prints "70"
 ```
 
+An entity's handle is a slot and a generation. Once the entity is despawned, its handle is
+*stale*, and it never names an entity that reuses the slot.
+
+Like an array subscript, the plain spellings trap when the entity is stale or doesn't hold the
+component. Each has a `checked` spelling that throws a typed error instead, such as
+``World/subscript(checked:of:)`` and ``World/despawn(checked:)``. For a component an entity may
+or may not hold, use the optional subscript, `world[Velocity?.self, of: hero]`, which reads `nil`
+for a missing component and removes the component when you assign `nil`.
+
+### Group Components in Bundles
+
+A ``Bundle`` names a set of components that go together, such as everything a ship starts with,
+so you can spawn, insert and remove them as one. A bundle lists its components in its `body`,
+which can use `if` and `switch`. Every component is a bundle of itself, so you can pass a single
+component wherever a bundle is expected.
+
+A component can also list the components it needs in its static `required` property. Spawning
+or inserting it adds each required component the entity lacks, and whatever those require in
+turn, while components you pass explicitly keep their values. See ``Component`` for an example.
+
 ### Query and Update Many Entities
 
 Most of the work in a game applies to every entity that holds some set of components: every
@@ -70,6 +90,18 @@ print(coordinates)
 
 Filters such as `.without(Frozen.self)` narrow which entities a query or update visits. To learn
 more, see <doc:QueryingAWorld>.
+
+### Respond to Changes
+
+A world records when each component was added and last changed, and which entities lost a
+component. Hooks and observers run code as changes happen, and events carry messages from the
+code that sends them to the code that reads them later. To learn more, see
+<doc:ReactingToChanges>.
+
+### Link Entities
+
+Relations link one entity to others, such as a unit that likes another, and the hierarchy makes
+trees of parents and children that despawn together. To learn more, see <doc:RelatingEntities>.
 
 ### Defer Structural Changes with Commands
 
@@ -111,7 +143,8 @@ print(world.resources[Elapsed.self].seconds)
 
 A world is a value: assigning it to another variable makes an independent copy. Copies share
 storage until one of them changes, so copying is cheap, and keeping an earlier state for undo, a
-replay or a comparison takes one assignment.
+replay or a comparison takes one assignment. To keep a world beyond the life of your program,
+save it; see <doc:SavingAndLoadingWorlds>.
 
 ## Topics
 
@@ -168,16 +201,19 @@ Groups are made with `group(_:)`, cached queries with `cache(_:)` and indexes by
 
 ### Detecting Changes and Removals
 
+- <doc:ReactingToChanges>
 - ``ChangeTick``
 - ``RemovedComponent``
 
 ### Disabling Entities and Using Prefabs
 
+- <doc:DisablingEntitiesAndUsingPrefabs>
 - ``Disabled``
 - ``Prefab``
 
 ### Building Hierarchies
 
+- <doc:RelatingEntities>
 - ``ChildOf``
 - ``AncestorsView``
 - ``DescendantsView``

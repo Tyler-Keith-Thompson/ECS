@@ -176,6 +176,9 @@ print(world[Position.self, of: kite].x, world[Position.self, of: rocket].x)
 // Prints "2.0 5.0"
 ```
 
+Queries and updates of one to three types have overloads that the compiler specializes for those
+types. More types go through a parameter pack, which gives the same result more slowly.
+
 An update can't read a type it changes, and its closure can't reach the world while it runs. To
 spawn, despawn or add components along the way, such as despawning the entities whose health runs
 out, record the changes in ``Commands`` and apply them after the update.
@@ -326,3 +329,20 @@ print(world.entities(sortedBy: \Health.current) == [dying, wounded, fresh])
 An ordered index costs more to keep than an index by value, since each insert, removal and
 despawn finds the entity's place in sorted order, so index a key path ordered only when you look
 it up by range or order.
+
+### Work through many entities at once
+
+A few more methods help with work that covers a large share of the world:
+
+- `spawn(contentsOf:)` spawns an entity for each element of a sequence of components, pairs,
+  triples or bundles. It finds and grows each type's storage once, rather than once per entity.
+- `parallelUpdate(_:reading:where:minimumChunk:body:)` does the work of an update spread across
+  the processor's cores, with the same result. Use it when an update visits many entities and
+  does enough work for each to be worth splitting up.
+- ``World/withSpan(of:_:)`` lends a component type's storage as spans of entities and components,
+  for loops the compiler can vectorize and for C functions that take a pointer and a count.
+  ``World/withMutableSpan(of:_:)`` changes the components in place, and marks every one of them
+  changed, whether or not the closure wrote to it.
+
+Spans include the entities a query skips, such as disabled ones, and walk the type's storage in
+its own order.
