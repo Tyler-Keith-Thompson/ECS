@@ -7,6 +7,31 @@ test that fails when the checked-in copy differs from what the generator writes 
 sources` refreshes every copy.
 """
 
+GeneratedSwiftSourcesInfo = provider(
+    doc = "Sources a generator writes at build time, each with the path of the checked-in copy SwiftPM compiles in its place.",
+    fields = {"destinations": "dict from each generated File to its copy's path from the workspace root"},
+)
+
+def _generated_swift_sources_impl(ctx):
+    package = ctx.label.package + "/" if ctx.label.package else ""
+    files = ctx.files.generated
+    return [
+        DefaultInfo(files = depset(files)),
+        GeneratedSwiftSourcesInfo(destinations = {
+            file: package + "Generated/" + file.short_path.removeprefix(package)
+            for file in files
+        }),
+    ]
+
+# The genrule's outputs, with the paths of their checked-in copies, so the simulated benchmarks
+# (tools/benchmarks.bzl) stage the generator's output where SwiftPM reads the copy. A genrule can't
+# return a provider, and `just sources` finds the genrules by kind, so this wraps one.
+_generated_swift_sources = rule(
+    implementation = _generated_swift_sources_impl,
+    doc = "A genrule's Swift sources, carrying GeneratedSwiftSourcesInfo.",
+    attrs = {"generated": attr.label(mandatory = True)},
+)
+
 _SCRIPT = """#!/bin/sh
 set -eu
 stale=0
@@ -58,7 +83,8 @@ def generated_swift_source(name, generator, srcs = [], outs = [], tags = []):
 
     With no `outs`, the generator writes one source, `name`.swift, to standard output, checked in
     as Generated/`name`.swift. With `outs`, it writes `name`/`out`.swift for each of them, getting
-    their paths as arguments before a `--`, checked in under Generated/`name`/.
+    their paths as arguments before a `--`, checked in under Generated/`name`/. The genrule is
+    `name`_generator; `name` holds its sources with GeneratedSwiftSourcesInfo.
 
     Args:
       name: The source's name, without `.swift`, or the directory of the sources.
@@ -76,11 +102,15 @@ def generated_swift_source(name, generator, srcs = [], outs = [], tags = []):
         cmd = "$(execpath {}) $(SRCS) > $@".format(generator) if srcs else "$(execpath {}) > $@".format(generator)
         checked_in = ["Generated/" + name + ".swift"]
     native.genrule(
-        name = name,
+        name = name + "_generator",
         srcs = srcs,
         outs = files,
         cmd = cmd,
         tools = [generator],
+    )
+    _generated_swift_sources(
+        name = name,
+        generated = ":" + name + "_generator",
     )
     _generated_source_test(
         name = name + "_test",
