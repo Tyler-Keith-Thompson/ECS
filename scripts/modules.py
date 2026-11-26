@@ -153,8 +153,9 @@ DOCUMENTATION = ["//:readme"] + [f"//Sources/{name}:documentation" for name in [
 # for each. `just sources` refreshes the copies, and <name>_test fails while one differs from what
 # the generator writes (tools/generated_sources.bzl). The generator gets the inputs' paths as
 # arguments; with no output names it writes the one source to standard output, with them it gets
-# the outputs' paths first, before a `--`. Simulated benchmarks stage the generator's output at the
-# copy's path (tools/benchmarks.bzl).
+# the outputs' paths first, before a `--`.
+# Simulated benchmarks stage the generator's output at the copy's path
+# (tools/benchmarks.bzl).
 # {"Greetings": [("Phrases", "//tools/phrases", ["//Sources/Greetings:phrases.txt"], [])]}
 GENERATED_SOURCES = {
     "WorldModule": [("QueryShapes", "//tools/QueryShapes", [], [])],
@@ -467,6 +468,8 @@ def swift_srcs(name, pattern='glob(["**/*.swift"])'):
     sources = GENERATED_SOURCES.get(name, [])
     if not sources:
         return pattern
+    # allow_empty: a target whose only sources are generated (a test target of the docs' examples)
+    # has nothing left once its copies are excluded.
     return pattern[:-1] + ', exclude = ["Generated/**"], allow_empty = True)' + " + [" + ", ".join(f'":{s}"' for s, _, _, _ in sources) + "]"
 
 

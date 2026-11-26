@@ -1,8 +1,9 @@
 {
-  "commit": "1439e7c291b20938112cd37f5cb754d51f3477bf",
+  "commit": "1670cb24f897f6ac94a1b3a2b5243e867e098aa4",
   "name": "ECS",
   "type": "library",
   "benchmarks": true,
   "fly": false,
-  "database": false
+  "database": false,
+  "performance": true
 }
