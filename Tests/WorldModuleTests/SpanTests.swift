@@ -24,7 +24,6 @@ struct SpanTests {
     @Test("A mutable span of a type no entity holds is empty and leaves the world without the type")
     func emptyMutableType() {
         var world = World()
-        // A closure literal: Swift 6.3 cannot pass a named function taking an inout MutableSpan.
         let found: Int = world.withMutableSpan(of: Health.self) { entities, values in
             entities.count + values.count
         }

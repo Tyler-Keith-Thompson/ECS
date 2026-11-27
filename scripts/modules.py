@@ -264,8 +264,8 @@ MACOS_MINIMUM = "15.0"
 # To raise the floor, change both and run `just modules`: it writes them into the generated
 # manifests and replaces the previous ones in SWIFT_SITES. CI needs a swift-bazel image of the new
 # version (the project template's ci-image/build.sh publishes them).
-SWIFT = "6.3"
-SWIFT_TOOLCHAIN = "6.3.3"
+SWIFT = "6.4"
+SWIFT_TOOLCHAIN = "6.4.3"
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

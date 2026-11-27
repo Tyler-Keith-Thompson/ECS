@@ -17,7 +17,7 @@ or a rollback, and the copy shares storage until one side writes.
 
 ## Installation
 
-ECS requires Swift 6.3 and supports macOS 15, iOS 18, tvOS 18, watchOS 11 and visionOS 2
+ECS requires Swift 6.4 and supports macOS 15, iOS 18, tvOS 18, watchOS 11 and visionOS 2
 or later.
 
 Add the package to your `Package.swift`:

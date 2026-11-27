@@ -3,7 +3,7 @@
 ECS is a generic entity component system for games, simulations and anything that updates many
 similar things per step. It optimizes for iteration speed (sparse-set storage, fixed-arity
 specializations of queries and updates) and for value semantics (a `World` is a copy-on-write
-value). Swift 6.3 (minimum).
+value). Swift 6.4 (minimum).
 Bazel is the development build; SwiftPM is the published package. `README.md` is the user-facing
 overview.
 
